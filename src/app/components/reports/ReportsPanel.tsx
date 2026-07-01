@@ -1,0 +1,64 @@
+import { useState } from "react";
+import { Eye, Download, X, Printer,
+  FileBarChart2, ArrowUpFromLine, ArrowDownToLine, CalendarDays, FileStack, FileClock } from "lucide-react";
+import { t } from "../../constants/translations";
+import type { Lang } from "../../types";
+
+const REPORT_CARDS = [
+  { id: "stock", icon: FileBarChart2, title: "Current Stock Report", titleSi: "වත්මන් තොග වාර්තාව", desc: "Full inventory snapshot with quantities and reorder status.", descSi: "ගබඩා දෙකෙහිම ප්‍රමාණ හා නැවත ඇණවුම් තත්ත්වය.", color: "bg-blue-50 text-[#4295D9]" },
+  { id: "issue", icon: ArrowUpFromLine, title: "Issue Report", titleSi: "ගිලිහීම් වාර්තාව", desc: "All goods issued within a selected period.", descSi: "තෝරාගත් කාලය තුළ ගිලිහූ සියලු භාණ්ඩ.", color: "bg-green-50 text-green-600" },
+  { id: "receipt", icon: ArrowDownToLine, title: "Receipt Report", titleSi: "රිසිට් වාර්තාව", desc: "Stock received from suppliers with GRN numbers.", descSi: "GRN අංක සහිත සැපයුම්කරුවන්ගෙන් ලැබූ තොග.", color: "bg-purple-50 text-purple-600" },
+  { id: "monthly", icon: CalendarDays, title: "Monthly Report", titleSi: "මාසික වාර්තාව", desc: "Consolidated monthly summary of receipts and issues.", descSi: "රිසිට්, ගිලිහීම් මාසික සාරාංශය.", color: "bg-amber-50 text-amber-600" },
+  { id: "annual", icon: FileStack, title: "Annual Report", titleSi: "වාර්ෂික වාර්තාව", desc: "Year-end comprehensive report for audit purposes.", descSi: "විගණන අරමුණු සඳහා වාර්ෂික සාරාංශය.", color: "bg-red-50 text-red-600" },
+  { id: "officer", icon: FileClock, title: "Officer / DS Office Request Report", titleSi: "නිලධාරී ඉල්ලීම් වාර්තාව", desc: "All requests grouped by officer and division.", descSi: "නිලධාරී, DS කාර්යාලය, ආයතනය අනුව ඉල්ලීම්.", color: "bg-teal-50 text-teal-600" },
+];
+
+export function ReportsPanel({ lang }: { lang: Lang }) {
+  const [previewing, setPreviewing] = useState<string | null>(null);
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-gray-500">{t(lang, "Select a report to preview or download as PDF.", "PDF ලෙස බාගත කිරීමට හෝ පෙරදර්ශනය සඳහා වාර්තාවක් තෝරන්න.")}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {REPORT_CARDS.map((r) => {
+          const Icon = r.icon;
+          return (
+            <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-sm transition-all flex flex-col">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${r.color}`}><Icon className="w-5 h-5" /></div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-1">{t(lang, r.title, r.titleSi)}</h3>
+              <p className="text-xs text-gray-400 leading-relaxed flex-1 mb-5">{t(lang, r.desc, r.descSi)}</p>
+              <div className="flex gap-2">
+                <button onClick={() => setPreviewing(r.id)} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-all flex-1 justify-center">
+                  <Eye className="w-3.5 h-3.5" />{t(lang, "Preview", "පෙරදර්ශනය")}
+                </button>
+                <button className="flex items-center gap-1.5 px-3 py-2 bg-[#4295D9] text-white text-xs font-semibold rounded-lg hover:bg-[#3280C4] transition-all flex-1 justify-center">
+                  <Download className="w-3.5 h-3.5" />{t(lang, "Download PDF", "PDF බාගත")}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {previewing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">{t(lang, REPORT_CARDS.find((r) => r.id === previewing)?.title || "", REPORT_CARDS.find((r) => r.id === previewing)?.titleSi || "")}</h3>
+              <button onClick={() => setPreviewing(null)} className="text-gray-400 hover:text-gray-600 transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6">
+              <div className="bg-gray-50 rounded-xl border border-dashed border-gray-200 h-56 flex flex-col items-center justify-center text-gray-400">
+                <Printer className="w-8 h-8 mb-2" />
+                <p className="text-sm font-medium">{t(lang, "Report Preview", "වාර්තා පෙරදර්ශනය")}</p>
+                <p className="text-xs mt-1">{t(lang, "Generated: June 17, 2024", "ජනනය: 2024 ජූනි 17")}</p>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <button onClick={() => setPreviewing(null)} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all">{t(lang, "Close", "වසන්න")}</button>
+                <button className="flex-1 py-2.5 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all flex items-center justify-center gap-2"><Download className="w-4 h-4" />{t(lang, "Download PDF", "PDF බාගත")}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

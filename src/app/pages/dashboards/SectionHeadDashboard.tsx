@@ -1,0 +1,28 @@
+import { useState } from "react";
+import { DashboardLayout } from "../../components/layout/DashboardLayout";
+import { MonthlyRequestStatus } from "../../components/requests/MonthlyRequestStatus";
+import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
+import { RequestForm } from "../../components/requests/RequestForm";
+import { RecommendationQueue } from "../../components/requests/RecommendationQueue";
+import { ReportsPanel } from "../../components/reports/ReportsPanel";
+import { SettingsScreen } from "../../components/settings/SettingsScreen";
+import type { Lang } from "../../types";
+
+export function SectionHeadDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
+  const [activeNav, setActiveNav] = useState("dashboard");
+  const [showNewRequest, setShowNewRequest] = useState(false);
+  const role = "SECTION_HEAD" as const;
+
+  return (
+    <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav}
+      setActiveNav={(id) => { setActiveNav(id); setShowNewRequest(false); }}
+      onLogout={onLogout}>
+      {activeNav === "dashboard" && <MonthlyRequestStatus lang={lang} onNewRequest={() => { setActiveNav("requests"); setShowNewRequest(true); }} />}
+      {activeNav === "requests" && !showNewRequest && <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} />}
+      {activeNav === "requests" && showNewRequest && <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} />}
+      {activeNav === "recommend" && <RecommendationQueue lang={lang} />}
+      {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
+    </DashboardLayout>
+  );
+}
