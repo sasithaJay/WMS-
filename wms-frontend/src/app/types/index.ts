@@ -15,8 +15,18 @@ export type Role =
   | "DIVISIONAL_SECRETARIAT";
 export type DashTab = "personal" | "summary";
 export type UserType = "all" | "staff" | "institution" | "ds";
-export type StatusType = "pending" | "approved" | "issued" | "rejected";
-export type RequestStatus = "pending" | "approved" | "issued" | "rejected";
+export type StatusType =
+  | "pending"
+  | "approved"
+  | "issued"
+  | "rejected"
+  | "pending_issue"
+  | "partially_issued"
+  | "cancelled";
+
+export type RequestStatus = StatusType;
+// export type StatusType = "pending" | "approved" | "issued" | "rejected";
+// export type RequestStatus = "pending" | "approved" | "issued" | "rejected";
 
 export interface NavItem {
   icon: any;

@@ -5,6 +5,8 @@ import { t } from "../../constants/translations";
 import { ROLE_LABELS } from "../../constants/roles";
 import { getRoleUserName } from "../../utils/roleHelpers";
 import type { Lang, Role, DashTab } from "../../types";
+import { DashboardOverview } from "../dashboard/DashboardOverview";
+import { DashboardMyView } from "../dashboard/DashboardMyView";
 
 const NAV_TITLES: Record<string, { en: string; si: string }> = {
   dashboard: { en: "Dashboard", si: "උපකරණ පුවරුව" },
@@ -56,6 +58,7 @@ export function DashboardLayout({
     if (h < 17) return t(lang, "Good afternoon", "සුභ දහවලක්");
     return t(lang, "Good evening", "සුභ සැන්දෑවක්");
   };
+  console.log("ACTIVE NAV:", activeNav, "DASH TAB:", dashTab);
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
@@ -102,7 +105,17 @@ export function DashboardLayout({
               </div>
             </div>
           )}
-          {children}
+          {/* {children} */}
+
+          {activeNav === "dashboard" ? (
+            dashTab === "summary" ? (
+              <DashboardOverview lang={lang} />
+            ) : (
+              <DashboardMyView lang={lang} />
+            )
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>
