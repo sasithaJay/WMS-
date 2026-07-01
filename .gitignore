@@ -1,4 +1,5 @@
 node_modules/
+wms-frontend/node_modules/
 dist/
 build/
 
