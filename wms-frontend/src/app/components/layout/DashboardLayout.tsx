@@ -88,7 +88,7 @@ export function DashboardLayout({
                       <button
                         key={tab}
                         onClick={() => setDashTab(tab)}
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer ${
                           dashTab === tab ? "bg-white text-[#4295D9]" : "text-blue-100 hover:text-white"
                         }`}
                       >

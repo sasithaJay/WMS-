@@ -9,6 +9,7 @@ export function RequestForm({ lang, role, onCancel }: { lang: Lang; role: Role; 
   const [rows, setRows] = useState([{ itemCode: "", qty: 1, unit: "" }]);
   const [notes, setNotes] = useState("");
   const [search, setSearch] = useState("");
+  const [selectedStore, setSelectedStore] = useState("");
   const isFA = role === "SECTION_HEAD";
 
   const addRow = () => setRows((r) => [...r, { itemCode: "", qty: 1, unit: "" }]);
@@ -16,9 +17,11 @@ export function RequestForm({ lang, role, onCancel }: { lang: Lang; role: Role; 
   const setRow = (i: number, key: string, val: string | number) =>
     setRows((r) => r.map((row, idx) => idx === i ? { ...row, [key]: val } : row));
 
+
   const filteredItems = INVENTORY_ITEMS.filter((it) =>
     it.name.toLowerCase().includes(search.toLowerCase()) || it.code.includes(search)
   );
+
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -45,6 +48,30 @@ export function RequestForm({ lang, role, onCancel }: { lang: Lang; role: Role; 
 
       <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
         <h3 className="font-semibold text-gray-900">{t(lang, "Requested Items", "ඉල්ලූ භාණ්ඩ")}</h3>
+        {role === "COMMISSIONER" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t(lang, "Store / Division", "ගබඩාව / අංශය")}
+            </label>
+
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">
+                {t(lang, "Select store...", "ගබඩාව තෝරන්න...")}
+              </option>
+              <option value="social_services">
+                {t(lang, "Social Services Division Store", "සමාජ සේවා අංශ ගබඩාව")}
+              </option>
+              <option value="child_services">
+                {t(lang, "Child Services Division Store", "ළමා සේවා අංශ ගබඩාව")}
+              </option>
+            </select>
+          </div>
+        )}
+
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -56,16 +83,23 @@ export function RequestForm({ lang, role, onCancel }: { lang: Lang; role: Role; 
             <div key={i} className="flex gap-3 items-end">
               <div className="flex-1">
                 {i === 0 && <label className="block text-xs font-medium text-gray-500 mb-1">{t(lang, "Item", "භාණ්ඩය")}</label>}
+
                 <select
+                  disabled={role === "COMMISSIONER" && !selectedStore}
                   value={row.itemCode}
                   onChange={(e) => {
                     const it = INVENTORY_ITEMS.find((x) => x.code === e.target.value);
                     setRow(i, "itemCode", e.target.value);
                     setRow(i, "unit", it?.unit || "");
                   }}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white appearance-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="">{t(lang, "Select item…", "භාණ්ඩය තෝරන්න…")}</option>
+   
+                  <option value="">
+                    {role === "COMMISSIONER" && !selectedStore
+                      ? t(lang, "Select store first…", "පළමුව ගබඩාව තෝරන්න…")
+                      : t(lang, "Select item…", "භාණ්ඩය තෝරන්න…")}
+                  </option>
                   {(search ? filteredItems : INVENTORY_ITEMS).map((it) => (
                     <option key={it.code} value={it.code}>{it.name} ({it.code})</option>
                   ))}
