@@ -7,6 +7,8 @@ import { RecommendationQueue } from "../../components/requests/RecommendationQue
 import { ReportsPanel } from "../../components/reports/ReportsPanel";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang, DashTab } from "../../types";
+import { UserManagementTable } from "../../components/users/UserManagementTable";
+import { UserVerificationTable } from "../../components/users/UserVerificationTable";
 
 export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -23,6 +25,12 @@ export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { la
       {activeNav === "requests" && showNewRequest && <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} />}
       {activeNav === "recommend" && <RecommendationQueue lang={lang} />}
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "users" && (
+        <div className="space-y-6">
+          <UserVerificationTable lang={lang} />
+          <UserManagementTable lang={lang} />
+        </div>
+      )}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

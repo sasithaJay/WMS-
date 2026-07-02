@@ -22,32 +22,45 @@ export function Sidebar({
   onToggle: () => void;
   onLogout: () => void;
 }) {
-  const nav = NAV_ITEMS[role];
+  const nav = NAV_ITEMS[role] ?? [];
   const roleLabel = ROLE_LABELS[role] ?? { en: role, si: role };
   const userName = getRoleUserName(role);
 
   return (
     <aside
       className={`flex flex-col bg-white border-r border-gray-100 transition-all duration-300 ${
-        collapsed ? "w-[68px]" : "w-[220px]"
+        collapsed ? "w-[60px]" : "w-[220px]"
       } min-h-screen`}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
-        <div className="w-9 h-9 rounded-xl bg-[#4295D9] flex items-center justify-center flex-shrink-0">
-          <Warehouse className="w-5 h-5 text-white" />
-        </div>
+
+      {/* Logo / Toggle */}
+      <div
+        className={`flex items-center border-b border-gray-100 ${
+          collapsed ? "justify-center px-0 py-5" : "gap-3 px-4 py-5"
+        }`}
+      >
         {!collapsed && (
-          <div className="overflow-hidden">
-            <div className="text-sm font-bold text-gray-900 leading-tight">WMS</div>
-            <div className="text-[10px] text-gray-400 leading-tight">Gov. Sri Lanka</div>
-          </div>
+          <>
+            <div className="w-9 h-9 rounded-xl bg-[#4295D9] flex items-center justify-center flex-shrink-0">
+              <Warehouse className="w-5 h-5 text-white" />
+            </div>
+
+            <div className="overflow-hidden">
+              <div className="text-sm font-bold text-gray-900 leading-tight">WMS</div>
+              <div className="text-[10px] text-gray-400 leading-tight">
+                Gov. Sri Lanka
+              </div>
+            </div>
+          </>
         )}
+
         <button
           onClick={onToggle}
-          className="ml-auto text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+          className={`text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 ${
+            collapsed ? "" : "ml-auto"
+          }`}
         >
-          {collapsed ? <Menu className="w-4 h-4" /> : <X className="w-4 h-4" />}
+          {collapsed ? <Menu className="w-5 h-5" /> : <X className="w-4 h-4" />}
         </button>
       </div>
 

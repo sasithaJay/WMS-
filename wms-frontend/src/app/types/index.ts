@@ -2,6 +2,7 @@ export type Lang = "en" | "si";
 export type Screen = "login" | "register" | "dashboard";
 export type DashRole = "requester" | "approver" | "storekeeper";
 export type Role =
+  | "ADMIN"
   | "COMMISSIONER"
   | "ASSISTANT_COMMISSIONER"
   | "ASSISTANT_DIRECTOR"
@@ -102,6 +103,7 @@ export interface PendingUser {
 }
 
 export interface ActiveUser {
+  username: string;
   name: string;
   role: string;
   division: string;

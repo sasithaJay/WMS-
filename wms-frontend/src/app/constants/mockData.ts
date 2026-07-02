@@ -81,12 +81,12 @@ export const PENDING_USERS = [
 ];
 
 export const ACTIVE_USERS = [
-  { name: "Nimal Perera", role: "Development Officer", division: "SS", section: "Development", status: "active" as const },
-  { name: "P.K. Jayasena", role: "Social Service Officer", division: "SS", section: "Institutional", status: "active" as const },
-  { name: "D.M. Perera", role: "Probation Officer", division: "PC", section: "Probation", status: "active" as const },
-  { name: "Karandeniya Children's Home", role: "Institution", division: "PC", section: "—", status: "active" as const },
-  { name: "Galle DS Office", role: "DS Office", division: "SS", section: "—", status: "inactive" as const },
-  { name: "Ranjith Fernando", role: "Store Keeper", division: "SS", section: "Accounts", status: "active" as const },
+  { username: "Nima",name: "Nimal Perera", role: "Development Officer", division: "SS", section: "Development", status: "active" as const },
+  { username: "Jaye",name: "P.K. Jayasena", role: "Social Service Officer", division: "SS", section: "Institutional", status: "active" as const },
+  { username: "d.m.perera",name: "D.M. Perera", role: "Probation Officer", division: "PC", section: "Probation", status: "active" as const },
+  { username: "karandeniya.childrens.home",name: "Karandeniya Children's Home", role: "Institution", division: "PC", section: "—", status: "active" as const },
+  { username: "galle.ds.office",name: "Galle DS Office", role: "DS Office", division: "SS", section: "—", status: "inactive" as const },
+  { username: "ranjith.fernando",name: "Ranjith Fernando", role: "Store Keeper", division: "SS", section: "Accounts", status: "active" as const },
 ];
 
 export const ALL_REQUESTS = [

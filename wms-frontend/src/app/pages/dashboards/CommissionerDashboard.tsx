@@ -37,7 +37,7 @@ export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang;
       {activeNav === "users" && (
         <div className="space-y-6">
           <UserVerificationTable lang={lang} />
-          <UserManagementTable lang={lang} />
+          {/* <UserManagementTable lang={lang} /> */}
         </div>
       )}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
