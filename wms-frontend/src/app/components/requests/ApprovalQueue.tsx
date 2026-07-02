@@ -7,6 +7,11 @@ import type { Lang } from "../../types";
 
 export function ApprovalQueue({ lang }: { lang: Lang }) {
   const [approved, setApproved] = useState<string[]>([]);
+  const [rejected, setRejected] = useState<{ ref: string; reason: string }[]>([]);
+  const [rejectingRef, setRejectingRef] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [qtyChangeComments, setQtyChangeComments] = useState<Record<string, string>>({});
+
   const [qtys, setQtys] = useState<Record<string, Record<string, number>>>(() => {
     const init: Record<string, Record<string, number>> = {};
     APPROVE_QUEUE.forEach((r) => {
@@ -16,7 +21,23 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
     return init;
   });
 
-  const visible = APPROVE_QUEUE.filter((r) => !approved.includes(r.ref));
+  //const visible = APPROVE_QUEUE.filter((r) => !approved.includes(r.ref));
+  const visible = APPROVE_QUEUE.filter(
+    (r) =>
+      !approved.includes(r.ref) &&
+      !rejected.some((item) => item.ref === r.ref)
+  );
+
+  const hasQuantityChanges = (ref: string) => {
+    const request = APPROVE_QUEUE.find((r) => r.ref === ref);
+
+    if (!request) return false;
+
+    return request.items.some((it) => {
+      const approvedQty = qtys[ref]?.[it.name] ?? it.requested;
+      return approvedQty !== it.requested;
+    });
+  };
 
   if (visible.length === 0) {
     return (
@@ -84,15 +105,91 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
             {t(lang, "You may reduce quantities before approving.", "අනුමත කිරීමට පෙර ප්‍රමාණ අඩු කළ හැකිය.")}
           </div>
 
+          {hasQuantityChanges(r.ref) && (
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              {t(
+                lang,
+                "Reason for quantity change",
+                "ප්‍රමාණය වෙනස් කිරීමට හේතුව"
+              )}
+            </label>
+
+            <textarea
+              value={qtyChangeComments[r.ref] ?? ""}
+              onChange={(e) =>
+                setQtyChangeComments((prev) => ({
+                  ...prev,
+                  [r.ref]: e.target.value,
+                }))
+              }
+              rows={3}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4295D9]/20 focus:border-[#4295D9]"
+              placeholder={t(
+                lang,
+                "Example: Only partial stock is available.",
+                "උදාහරණය: තොගයේ පවතින්නේ කොටස් ප්‍රමාණයක් පමණි."
+              )}
+            />
+          </div>
+        )}
+
           <div className="flex gap-2">
             <button
-              onClick={() => setApproved((a) => [...a, r.ref])}
+              onClick={() => {
+                setRejectingRef(r.ref);
+                setRejectReason("");
+              }}
               className="flex-1 py-2 border-2 border-red-200 text-red-600 text-sm font-semibold rounded-xl hover:bg-red-50 transition-all"
             >
               {t(lang, "Reject", "ප්‍රතික්ෂේප")}
             </button>
             <button
-              onClick={() => setApproved((a) => [...a, r.ref])}
+              onClick={() => {
+                const changed = hasQuantityChanges(r.ref);
+                const comment = qtyChangeComments[r.ref]?.trim() ?? "";
+
+                const hasInvalidQty = r.items.some((it) => {
+                  const approvedQty = qtys[r.ref]?.[it.name] ?? it.requested;
+                  return approvedQty < 0 || approvedQty > it.requested;
+                });
+
+                if (hasInvalidQty) {
+                  alert(
+                    t(
+                      lang,
+                      "Approved quantity must be between 0 and requested quantity.",
+                      "අනුමත ප්‍රමාණය 0 සහ ඉල්ලූ ප්‍රමාණය අතර විය යුතුය."
+                    )
+                  );
+                  return;
+                }
+
+                if (changed && !comment) {
+                  alert(
+                    t(
+                      lang,
+                      "Please enter a reason for changing the quantity.",
+                      "ප්‍රමාණය වෙනස් කිරීමට හේතුවක් ඇතුළත් කරන්න."
+                    )
+                  );
+                  return;
+                }
+
+                setApproved((a) => [...a, r.ref]);
+
+                console.log({
+                  ref: r.ref,
+                  status: "APPROVED",
+                  items: r.items.map((it) => ({
+                    item: it.name,
+                    requestedQuantity: it.requested,
+                    approvedQuantity: qtys[r.ref]?.[it.name] ?? it.requested,
+                    unit: it.unit,
+                  })),
+                  quantityChangeComment: changed ? comment : null,
+                });
+              }}
               className="flex-1 py-2 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all"
             >
               {t(lang, "Approve", "අනුමත")}
@@ -100,6 +197,66 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
           </div>
         </div>
       ))}
+      {rejectingRef && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  {t(lang, "Reject Request", "ඉල්ලීම ප්‍රතික්ෂේප කරන්න")}
+                </h3>
+
+                <p className="text-sm text-gray-500 mb-4">
+                  {t(
+                    lang,
+                    "Please enter the reason for rejecting this request.",
+                    "මෙම ඉල්ලීම ප්‍රතික්ෂේප කිරීමට හේතුව ඇතුළත් කරන්න."
+                  )}
+                </p>
+
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={4}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
+                  placeholder={t(lang, "Enter reject reason...", "ප්‍රතික්ෂේප හේතුව ඇතුළත් කරන්න...")}
+                />
+
+                <div className="flex gap-2 mt-5">
+                  <button
+                    onClick={() => {
+                      setRejectingRef(null);
+                      setRejectReason("");
+                    }}
+                    className="flex-1 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                  >
+                    {t(lang, "Cancel", "අවලංගු කරන්න")}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!rejectReason.trim()) {
+                        alert(t(lang, "Reject reason is required", "ප්‍රතික්ෂේප හේතුව අවශ්‍යයි"));
+                        return;
+                      }
+
+                      setRejected((prev) => [
+                        ...prev,
+                        {
+                          ref: rejectingRef,
+                          reason: rejectReason.trim(),
+                        },
+                      ]);
+
+                      setRejectingRef(null);
+                      setRejectReason("");
+                    }}
+                    className="flex-1 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-all"
+                  >
+                    {t(lang, "Confirm Reject", "ප්‍රතික්ෂේප කිරීම තහවුරු කරන්න")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
     </div>
   );
 }
