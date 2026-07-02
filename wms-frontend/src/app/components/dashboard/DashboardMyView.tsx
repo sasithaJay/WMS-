@@ -1,11 +1,11 @@
 import { Clock, CheckCircle, FileText, PlusCircle } from "lucide-react";
 import { StatCard } from "../common/StatCard";
 import { t } from "../../constants/translations";
-import type { Lang } from "../../types";
+import type { Lang, Role } from "../../types";
 import { PendingRequestTable } from "./PendingRequestTable";
 import { RecentActivityTable } from "./RecentActivityTable";
 
-export function DashboardMyView({ lang }: { lang: Lang }) {
+export function DashboardMyView({ lang, role }: { lang: Lang; role: Role }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

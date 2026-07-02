@@ -7,6 +7,7 @@ import { getRoleUserName } from "../../utils/roleHelpers";
 import type { Lang, Role, DashTab } from "../../types";
 import { DashboardOverview } from "../dashboard/DashboardOverview";
 import { DashboardMyView } from "../dashboard/DashboardMyView";
+import { DashboardChart } from "../dashboard/DashboardChart";
 
 const NAV_TITLES: Record<string, { en: string; si: string }> = {
   dashboard: { en: "Dashboard", si: "උපකරණ පුවරුව" },
@@ -107,11 +108,27 @@ export function DashboardLayout({
           )}
           {/* {children} */}
 
-          {activeNav === "dashboard" ? (
+          {/* {activeNav === "dashboard" && role === "COMMISSIONER" ? (
             dashTab === "summary" ? (
               <DashboardOverview lang={lang} />
             ) : (
-              <DashboardMyView lang={lang} />
+              <DashboardMyView lang={lang} role={role} />
+            )
+          ) : (
+            children
+          )} */}
+
+          {activeNav === "dashboard" ? (
+            dashTab === "summary" ? (
+              role === "STORE_KEEPER" ? (
+                children
+              ) : (
+                 <DashboardOverview lang={lang} />
+              )
+            ) : role === "COMMISSIONER" ? (
+              <DashboardMyView lang={lang} role={role} />
+            ) : (
+              children
             )
           ) : (
             children

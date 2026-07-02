@@ -16,14 +16,16 @@ import { StatCard } from "../../components/common/StatCard";
 import { Package, AlertTriangle, ArrowDownToLine, Warehouse } from "lucide-react";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
+import { DashTab } from "../../types";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [dashTab, setDashTab] = useState<DashTab>("personal");
   const [showAddItem, setShowAddItem] = useState(false);
   const role = "STORE_KEEPER" as const;
 
   return (
-    <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav} setActiveNav={setActiveNav} onLogout={onLogout}>
+    <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav} setActiveNav={setActiveNav} onLogout={onLogout} canSeeSummary={true} dashTab={dashTab} setDashTab={setDashTab}>
       {activeNav === "dashboard" && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
