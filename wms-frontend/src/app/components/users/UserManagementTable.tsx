@@ -123,12 +123,6 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                 </td>
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => openEditModal(u)}
-                      className="text-xs text-[#4295D9] font-medium hover:underline"
-                    >
-                      {t(lang, "Edit", "සංස්කරණය")}
-                    </button>
 
                     <button
                       onClick={() => {
