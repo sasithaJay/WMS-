@@ -102,7 +102,7 @@ export function RegisterPage({
                 <p className="text-sm text-gray-600 mb-4">{t(lang, "Select the division you belong to:", "ඔබ අයත් කොට්ඨාශය තෝරන්න:")}</p>
                 {[
                   { id: "ss" as const, title: t(lang, "Social Services Division", "සමාජ සේවා කොට්ඨාශය"), desc: t(lang, "Access to Social Services store and resources", "සමාජ සේවා ගබඩාවට ප්‍රවේශය"), icon: <User className="w-6 h-6" /> },
-                  { id: "pc" as const, title: t(lang, "Probation & Child Care Division", "ස්ථාවරත්ව හා ළමා රැකවරණ කොට්ඨාශය"), desc: t(lang, "Access to Probation & Child Care store and resources", "ස්ථාවරත්ව ගබඩාවට ප්‍රවේශය"), icon: <Building2 className="w-6 h-6" /> },
+                  { id: "pc" as const, title: t(lang, "Probation & Child Care Division", "පරිවාස හා ළමා රැකවරණ කොට්ඨාශය"), desc: t(lang, "Access to Probation & Child Care store and resources", "පරිවාස ගබඩාවට ප්‍රවේශය"), icon: <Building2 className="w-6 h-6" /> },
                 ].map((d) => (
                   <button key={d.id} onClick={() => setDivision(d.id)}
                     className={`w-full p-5 rounded-xl border-2 text-left transition-all flex items-start gap-4 ${division === d.id ? "border-[#4295D9] bg-[#EBF4FD]" : "border-gray-200 hover:border-gray-300 bg-white"}`}>
@@ -118,7 +118,7 @@ export function RegisterPage({
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
                     {division === "ss"
                       ? t(lang, "You will have access to the Social Services store (2 institutions).", "ඔබට සමාජ සේවා ගබඩාවට ප්‍රවේශය ලැබෙනු ඇත (ආයතන 2).")
-                      : t(lang, "You will have access to the Probation & Child Care store (17 institutions).", "ඔබට ස්ථාවරත්ව ගබඩාවට ප්‍රවේශය ලැබෙනු ඇත (ආයතන 17).")}
+                      : t(lang, "You will have access to the Probation & Child Care store (17 institutions).", "ඔබට පරිවාස ගබඩාවට ප්‍රවේශය ලැබෙනු ඇත (ආයතන 17).")}
                   </div>
                 )}
               </div>
@@ -165,7 +165,6 @@ export function RegisterPage({
                     </div>
                     {select("section", "Section", "අංශය", division === "ss" ? SECTIONS_SS : SECTIONS_PC)}
                     {select("jobRole", "Job Role", "රැකියා කාර්යභාරය", JOB_ROLES)}
-                    {select("district", "District", "දිස්ත්‍රික්කය", DISTRICTS)}
                     {field("empId", "Employee ID", "සේවක ID")}
                   </>
                 )}

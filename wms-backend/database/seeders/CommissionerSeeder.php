@@ -26,8 +26,11 @@ class CommissionerSeeder extends Seeder
             [
                 'role_id' => $commissionerRole->id,
                 'division_id' => null,
+                'section_id' => null,
                 'employee_number' => 'COM-001',
+                'nic_number' => 'COMMISSIONER-001',
                 'name' => 'Commissioner',
+                'username' => 'commissioner',
                 'phone' => null,
                 'password' => 'ChangeMe123!',
                 'account_status' => 'ACTIVE',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Role;
+use App\Models\Section;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,10 +16,38 @@ class RegisterController extends Controller
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'division_id' => [
+                'required',
+                'integer',
+                Rule::exists('divisions', 'id')
+                    ->where('is_active', true),
+            ],
+
+            'section_id' => [
+                'required',
+                'integer',
+                Rule::exists('sections', 'id')
+                    ->where('is_active', true),
+            ],
+
+            'role_id' => [
+                'required',
+                'integer',
+                Rule::exists('roles', 'id')
+                    ->where('is_active', true),
+            ],
+
             'name' => [
                 'required',
                 'string',
                 'max:255',
+            ],
+
+            'nic_number' => [
+                'required',
+                'string',
+                'max:20',
+                'unique:users,nic_number',
             ],
 
             'email' => [
@@ -41,18 +70,12 @@ class RegisterController extends Controller
                 'unique:users,employee_number',
             ],
 
-            'role_id' => [
+            'username' => [
                 'required',
-                'integer',
-                Rule::exists('roles', 'id')
-                    ->where('is_active', true),
-            ],
-
-            'division_id' => [
-                'required',
-                'integer',
-                Rule::exists('divisions', 'id')
-                    ->where('is_active', true),
+                'string',
+                'min:4',
+                'max:50',
+                'unique:users,username',
             ],
 
             'password' => [
@@ -64,8 +87,6 @@ class RegisterController extends Controller
 
         $role = Role::findOrFail($validated['role_id']);
 
-        // Prevent users from registering themselves
-        // as privileged system roles.
         if (in_array($role->code, [
             'COMMISSIONER',
             'ADMIN',
@@ -75,13 +96,24 @@ class RegisterController extends Controller
             ], 422);
         }
 
+        $section = Section::findOrFail($validated['section_id']);
+
+        if ($section->division_id !== (int) $validated['division_id']) {
+            return response()->json([
+                'message' => 'The selected section does not belong to the selected division.',
+            ], 422);
+        }
+
         $user = User::create([
+            'division_id' => $validated['division_id'],
+            'section_id' => $validated['section_id'],
+            'role_id' => $validated['role_id'],
             'name' => $validated['name'],
+            'nic_number' => $validated['nic_number'],
             'email' => $validated['email'],
             'phone' => $validated['phone'],
             'employee_number' => $validated['employee_number'],
-            'role_id' => $validated['role_id'],
-            'division_id' => $validated['division_id'],
+            'username' => $validated['username'],
             'password' => $validated['password'],
             'account_status' => 'PENDING',
         ]);
@@ -91,6 +123,7 @@ class RegisterController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
+                'username' => $user->username,
                 'email' => $user->email,
                 'account_status' => $user->account_status,
             ],
