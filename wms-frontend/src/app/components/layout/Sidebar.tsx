@@ -49,7 +49,7 @@ export function Sidebar({
             <div className="overflow-hidden">
               <div className="text-sm font-bold text-gray-900 leading-tight">WMS</div>
               <div className="text-[10px] text-gray-400 leading-tight">
-                Social Services & Probation & Child Care
+                Social Welfare & Probation & Child Care
               </div>
             </div>
           </>
