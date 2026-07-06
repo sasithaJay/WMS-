@@ -9,6 +9,7 @@ type UserType = "all" | "staff" | "institution" | "ds";
 export function UserManagementTable({ lang }: { lang: Lang }) {
   const [filter, setFilter] = useState<UserType>("all");
   const [search, setSearch] = useState("");
+  const [users, setUsers] = useState(ACTIVE_USERS);
 
   const typeLabel: Record<UserType, string> = {
     all: t(lang, "All Types", "සියලු"),
@@ -17,7 +18,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     ds: t(lang, "DS Office", "DS කාර්යාලය"),
   };
 
-  const activeFiltered = ACTIVE_USERS.filter(
+  const activeFiltered = users.filter(
     (u) =>
       (filter === "all" ||
         (filter === "staff" && !["Institution", "DS Office"].includes(u.role)) ||
@@ -119,6 +120,38 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                   >
                     {t(lang, "Edit", "සංස්කරණය")}
                   </button>
+                </td>
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => openEditModal(u)}
+                      className="text-xs text-[#4295D9] font-medium hover:underline"
+                    >
+                      {t(lang, "Edit", "සංස්කරණය")}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setUsers((prev) =>
+                          prev.map((item) =>
+                            item.username === u.username
+                              ? {
+                                  ...item,
+                                  status: item.status === "active" ? "inactive" : "active",
+                                }
+                              : item
+                          )
+                        );
+                      }}
+                      className={`text-xs font-medium hover:underline ${
+                        u.status === "active" ? "text-amber-600" : "text-green-600"
+                      }`}
+                    >
+                      {u.status === "active"
+                        ? t(lang, "Deactivate", "අක්‍රිය කරන්න")
+                        : t(lang, "Activate", "සක්‍රිය කරන්න")}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
