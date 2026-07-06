@@ -21,20 +21,15 @@ class CommissionerSeeder extends Seeder
 
         User::updateOrCreate(
             [
-                'email' => 'commissioner@wms.gov.lk',
+                'username' => 'commissioner',
             ],
             [
-                'role_id' => $commissionerRole->id,
-                'division_id' => null,
-                'section_id' => null,
-                'employee_number' => 'COM-001',
-                'nic_number' => 'COMMISSIONER-001',
-                'name' => 'Commissioner',
-                'username' => 'commissioner',
-                'phone' => null,
+                'email' => 'commissioner@wms.gov.lk',
                 'password' => 'ChangeMe123!',
+                'account_type' => 'STAFF',
                 'account_status' => 'ACTIVE',
                 'email_verified_at' => now(),
+                'approved_at' => now(),
             ]
         );
     }

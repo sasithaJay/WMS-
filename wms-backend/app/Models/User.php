@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -14,17 +14,14 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'role_id',
-        'division_id',
-        'section_id',
-        'employee_number',
-        'nic_number',
-        'name',
         'username',
         'email',
-        'phone',
         'password',
+        'account_type',
         'account_status',
+        'approved_by',
+        'approved_at',
+        'rejection_reason',
     ];
 
     protected $hidden = [
@@ -36,22 +33,18 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'approved_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
 
-    public function role(): BelongsTo
+    public function staffProfile(): HasOne
     {
-        return $this->belongsTo(Role::class);
+        return $this->hasOne(StaffProfile::class);
     }
 
-    public function division(): BelongsTo
+    public function organization(): HasOne
     {
-        return $this->belongsTo(Division::class);
-    }
-
-    public function section(): BelongsTo
-    {
-        return $this->belongsTo(Section::class);
+        return $this->hasOne(Organization::class);
     }
 }
