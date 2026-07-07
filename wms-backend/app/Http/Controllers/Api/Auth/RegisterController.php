@@ -66,7 +66,7 @@ class RegisterController extends Controller
         };
     }
 
-        private function registerStaff(Request $request): JsonResponse
+    private function registerStaff(Request $request): JsonResponse
         {
             $validated = $request->validate([
                 'division_id' => [
@@ -180,7 +180,7 @@ class RegisterController extends Controller
             ], 201);
         }
 
-        private function registerOrganization(
+    private function registerOrganization(
         Request $request,
         string $organizationKind
         ): JsonResponse {
