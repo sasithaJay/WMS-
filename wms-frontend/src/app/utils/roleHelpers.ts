@@ -2,6 +2,7 @@ import type { Role } from "../types";
 
 export function getRoleDashboard(role: Role): string {
   const map: Record<Role, string> = {
+    ADMIN: "AdminDashboard",
     COMMISSIONER: "CommissionerDashboard",
     ASSISTANT_COMMISSIONER: "AssistantCommissionerDashboard",
     ASSISTANT_DIRECTOR: "AssistantDirectorDashboard",
@@ -19,6 +20,7 @@ export function getRoleDashboard(role: Role): string {
 
 export function getRoleDisplayName(role: Role): string {
   const names: Record<Role, string> = {
+    ADMIN: "System Admin",
     COMMISSIONER: "Commissioner",
     ASSISTANT_COMMISSIONER: "Assistant Commissioner",
     ASSISTANT_DIRECTOR: "Assistant Director",
@@ -36,6 +38,7 @@ export function getRoleDisplayName(role: Role): string {
 
 export function getRoleUserName(role: Role): string {
   const names: Record<Role, string> = {
+    ADMIN: "System Admin",
     COMMISSIONER: "H.M. Bandara",
     ASSISTANT_COMMISSIONER: "K.L. Dissanayake",
     ASSISTANT_DIRECTOR: "S.P. Weerasekara",

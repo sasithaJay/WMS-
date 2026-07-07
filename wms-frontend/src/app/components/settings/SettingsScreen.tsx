@@ -24,31 +24,46 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
   ];
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+    <div className="max-w-6xl grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+
+      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden h-full min-h-[400px] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#EBF4FD] flex items-center justify-center">
             <User className="w-5 h-5 text-[#4295D9]" />
           </div>
-          <h3 className="font-semibold text-gray-900">{t(lang, "Account Information", "ගිණුම් තොරතුරු")}</h3>
+
+          <h3 className="font-semibold text-gray-900">
+            {t(lang, "Account Information", "ගිණුම් තොරතුරු")}
+          </h3>
         </div>
-        <div className="p-6 grid grid-cols-2 gap-x-8 gap-y-4">
-          {accountFields.map((f) => (
-            <div key={f.label}>
-              <div className="text-xs font-medium text-gray-400 mb-0.5">{f.label}</div>
-              <div className="text-sm font-semibold text-gray-900">{f.value}</div>
-            </div>
-          ))}
+
+  <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+    {accountFields.map((f) => (
+      <div key={f.label}>
+        <div className="text-xs font-medium text-gray-400 mb-0.5">
+          {f.label}
         </div>
-        <div className="px-6 pb-5">
-          <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-600 flex items-center gap-2">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-            {t(lang, "To update account details, contact your divisional administrator.", "ගිණුම් තොරතුරු යාවත්කාලීන කිරීමට ඔබගේ දිව්‍යංශ පරිපාලක සම්බන්ධ කරගන්න.")}
-          </div>
+        <div className="text-sm font-semibold text-gray-900">
+          {f.value}
         </div>
       </div>
+    ))}
+  </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+  <div className="px-6 pb-5 mt-auto">
+    <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-600 flex items-center gap-2">
+      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+
+      {t(
+        lang,
+        "To update account details, contact your divisional administrator.",
+        "ගිණුම් තොරතුරු යාවත්කාලීන කිරීමට ඔබගේ දිව්‍යංශ පරිපාලක සම්බන්ධ කරගන්න."
+      )}
+    </div>
+  </div>
+</div>
+
+      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden h-full">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#EBF4FD] flex items-center justify-center">
             <Lock className="w-5 h-5 text-[#4295D9]" />

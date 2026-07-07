@@ -7,6 +7,8 @@ import { RecommendationQueue } from "../../components/requests/RecommendationQue
 import { ReportsPanel } from "../../components/reports/ReportsPanel";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang, DashTab } from "../../types";
+import { UserManagementTable } from "../../components/users/UserManagementTable";
+import { UserVerificationTable } from "../../components/users/UserVerificationTable";
 
 export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");

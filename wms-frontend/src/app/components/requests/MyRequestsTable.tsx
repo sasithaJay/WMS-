@@ -2,7 +2,7 @@ import { useState } from "react";
 import { PlusCircle, Package, ArrowRight, AlertCircle } from "lucide-react";
 import { ALL_REQUESTS } from "../../constants/mockData";
 import { STATUS_CONFIG, t } from "../../constants/translations";
-import type { Lang, Role } from "../../types";
+import type { Lang, Role, StatusType } from "../../types";
 
 function ItemChip({ label }: { label: string }) {
   return (
@@ -67,7 +67,16 @@ export function MyRequestsTable({ lang, role, onNewRequest }: { lang: Lang; role
           </thead>
           <tbody className="divide-y divide-gray-50">
             {ALL_REQUESTS.map((r) => {
-              const sc = STATUS_CONFIG[r.status];
+              const statusKey: StatusType =
+                role === "COMMISSIONER"
+                  ? r.status === "pending" || r.status === "approved"
+                    ? "pending_issue"
+                    : r.status === "rejected"
+                      ? "cancelled"
+                      : r.status
+                  : r.status;
+
+              const sc = STATUS_CONFIG[statusKey];
               return (
                 <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-5 py-3.5 text-gray-500 text-xs whitespace-nowrap">{r.date}</td>

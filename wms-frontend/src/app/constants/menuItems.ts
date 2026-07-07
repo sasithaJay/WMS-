@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Package, ClipboardList, PlusCircle, BookOpen,
-  BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle,
+  BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle, FileText,
 } from "lucide-react";
 import type { Role } from "../types";
 
@@ -13,12 +13,40 @@ type NavItem = {
 };
 
 export const NAV_ITEMS: Record<Role, NavItem[]> = {
+  ADMIN: [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      labelSi: "උපකරණ පුවරුව",
+      icon: LayoutDashboard,
+    },
+    {
+      id: "users",
+      label: "User Management",
+      labelSi: "පරිශීලක කළමනාකරණය",
+      icon: Users,
+      badge: 5,
+    },
+    {
+      id: "reports",
+      label: "Reports",
+      labelSi: "වාර්තා",
+      icon: FileText,
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      labelSi: "සැකසීම්",
+      icon: Settings,
+    },
+  ],
+
   COMMISSIONER: [
     { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: CheckCircle, label: "Approve", labelSi: "අනුමත", id: "approve", badge: 7 },
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
-    { icon: Users, label: "User Management", labelSi: "පරිශීලක කළමනාකරණය", id: "users" },
+    { icon: Users, label: "User Verification", labelSi: "පරිශීලක කළමනාකරණය", id: "users" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
   ASSISTANT_COMMISSIONER: [

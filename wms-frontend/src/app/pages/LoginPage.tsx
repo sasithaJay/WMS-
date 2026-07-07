@@ -22,6 +22,7 @@ export function LoginPage({
   const [roleDemo, setRoleDemo] = useState<Role>("COMMISSIONER");
 
   const roles: { value: Role; label: string; labelSi: string }[] = [
+    { value: "ADMIN", label: "Admin", labelSi: "පද්ධති පරිපාලක" },
     { value: "COMMISSIONER", label: "Commissioner", labelSi: "කොමසාරිස්" },
     { value: "ASSISTANT_COMMISSIONER", label: "Asst. Commissioner", labelSi: "ස. කොමසාරිස්" },
     { value: "ASSISTANT_DIRECTOR", label: "Asst. Director", labelSi: "ස. අධ්‍යක්ෂ" },

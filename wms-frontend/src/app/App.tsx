@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "./hooks/useLanguage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { AdminDashboard } from "./pages/dashboards/AdminDashboard";
 import { CommissionerDashboard } from "./pages/dashboards/CommissionerDashboard";
 import { AssistantCommissionerDashboard } from "./pages/dashboards/AssistantCommissionerDashboard";
 import { AssistantDirectorDashboard } from "./pages/dashboards/AssistantDirectorDashboard";
@@ -33,6 +34,7 @@ export default function App() {
   const dashProps = { lang, setLang, onLogout: logout };
 
   switch (role) {
+    case "ADMIN": return <AdminDashboard {...dashProps} />;
     case "COMMISSIONER": return <CommissionerDashboard {...dashProps} />;
     case "ASSISTANT_COMMISSIONER": return <AssistantCommissionerDashboard {...dashProps} />;
     case "ASSISTANT_DIRECTOR": return <AssistantDirectorDashboard {...dashProps} />;

@@ -1,4 +1,5 @@
 export const ROLES = {
+  ADMIN: "ADMIN",
   COMMISSIONER: "COMMISSIONER",
   ASSISTANT_COMMISSIONER: "ASSISTANT_COMMISSIONER",
   ASSISTANT_DIRECTOR: "ASSISTANT_DIRECTOR",
@@ -13,6 +14,10 @@ export const ROLES = {
 } as const;
 
 export const ROLE_LABELS: Record<string, { en: string; si: string }> = {
+  ADMIN: {
+    en: "System Admin",
+    si: "පද්ධති පරිපාලක",
+  },
   COMMISSIONER: { en: "Commissioner", si: "කොමසාරිස්" },
   ASSISTANT_COMMISSIONER: { en: "Assistant Commissioner", si: "සහකාර කොමසාරිස්" },
   ASSISTANT_DIRECTOR: { en: "Assistant Director", si: "සහකාර අධ්‍යක්ෂ" },
