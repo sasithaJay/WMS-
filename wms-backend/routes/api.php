@@ -56,4 +56,26 @@ Route::middleware('auth:sanctum')
                     ]
                 );
             });
+
+        // Test route for role-based access control
+        Route::get(
+            '/test/commissioner-only',
+            function () {
+                return response()->json([
+                    'message' =>
+                        'You have Commissioner access.',
+                ]);
+            }
+        )->middleware('role:COMMISSIONER');
+
+        // Test route for institution-only access
+        Route::get(
+            '/test/institution-only',
+            function () {
+                return response()->json([
+                    'message' =>
+                        'You have Institution access.',
+                ]);
+            }
+        )->middleware('account.type:INSTITUTION');
     });

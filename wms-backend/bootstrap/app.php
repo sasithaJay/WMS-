@@ -4,7 +4,10 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Auth\AuthenticationException;
 use App\Http\Middleware\EnsureApprovalManager;
+use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\AccountTypeMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,11 +21,26 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
         'approval.manager' =>
             EnsureApprovalManager::class,
+
+        'role' =>
+            RoleMiddleware::class,
+
+        'account.type' =>
+            AccountTypeMiddleware::class,
     ]);
 
     })
+    
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
-        );
-    })->create();
+        $exceptions->render(function (
+            AuthenticationException $exception,
+            Request $request
+        ) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+        });
+    })
+    ->create();
