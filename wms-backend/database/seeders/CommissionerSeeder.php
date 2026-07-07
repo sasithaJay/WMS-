@@ -2,16 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class CommissionerSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $commissionerRole = Role::where(
@@ -19,17 +17,51 @@ class CommissionerSeeder extends Seeder
             'COMMISSIONER'
         )->firstOrFail();
 
-        User::updateOrCreate(
+        $user = User::firstOrCreate(
             [
                 'username' => 'commissioner',
             ],
             [
                 'email' => 'commissioner@wms.gov.lk',
-                'password' => 'ChangeMe123!',
+
+                'password' => Hash::make(
+                    'Commissioner@123'
+                ),
+
                 'account_type' => 'STAFF',
+
                 'account_status' => 'ACTIVE',
-                'email_verified_at' => now(),
+
+                'approved_by' => null,
+
                 'approved_at' => now(),
+
+                'rejection_reason' => null,
+            ]
+        );
+
+        StaffProfile::updateOrCreate(
+            [
+                'user_id' => $user->id,
+            ],
+            [
+                'division_id' => null,
+
+                'section_id' => null,
+
+                'role_id' => $commissionerRole->id,
+
+                'full_name' =>
+                    'Commissioner of Social Services',
+
+                'nic_number' =>
+                    'COMMISSIONER-001',
+
+                'phone' =>
+                    '0000000000',
+
+                'employee_number' =>
+                    'COMMISSIONER-001',
             ]
         );
     }
