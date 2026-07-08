@@ -73,6 +73,11 @@ class LoginController extends Controller
             'auth-token'
         )->plainTextToken;
 
+        $user->load([
+            'staffProfile.role',
+            'organization',
+        ]);
+
         return response()->json([
             'message' => 'Login successful.',
 
@@ -84,6 +89,7 @@ class LoginController extends Controller
                 'email' => $user->email,
                 'account_type' => $user->account_type,
                 'account_status' => $user->account_status,
+                'role' => $user->staffProfile?->role?->code,
             ],
         ]);
     }

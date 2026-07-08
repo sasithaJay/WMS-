@@ -14,6 +14,7 @@ export interface User {
   email: string;
   account_type: AccountType;
   account_status: AccountStatus;
+  role: string | null;
 }
 
 export interface LoginResponse {
