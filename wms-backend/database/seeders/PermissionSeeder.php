@@ -67,10 +67,52 @@ class PermissionSeeder extends Seeder
             ],
 
             [
+                'name' => 'Adjust Recommendation',
+                'code' => 'requests.adjust_recommendation',
+                'description' =>
+                    'Adjust the recommended quantities of a request.',
+            ],
+
+            [
+                'name' => 'Return Request',
+                'code' => 'requests.return_recommendation',
+                'description' =>
+                    'Return a request for correction or additional information.',
+            ],
+
+            [
+                'name' => 'Reject Recommendation',
+                'code' => 'requests.reject_recommendation',
+                'description' =>
+                    'Reject a request at the recommendation stage.',
+            ],
+
+            [
                 'name' => 'Approve Requests',
                 'code' => 'requests.approve',
                 'description' =>
                     'Approve item requests.',
+            ],
+
+            [
+                'name' => 'Adjust Approval',
+                'code' => 'requests.adjust_approval',
+                'description' =>
+                    'Adjust the final approved quantities of a request.',
+            ],
+
+            [
+                'name' => 'Return Request',
+                'code' => 'requests.return_approval',
+                'description' =>
+                    'Return a request for correction or additional information.',
+            ],
+
+            [
+                'name' => 'Reject Approval',
+                'code' => 'requests.reject_approval',
+                'description' =>
+                    'Reject a request at the approval stage.',
             ],
 
             [

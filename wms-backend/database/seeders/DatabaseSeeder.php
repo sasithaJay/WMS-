@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             CommissionerSeeder::class,
             InstitutionTypeSeeder::class,
             PermissionSeeder::class,
+            RolePermissionSeeder::class,
         ]);
     }
 }
