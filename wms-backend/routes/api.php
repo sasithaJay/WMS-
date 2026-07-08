@@ -29,7 +29,7 @@ Route::middleware('auth:sanctum')
 
         // Account Approval Routes
         Route::prefix('admin/registrations')
-            ->middleware('approval.manager')
+            ->middleware('permission:users.approve')
             ->group(function () {
 
                 Route::get(
@@ -57,25 +57,4 @@ Route::middleware('auth:sanctum')
                 );
             });
 
-        // Test route for role-based access control
-        Route::get(
-            '/test/commissioner-only',
-            function () {
-                return response()->json([
-                    'message' =>
-                        'You have Commissioner access.',
-                ]);
-            }
-        )->middleware('role:COMMISSIONER');
-
-        // Test route for institution-only access
-        Route::get(
-            '/test/institution-only',
-            function () {
-                return response()->json([
-                    'message' =>
-                        'You have Institution access.',
-                ]);
-            }
-        )->middleware('account.type:INSTITUTION');
     });

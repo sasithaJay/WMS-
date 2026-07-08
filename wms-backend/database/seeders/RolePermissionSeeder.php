@@ -36,6 +36,7 @@ class RolePermissionSeeder extends Seeder
                 'requests.return_approval',
                 'requests.reject_approval',
 
+                'users.approve',
                 'users.manage',
                 'reports.view',
             ],

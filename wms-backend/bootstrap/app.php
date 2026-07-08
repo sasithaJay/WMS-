@@ -5,9 +5,9 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Auth\AuthenticationException;
-use App\Http\Middleware\EnsureApprovalManager;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\AccountTypeMiddleware;
+use App\Http\Middleware\PermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,18 +19,19 @@ return Application::configure(basePath: dirname(__DIR__))
     
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-        'approval.manager' =>
-            EnsureApprovalManager::class,
 
         'role' =>
             RoleMiddleware::class,
 
         'account.type' =>
             AccountTypeMiddleware::class,
+
+        'permission' => 
+            PermissionMiddleware::class,
     ]);
 
     })
-    
+
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (
             AuthenticationException $exception,
@@ -43,4 +44,5 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
     })
+
     ->create();
