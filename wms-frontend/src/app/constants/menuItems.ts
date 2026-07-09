@@ -123,6 +123,6 @@ export const SECTIONS_PC = ["Institutional", "Development", "Probation"];
 export const JOB_ROLES = [
   "Commissioner", "Assistant Commissioner", "Assistant Director",
   "Administrative Officer", "Accountant", "Section Head – Chief Clerk/Financial Assistant",
-  "Development Officer", "Social Service Officer", "Probation Officer", "Store Keeper",
+  "Development Officer", "Store Keeper", "Other Officer",
 ];
 export const DISTRICTS = ["Galle", "Matara", "Hambantota"];

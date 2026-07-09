@@ -164,7 +164,29 @@ export function RegisterPage({
                       {field("phone", "Phone", "දුරකථනය", "tel")}
                     </div>
                     {select("section", "Section", "අංශය", division === "ss" ? SECTIONS_SS : SECTIONS_PC)}
-                    {select("jobRole", "Job Role", "රැකියා කාර්යභාරය", JOB_ROLES)}
+                    {select(
+                      "jobRole",
+                      "Job Role",
+                      "රැකියා කාර්යභාරය",
+                      JOB_ROLES.filter((role) => {
+                        // Remove Commissioner from both divisions
+                        if (role === "Commissioner") {
+                          return false;
+                        }
+
+                        // Remove Assistant Commissioner from Social Services
+                        if (division === "ss" && role === "Assistant Commissioner") {
+                          return false;
+                        }
+
+                        // Remove Assistant Director from Probation and Child Care
+                        if (division === "pc" && role === "Assistant Director") {
+                          return false;
+                        }
+
+                        return true;
+                      })
+                    )}
                     {field("empId", "Employee ID", "සේවක ID")}
                   </>
                 )}
