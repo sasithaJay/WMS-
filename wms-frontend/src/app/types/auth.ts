@@ -22,3 +22,53 @@ export interface LoginResponse {
   token: string;
   user: User;
 }
+
+export interface RegistrationDivision {
+  id: number;
+  code: string;
+  name_en: string;
+  name_si: string;
+}
+
+export interface RegistrationRole {
+  id: number;
+  code: string;
+  name_en: string;
+  name_si: string;
+}
+
+export interface RegistrationSection {
+  id: number;
+  division_id: number;
+  code: string;
+  name_en: string;
+  name_si: string;
+}
+
+export interface InstitutionType {
+  id: number;
+  name_en: string;
+  name_si: string;
+}
+
+export interface RegistrationOptionsResponse {
+  divisions: RegistrationDivision[];
+  roles: RegistrationRole[];
+  institution_types: InstitutionType[];
+}
+
+export interface RegistrationUser {
+  id: number;
+  username: string;
+  email: string;
+  account_type:
+    | "STAFF"
+    | "INSTITUTION"
+    | "DS_OFFICE";
+  account_status: string;
+}
+
+export interface RegistrationResponse {
+  message: string;
+  user: RegistrationUser;
+}

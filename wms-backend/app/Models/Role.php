@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Role extends Model
 {
     protected $fillable = [
-        'name',
+        'name_en',
+        'name_si',
         'code',
         'level',
         'is_active'

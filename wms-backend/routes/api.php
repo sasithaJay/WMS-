@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Admin\AccountApprovalController; 
+use App\Http\Controllers\Api\Auth\RegistrationOptionsController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -58,3 +59,19 @@ Route::middleware('auth:sanctum')
             });
 
     });
+
+Route::get(
+    '/registration-options',
+    [
+        RegistrationOptionsController::class,
+        'index',
+    ]
+);
+
+Route::get(
+    '/registration-options/sections',
+    [
+        RegistrationOptionsController::class,
+        'sections',
+    ]
+);
