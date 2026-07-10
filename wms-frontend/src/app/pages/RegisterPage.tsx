@@ -61,19 +61,14 @@ export function RegisterPage({
   setLang: (lang: Lang) => void;
   onBack: () => void;
 }) {
-  /*
-  |--------------------------------------------------------------------------
-  | Registration Steps
-  |--------------------------------------------------------------------------
-  */
+  //registration steps
+
+ const [dsSearch, setDsSearch] = useState("");
+const [showDsOptions, setShowDsOptions] = useState(false);
 
   const [step, setStep] = useState(0);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Main Registration State
-  |--------------------------------------------------------------------------
-  */
+ //main registration form state
 
   const [divisionId, setDivisionId] =
     useState<number | null>(null);
@@ -84,11 +79,7 @@ export function RegisterPage({
   const [form, setForm] =
     useState<FormState>({});
 
-  /*
-  |--------------------------------------------------------------------------
-  | Backend Registration Options
-  |--------------------------------------------------------------------------
-  */
+  //backend registration options
 
   const [divisions, setDivisions] =
     useState<RegistrationDivision[]>([]);
@@ -104,11 +95,7 @@ export function RegisterPage({
     setInstitutionTypes,
   ] = useState<InstitutionType[]>([]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | UI State
-  |--------------------------------------------------------------------------
-  */
+  //UI state
 
   const [loadingOptions, setLoadingOptions] =
     useState(true);
@@ -125,11 +112,7 @@ export function RegisterPage({
   const [success, setSuccess] =
     useState("");
 
-  /*
-  |--------------------------------------------------------------------------
-  | Step Titles
-  |--------------------------------------------------------------------------
-  */
+  //step title
 
   const steps = [
     t(lang, "Division", "කොට්ඨාශය"),
@@ -138,11 +121,7 @@ export function RegisterPage({
     t(lang, "Credentials", "අක්තපත්‍ර"),
   ];
 
-  /*
-  |--------------------------------------------------------------------------
-  | Selected Role
-  |--------------------------------------------------------------------------
-  */
+  //selected role
 
   const selectedRole = useMemo(
     () =>
@@ -153,11 +132,7 @@ export function RegisterPage({
     [roles, form.roleId],
   );
 
-  /*
-  |--------------------------------------------------------------------------
-  | Whether Selected Staff Role Requires Section
-  |--------------------------------------------------------------------------
-  */
+  //Whether Selected Staff Role Requires Section
 
   const requiresSection =
     accountType === "staff" &&
@@ -167,11 +142,7 @@ export function RegisterPage({
         (typeof SECTIONLESS_ROLES)[number],
     );
 
-  /*
-  |--------------------------------------------------------------------------
-  | Load Registration Options
-  |--------------------------------------------------------------------------
-  */
+  //Load Registration Options
 
   const [dsOffices, setDsOffices] =
   useState<DsOffice[]>([]);
@@ -209,11 +180,17 @@ export function RegisterPage({
     void loadRegistrationOptions();
   }, [lang]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Load Sections When Division Changes
-  |--------------------------------------------------------------------------
-  */
+  const filteredDsOffices = dsOffices.filter((office) => {
+  const search = dsSearch.toLowerCase().trim();
+
+  return (
+    office.name_en.toLowerCase().includes(search) ||
+    office.name_si.includes(dsSearch) ||
+    office.district.toLowerCase().includes(search)
+  );
+});
+
+  //Load Sections When Division Changes
 
   useEffect(() => {
     if (!divisionId) {
@@ -259,11 +236,7 @@ export function RegisterPage({
     void loadSections();
   }, [divisionId, lang]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Update Form Field
-  |--------------------------------------------------------------------------
-  */
+ //Update Form Field
 
   const updateField = (
     key: string,
@@ -275,11 +248,7 @@ export function RegisterPage({
     }));
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | Reusable Text Field
-  |--------------------------------------------------------------------------
-  */
+  //Reusable Text Field
 
   const field = (
     key: string,
@@ -313,11 +282,7 @@ export function RegisterPage({
     </div>
   );
 
-  /*
-  |--------------------------------------------------------------------------
-  | Reusable String Select
-  |--------------------------------------------------------------------------
-  */
+  //Reusable String Select
 
   const select = (
     key: string,
@@ -1381,7 +1346,7 @@ export function RegisterPage({
                   "ds" && (
                   <>
 
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         {t(
                           lang,
@@ -1437,6 +1402,79 @@ export function RegisterPage({
                           </option>
                         ))}
                       </select>
+                    </div> */}
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        {t(
+                          lang,
+                          "DS Office / Division",
+                          "DS කාර්යාලය / කොට්ඨාශය",
+                        )}
+                      </label>
+
+                      <input
+                        type="text"
+                        value={dsSearch}
+                        onFocus={() => setShowDsOptions(true)}
+                        onChange={(event) => {
+                          setDsSearch(event.target.value);
+                          setShowDsOptions(true);
+                        }}
+                        placeholder={t(
+                          lang,
+                          "Search DS Office...",
+                          "DS කාර්යාලය සොයන්න...",
+                        )}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white"
+                      />
+
+                      {showDsOptions && (
+                        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg">
+                          {filteredDsOffices.length > 0 ? (
+                            filteredDsOffices.map((office) => (
+                              <button
+                                key={office.id}
+                                type="button"
+                                onClick={() => {
+                                  setForm((current) => ({
+                                    ...current,
+                                    dsOfficeId: String(office.id),
+                                    dsOfficeName: office.name_en,
+                                    district: office.district,
+                                  }));
+
+                                  setDsSearch(
+                                    lang === "en"
+                                      ? office.name_en
+                                      : office.name_si,
+                                  );
+
+                                  setShowDsOptions(false);
+                                }}
+                                className="w-full px-4 py-3 text-left hover:bg-[#EBF4FD] transition-colors border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="text-sm font-medium text-gray-900">
+                                  {lang === "en"
+                                    ? office.name_en
+                                    : office.name_si}
+                                </div>
+
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  {office.district}
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-sm text-gray-500">
+                              {t(
+                                lang,
+                                "No DS offices found.",
+                                "DS කාර්යාල හමු නොවීය.",
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {form.district && (
