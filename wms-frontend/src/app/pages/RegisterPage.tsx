@@ -355,11 +355,7 @@ export function RegisterPage({
     </div>
   );
 
-  /*
-  |--------------------------------------------------------------------------
-  | Step Validation
-  |--------------------------------------------------------------------------
-  */
+ //step validation
 
   const validateCurrentStep =
     (): boolean => {
@@ -517,11 +513,7 @@ export function RegisterPage({
       return true;
     };
 
-  /*
-  |--------------------------------------------------------------------------
-  | Continue To Next Step
-  |--------------------------------------------------------------------------
-  */
+    //continue to next step
 
   const handleContinue = () => {
     if (!validateCurrentStep()) {
@@ -533,11 +525,7 @@ export function RegisterPage({
     );
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | Submit Registration
-  |--------------------------------------------------------------------------
-  */
+  //submit registration form
 
   const handleSubmit = async () => {
     if (!validateCurrentStep()) {
@@ -559,11 +547,7 @@ export function RegisterPage({
       let payload:
         Record<string, unknown>;
 
-      /*
-      |--------------------------------------------------------------------------
-      | Staff Payload
-      |--------------------------------------------------------------------------
-      */
+      //staff payload
 
       if (accountType === "staff") {
         payload = {
@@ -608,11 +592,7 @@ export function RegisterPage({
         };
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Institution Payload
-      |--------------------------------------------------------------------------
-      */
+      //institution payload
 
       else if (
         accountType === "institution"
@@ -670,11 +650,7 @@ export function RegisterPage({
         };
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | DS Office Payload
-      |--------------------------------------------------------------------------
-      */
+     //ds office payload
 
       else {
         payload = {
@@ -782,11 +758,7 @@ export function RegisterPage({
     }
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | Loading State
-  |--------------------------------------------------------------------------
-  */
+  //loading state
 
   if (loadingOptions) {
     return (
@@ -919,7 +891,7 @@ export function RegisterPage({
                         division.id,
                       )
                     }
-                    className={`w-full p-5 rounded-xl border-2 text-left transition-all flex items-start gap-4 ${
+                    className={`w-full p-5 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${
                       divisionId ===
                       division.id
                         ? "border-[#4295D9] bg-[#EBF4FD]"
