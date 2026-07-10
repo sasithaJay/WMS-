@@ -6,11 +6,12 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureApprovalManager
+class AccountTypeMiddleware
 {
     public function handle(
         Request $request,
-        Closure $next
+        Closure $next,
+        string ...$allowedAccountTypes
     ): Response {
         $user = $request->user();
 
@@ -22,31 +23,20 @@ class EnsureApprovalManager
 
         if ($user->account_status !== 'ACTIVE') {
             return response()->json([
-                'message' =>
-                    'Your account is not active.',
+                'message' => 'Your account is not active.',
             ], 403);
         }
 
-        $roleCode = $user
-            ->staffProfile
-            ?->role
-            ?->code;
-
-        $allowedRoles = [
-            'COMMISSIONER',
-            'ADMIN',
-        ];
-
         if (
             ! in_array(
-                $roleCode,
-                $allowedRoles,
+                $user->account_type,
+                $allowedAccountTypes,
                 true
             )
         ) {
             return response()->json([
                 'message' =>
-                    'You are not authorized to manage account approvals.',
+                    'Your account type is not authorized to access this resource.',
             ], 403);
         }
 

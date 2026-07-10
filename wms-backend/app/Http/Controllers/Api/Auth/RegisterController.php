@@ -66,68 +66,247 @@ class RegisterController extends Controller
         };
     }
 
-    private function registerStaff(Request $request): JsonResponse
-        {
-            $validated = $request->validate([
-                'division_id' => [
-                    'required',
-                    Rule::exists('divisions', 'id')
-                        ->where('is_active', true),
-                ],
+    // private function registerStaff(Request $request): JsonResponse
+    //     {
+    //         $validated = $request->validate([
+    //             'division_id' => [
+    //                 'required',
+    //                 Rule::exists('divisions', 'id')
+    //                     ->where('is_active', true),
+    //             ],
 
+    //             // 'section_id' => [
+    //             //     'required',
+    //             //     Rule::exists('sections', 'id')
+    //             //         ->where('is_active', true),
+    //             // ],
+
+    //             'role_id' => [
+    //                 'required',
+    //                 Rule::exists('roles', 'id')
+    //                     ->where('is_active', true),
+    //             ],
+
+    //             'full_name' => [
+    //                 'required',
+    //                 'string',
+    //                 'max:255',
+    //             ],
+
+    //             'nic_number' => [
+    //                 'required',
+    //                 'string',
+    //                 'max:20',
+    //                 'unique:staff_profiles,nic_number',
+    //             ],
+
+    //             'phone' => [
+    //                 'required',
+    //                 'string',
+    //                 'max:20',
+    //             ],
+
+    //             'employee_number' => [
+    //                 'required',
+    //                 'string',
+    //                 'max:50',
+    //                 'unique:staff_profiles,employee_number',
+    //             ],
+    //         ]);
+
+    //         $role = Role::findOrFail($validated['role_id']);
+
+    //         if (in_array($role->code, [
+    //             'COMMISSIONER',
+    //             'ADMIN',
+    //         ])) {
+    //             return response()->json([
+    //                 'message' => 'Registration is not allowed for this role.',
+    //             ], 422);
+    //         }
+
+    //         $section = Section::findOrFail(
+    //             $validated['section_id']
+    //         );
+
+    //         if (
+    //             $section->division_id
+    //             !== (int) $validated['division_id']
+    //         ) {
+    //             return response()->json([
+    //                 'message' =>
+    //                     'The selected section does not belong to the selected division.',
+    //             ], 422);
+    //         }
+
+    //         $user = DB::transaction(function () use (
+    //             $request,
+    //             $validated
+    //         ) {
+    //             $user = User::create([
+    //                 'username' => $request->username,
+    //                 'email' => $request->email,
+    //                 'password' => $request->password,
+    //                 'account_type' => 'STAFF',
+    //                 'account_status' => 'PENDING',
+    //             ]);
+
+    //             StaffProfile::create([
+    //                 'user_id' => $user->id,
+    //                 'division_id' => $validated['division_id'],
+    //                 'section_id' => $validated['section_id'],
+    //                 'role_id' => $validated['role_id'],
+    //                 'full_name' => $validated['full_name'],
+    //                 'nic_number' => $validated['nic_number'],
+    //                 'phone' => $validated['phone'],
+    //                 'employee_number' =>
+    //                     $validated['employee_number'],
+    //             ]);
+
+    //             return $user;
+    //         });
+
+    //         return response()->json([
+    //             'message' =>
+    //                 'Staff registration successful. Your account is awaiting approval.',
+
+    //             'user' => [
+    //                 'id' => $user->id,
+    //                 'username' => $user->username,
+    //                 'email' => $user->email,
+    //                 'account_type' => $user->account_type,
+    //                 'account_status' => $user->account_status,
+    //             ],
+    //         ], 201);
+    //     }
+
+    private function registerStaff(Request $request): JsonResponse
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Common Staff Fields
+        |--------------------------------------------------------------------------
+        */
+
+        $validated = $request->validate([
+            'division_id' => [
+                'required',
+                Rule::exists('divisions', 'id')
+                    ->where('is_active', true),
+            ],
+
+            'role_id' => [
+                'required',
+                Rule::exists('roles', 'id')
+                    ->where('is_active', true),
+            ],
+
+            'full_name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'nic_number' => [
+                'required',
+                'string',
+                'max:20',
+                'unique:staff_profiles,nic_number',
+            ],
+
+            'phone' => [
+                'required',
+                'string',
+                'max:20',
+            ],
+
+            'employee_number' => [
+                'required',
+                'string',
+                'max:50',
+                'unique:staff_profiles,employee_number',
+            ],
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Selected Role
+        |--------------------------------------------------------------------------
+        */
+
+        $role = Role::findOrFail(
+            $validated['role_id']
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Block Public Registration For Restricted Roles
+        |--------------------------------------------------------------------------
+        */
+
+        if (in_array(
+            $role->code,
+            [
+                'COMMISSIONER',
+                'ADMIN',
+            ],
+            true
+        )) {
+            return response()->json([
+                'message' =>
+                    'Registration is not allowed for this role.',
+            ], 422);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Roles Without A Section
+        |--------------------------------------------------------------------------
+        */
+
+        $sectionlessRoles = [
+            'ASSISTANT_COMMISSIONER',
+            'ASSISTANT_DIRECTOR',
+            'ADMINISTRATIVE_OFFICER',
+            'ACCOUNTANT',
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Default Section To Null
+        |--------------------------------------------------------------------------
+        */
+
+        $sectionId = null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Section Only For Section-Based Roles
+        |--------------------------------------------------------------------------
+        */
+
+        if (! in_array(
+            $role->code,
+            $sectionlessRoles,
+            true
+        )) {
+            $sectionValidated = $request->validate([
                 'section_id' => [
                     'required',
                     Rule::exists('sections', 'id')
                         ->where('is_active', true),
                 ],
-
-                'role_id' => [
-                    'required',
-                    Rule::exists('roles', 'id')
-                        ->where('is_active', true),
-                ],
-
-                'full_name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
-
-                'nic_number' => [
-                    'required',
-                    'string',
-                    'max:20',
-                    'unique:staff_profiles,nic_number',
-                ],
-
-                'phone' => [
-                    'required',
-                    'string',
-                    'max:20',
-                ],
-
-                'employee_number' => [
-                    'required',
-                    'string',
-                    'max:50',
-                    'unique:staff_profiles,employee_number',
-                ],
             ]);
 
-            $role = Role::findOrFail($validated['role_id']);
-
-            if (in_array($role->code, [
-                'COMMISSIONER',
-                'ADMIN',
-            ])) {
-                return response()->json([
-                    'message' => 'Registration is not allowed for this role.',
-                ], 422);
-            }
-
             $section = Section::findOrFail(
-                $validated['section_id']
+                $sectionValidated['section_id']
             );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Check Section Belongs To Selected Division
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $section->division_id
@@ -139,46 +318,88 @@ class RegisterController extends Controller
                 ], 422);
             }
 
-            $user = DB::transaction(function () use (
-                $request,
-                $validated
-            ) {
-                $user = User::create([
-                    'username' => $request->username,
-                    'email' => $request->email,
-                    'password' => $request->password,
-                    'account_type' => 'STAFF',
-                    'account_status' => 'PENDING',
-                ]);
-
-                StaffProfile::create([
-                    'user_id' => $user->id,
-                    'division_id' => $validated['division_id'],
-                    'section_id' => $validated['section_id'],
-                    'role_id' => $validated['role_id'],
-                    'full_name' => $validated['full_name'],
-                    'nic_number' => $validated['nic_number'],
-                    'phone' => $validated['phone'],
-                    'employee_number' =>
-                        $validated['employee_number'],
-                ]);
-
-                return $user;
-            });
-
-            return response()->json([
-                'message' =>
-                    'Staff registration successful. Your account is awaiting approval.',
-
-                'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'account_type' => $user->account_type,
-                    'account_status' => $user->account_status,
-                ],
-            ], 201);
+            $sectionId = $section->id;
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create User And Staff Profile
+        |--------------------------------------------------------------------------
+        */
+
+        $user = DB::transaction(function () use (
+            $request,
+            $validated,
+            $sectionId
+        ) {
+            $user = User::create([
+                'username' =>
+                    $request->username,
+
+                'email' =>
+                    $request->email,
+
+                'password' =>
+                    $request->password,
+
+                'account_type' =>
+                    'STAFF',
+
+                'account_status' =>
+                    'PENDING',
+            ]);
+
+            StaffProfile::create([
+                'user_id' =>
+                    $user->id,
+
+                'division_id' =>
+                    $validated['division_id'],
+
+                'section_id' =>
+                    $sectionId,
+
+                'role_id' =>
+                    $validated['role_id'],
+
+                'full_name' =>
+                    $validated['full_name'],
+
+                'nic_number' =>
+                    $validated['nic_number'],
+
+                'phone' =>
+                    $validated['phone'],
+
+                'employee_number' =>
+                    $validated['employee_number'],
+            ]);
+
+            return $user;
+        });
+
+        return response()->json([
+            'message' =>
+                'Staff registration successful. Your account is awaiting approval.',
+
+            'user' => [
+                'id' =>
+                    $user->id,
+
+                'username' =>
+                    $user->username,
+
+                'email' =>
+                    $user->email,
+
+                'account_type' =>
+                    $user->account_type,
+
+                'account_status' =>
+                    $user->account_status,
+            ],
+        ], 201);
+    }
 
     private function registerOrganization(
         Request $request,
