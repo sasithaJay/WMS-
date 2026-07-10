@@ -31,6 +31,7 @@ import { t } from "../constants/translations";
 import type { Lang } from "../types";
 
 import type {
+  DsOffice,
   InstitutionType,
   RegistrationDivision,
   RegistrationRole,
@@ -172,6 +173,9 @@ export function RegisterPage({
   |--------------------------------------------------------------------------
   */
 
+  const [dsOffices, setDsOffices] =
+  useState<DsOffice[]>([]);
+
   useEffect(() => {
     const loadRegistrationOptions =
       async () => {
@@ -188,6 +192,7 @@ export function RegisterPage({
           setInstitutionTypes(
             data.institution_types,
           );
+          setDsOffices(data.ds_offices);
         } catch {
           setError(
             t(
@@ -455,7 +460,8 @@ export function RegisterPage({
 
         if (accountType === "ds") {
           if (
-            !form.dsOffice ||
+            !form.dsOfficeId ||
+            !form.dsOfficeName ||
             !form.officeAddress ||
             !form.officeContact ||
             !form.cpName ||
@@ -673,7 +679,7 @@ export function RegisterPage({
             divisionId,
 
           organization_name:
-            form.dsOffice,
+            form.dsOfficeName,
 
           address:
             form.officeAddress,
@@ -1374,25 +1380,75 @@ export function RegisterPage({
                 {accountType ===
                   "ds" && (
                   <>
-                    {select(
-                      "dsOffice",
-                      "DS Office / Division",
-                      "DS කාර්යාලය / කොට්ඨාශය",
-                      [
-                        "Galle DS Office",
-                        "Matara DS Office",
-                        "Hambantota DS Office",
-                        "Hakmana DS Office",
-                        "Akuressa DS Office",
-                        "Walasmulla DS Office",
-                      ],
-                    )}
 
-                    {select(
-                      "district",
-                      "District",
-                      "දිස්ත්‍රික්කය",
-                      DISTRICTS,
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        {t(
+                          lang,
+                          "DS Office / Division",
+                          "DS කාර්යාලය / කොට්ඨාශය",
+                        )}
+                      </label>
+
+                      <select
+                        value={form.dsOfficeId || ""}
+                        onChange={(event) => {
+                          const selectedId =
+                            event.target.value;
+
+                          const selectedOffice =
+                            dsOffices.find(
+                              (office) =>
+                                office.id ===
+                                Number(selectedId),
+                            );
+
+                          setForm((current) => ({
+                            ...current,
+
+                            dsOfficeId:
+                              selectedId,
+
+                            dsOfficeName:
+                              selectedOffice?.name_en ?? "",
+
+                            district:
+                              selectedOffice?.district ?? "",
+                          }));
+                        }}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50"
+                      >
+                        <option value="">
+                          {t(
+                            lang,
+                            "Select DS Office",
+                            "DS කාර්යාලය තෝරන්න",
+                          )}
+                        </option>
+
+                        {dsOffices.map((office) => (
+                          <option
+                            key={office.id}
+                            value={office.id}
+                          >
+                            {lang === "en"
+                              ? office.name_en
+                              : office.name_si}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {form.district && (
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5">
+                        <p className="text-xs text-gray-500">
+                          {t(lang, "District", "දිස්ත්‍රික්කය")}
+                        </p>
+
+                        <p className="text-sm font-medium text-gray-800">
+                          {form.district}
+                        </p>
+                      </div>
                     )}
 
                     {field(

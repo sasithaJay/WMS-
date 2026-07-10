@@ -51,10 +51,19 @@ export interface InstitutionType {
   name_si: string;
 }
 
+export interface DsOffice {
+  id: number;
+  name_en: string;
+  name_si: string;
+  code: string;
+  district: string;
+}
+
 export interface RegistrationOptionsResponse {
   divisions: RegistrationDivision[];
   roles: RegistrationRole[];
   institution_types: InstitutionType[];
+  ds_offices: DsOffice[];
 }
 
 export interface RegistrationUser {
