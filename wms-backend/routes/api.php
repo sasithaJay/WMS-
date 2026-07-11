@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Admin\AccountApprovalController; 
 use App\Http\Controllers\Api\Auth\RegistrationOptionsController;
+use App\Http\Controllers\Api\ItemController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -56,9 +57,31 @@ Route::middleware('auth:sanctum')
                         'reject',
                     ]
                 );
-            });
+        });
+
+        // Item Routes
+        Route::get('/items', [ItemController::class, 'index']);
+        Route::post('/items', [ItemController::class, 'store']);
+        Route::get('/items/{item}', [ItemController::class, 'show']);
+        Route::put('/items/{item}', [ItemController::class, 'update']);
+
+        Route::patch(
+            '/items/{item}/status',
+            [ItemController::class, 'toggleStatus']
+        );
+
 
     });
+
+Route::get('/item-categories', [
+    ItemCategoryController::class,
+    'index',
+]);
+
+Route::get('/units', [
+    UnitController::class,
+    'index',
+]);
 
 Route::get(
     '/registration-options',

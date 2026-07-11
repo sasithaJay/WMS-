@@ -17,6 +17,7 @@ import { Package, AlertTriangle, ArrowDownToLine, Warehouse } from "lucide-react
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import { DashTab } from "../../types";
+import { InventoryPage } from "../../components/inventory/InventoryPage";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -44,17 +45,7 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
       )}
       {activeNav === "issue" && <StockIssueForm lang={lang} />}
       {activeNav === "inventory" && (
-        <div className="space-y-5">
-          <InventorySummary lang={lang} />
-          <div className="flex justify-end">
-            <button onClick={() => setShowAddItem(true)} className="flex items-center gap-2 px-4 py-2 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all">
-              <Package className="w-4 h-4" />
-              {t(lang, "Add Item", "භාණ්ඩ එකතු කරන්න")}
-            </button>
-          </div>
-          <StockBalanceTable lang={lang} />
-          {showAddItem && <ItemRegistrationForm lang={lang} onClose={() => setShowAddItem(false)} />}
-        </div>
+        <InventoryPage lang={lang} />
       )}
       {activeNav === "receipts" && (
         <div className="space-y-5">
