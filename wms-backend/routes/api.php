@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Admin\AccountApprovalController; 
 use App\Http\Controllers\Api\Auth\RegistrationOptionsController;
 use App\Http\Controllers\Api\ItemController;
+use App\Http\Controllers\Api\ItemCategoryController;
+use App\Http\Controllers\Api\UnitController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
