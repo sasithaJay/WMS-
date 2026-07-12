@@ -3,6 +3,7 @@ import { StatCard } from "../common/StatCard";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import type { InventoryItem } from "../../types/inventory";
+import { getStockStatus } from "../../utils/inventoryHelpers";
 
 interface InventorySummaryProps {
   lang: Lang;
@@ -28,7 +29,7 @@ export function InventorySummary({
   }).length;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 min-[700px]:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
         label={t(lang, "Total Items", "මුළු භාණ්ඩ")}
         value={total}
@@ -42,16 +43,24 @@ export function InventorySummary({
           "Low / Critical Stock",
           "අඩු / බරපතල",
         )}
-        value={low}
-        color="red"
+        //value={low}
+        value={items.filter((item) => getStockStatus(item) === "low_stock").length}
+        color="amber"
         icon={<AlertTriangle className="w-5 h-5" />}
       />
 
       <StatCard
         label={t(lang, "Normal Stock", "සාමාන්‍ය")}
-        value={normal}
+        value={items.filter((item) => getStockStatus(item) === "normal").length}
         color="green"
         icon={<CheckCircle className="w-5 h-5" />}
+      />
+
+      <StatCard
+        label={t(lang, "Out of Stock", "අවස්ථාවේ")}
+        value={items.filter((item) => getStockStatus(item) === "out_of_stock").length}
+        color="red"
+        icon={<AlertTriangle className="w-5 h-5" />}
       />
     </div>
   );

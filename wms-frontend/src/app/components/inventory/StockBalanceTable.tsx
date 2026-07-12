@@ -143,15 +143,6 @@ export function StockBalanceTable({
                       {unitName}
                     </td>
 
-                    {/* <td
-                      className={`px-5 py-3.5 font-bold text-sm ${
-                        isLow
-                          ? "text-red-600"
-                          : "text-gray-900"
-                      }`}
-                    >
-                      {quantity}
-                    </td> */}
                     <td
                       className={`px-5 py-3.5 font-bold text-sm ${
                         quantity === 0
@@ -168,19 +159,6 @@ export function StockBalanceTable({
                       {item.reorder_level}
                     </td>
 
-                    {/* <td className="px-5 py-3.5">
-                      <span
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                          isLow
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {isLow
-                          ? t(lang, "Low Stock", "අඩු")
-                          : t(lang, "Normal", "සාමාන්‍ය")}
-                      </span>
-                    </td> */}
                     <td className="px-5 py-3.5">
                     {stockStatus === "out" && (
                       <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
