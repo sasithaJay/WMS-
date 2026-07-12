@@ -17,12 +17,6 @@ class UpdateItemRequest extends FormRequest
         $item = $this->route('item');
 
         return [
-            'division_id' => [
-                'required',
-                'integer',
-                'exists:divisions,id',
-            ],
-
             'category_id' => [
                 'required',
                 Rule::exists('item_categories', 'id')
@@ -40,17 +34,11 @@ class UpdateItemRequest extends FormRequest
                 'string',
                 'max:50',
                 Rule::unique('items', 'item_code')
-                    ->ignore($item->id),
+                    ->ignore($item),
             ],
 
             'name_en' => [
                 'required',
-                'string',
-                'max:255',
-            ],
-
-            'name_si' => [
-                'nullable',
                 'string',
                 'max:255',
             ],
@@ -65,7 +53,7 @@ class UpdateItemRequest extends FormRequest
                 'string',
                 'max:100',
                 Rule::unique('items', 'barcode')
-                    ->ignore($item->id),
+                    ->ignore($item),
             ],
 
             'reorder_level' => [

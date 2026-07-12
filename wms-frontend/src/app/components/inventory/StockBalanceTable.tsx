@@ -97,6 +97,13 @@ export function StockBalanceTable({
                 const quantity =
                   item.balance?.quantity_on_hand ?? 0;
 
+                const stockStatus =
+                  quantity === 0
+                    ? "out"
+                    : quantity <= item.reorder_level
+                      ? "low"
+                      : "normal";
+
                 const isLow =
                   quantity <= item.reorder_level;
 
@@ -136,11 +143,22 @@ export function StockBalanceTable({
                       {unitName}
                     </td>
 
-                    <td
+                    {/* <td
                       className={`px-5 py-3.5 font-bold text-sm ${
                         isLow
                           ? "text-red-600"
                           : "text-gray-900"
+                      }`}
+                    >
+                      {quantity}
+                    </td> */}
+                    <td
+                      className={`px-5 py-3.5 font-bold text-sm ${
+                        quantity === 0
+                          ? "text-red-600"
+                          : quantity <= item.reorder_level
+                            ? "text-amber-600"
+                            : "text-gray-900"
                       }`}
                     >
                       {quantity}
@@ -150,7 +168,7 @@ export function StockBalanceTable({
                       {item.reorder_level}
                     </td>
 
-                    <td className="px-5 py-3.5">
+                    {/* <td className="px-5 py-3.5">
                       <span
                         className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
                           isLow
@@ -162,7 +180,26 @@ export function StockBalanceTable({
                           ? t(lang, "Low Stock", "අඩු")
                           : t(lang, "Normal", "සාමාන්‍ය")}
                       </span>
-                    </td>
+                    </td> */}
+                    <td className="px-5 py-3.5">
+                    {stockStatus === "out" && (
+                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
+                        {t(lang, "Out of Stock", "තොග නොමැත")}
+                      </span>
+                    )}
+
+                    {stockStatus === "low" && (
+                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                        {t(lang, "Low Stock", "අඩු තොග")}
+                      </span>
+                    )}
+
+                    {stockStatus === "normal" && (
+                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
+                        {t(lang, "Normal", "සාමාන්‍ය")}
+                      </span>
+                    )}
+                  </td>
                   </tr>
                 );
               })}
