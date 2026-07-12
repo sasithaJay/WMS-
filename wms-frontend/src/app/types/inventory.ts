@@ -35,7 +35,6 @@ export interface InventoryItem {
 
   item_code: string;
   name_en: string;
-  name_si: string | null;
   description: string | null;
   barcode: string | null;
   reorder_level: number;
@@ -54,6 +53,7 @@ export interface ItemSummary {
   total_items: number;
   low_stock: number;
   normal_stock: number;
+  out_of_stock?: number;
 }
 
 export interface PaginatedItems {
@@ -81,15 +81,7 @@ export interface CreateItemPayload {
   reorder_level: number;
 }
 
-export interface UpdateItemPayload {
-  category_id: number;
-  unit_id: number;
-  item_code: string;
-  name_en: string;
-  description?: string;
-  barcode?: string;
-  reorder_level: number;
-}
+export type UpdateItemPayload = CreateItemPayload;
 
 export interface ItemFilters {
   search?: string;
