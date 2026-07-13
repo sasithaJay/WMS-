@@ -28,6 +28,27 @@ export interface ItemFilters {
   per_page?: number;
 }
 
+export interface ItemUpdateRequestPayload {
+  category_id: number;
+  unit_id: number;
+  item_code: string;
+  name_en: string;
+  description?: string;
+  barcode?: string;
+  reorder_level: number;
+  reason: string;
+}
+
+export async function requestItemUpdate(
+  itemId: number,
+  payload: ItemUpdateRequestPayload,
+): Promise<void> {
+  await api.post(
+    `/items/${itemId}/update-requests`,
+    payload,
+  );
+}
+
 export async function getItems(
   filters: ItemFilters = {},
 ): Promise<PaginatedItems> {

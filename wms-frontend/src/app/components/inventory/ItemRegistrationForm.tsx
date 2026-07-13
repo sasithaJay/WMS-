@@ -13,7 +13,7 @@ import type {
 
 import {
   createItem,
-  updateItem,
+  requestItemUpdate,
   getItemCategories,
   getUnits,
 } from "../../../services/ItemService";
@@ -33,6 +33,7 @@ interface FormState {
   reorder_level: string;
   barcode: string;
   description: string;
+  reason: string;
 }
 
 const initialForm: FormState = {
@@ -43,6 +44,7 @@ const initialForm: FormState = {
   reorder_level: "",
   barcode: "",
   description: "",
+  reason: "",
 };
 
 export function ItemRegistrationForm({
@@ -112,9 +114,12 @@ export function ItemRegistrationForm({
         unit_id: String(
           item.unit_id ?? item.unit.id,
         ),
-        reorder_level: String(item.reorder_level),
+        reorder_level: String(
+          item.reorder_level,
+        ),
         barcode: item.barcode ?? "",
         description: item.description ?? "",
+        reason: "",
       });
 
       return;
@@ -144,13 +149,18 @@ export function ItemRegistrationForm({
       !form.item_code.trim() ||
       !form.category_id ||
       !form.unit_id ||
-      form.reorder_level === ""
+      form.reorder_level === "" ||
+      (isEditing && !form.reason.trim())
     ) {
       setError(
         t(
           lang,
-          "Please complete all required fields.",
-          "අවශ්‍ය සියලු ක්ෂේත්‍ර සම්පූර්ණ කරන්න.",
+          isEditing
+            ? "Complete all required fields and provide a reason."
+            : "Please complete all required fields.",
+          isEditing
+            ? "අවශ්‍ය ක්ෂේත්‍ර සම්පූර්ණ කර හේතුව සඳහන් කරන්න."
+            : "අවශ්‍ය සියලු ක්ෂේත්‍ර සම්පූර්ණ කරන්න.",
         ),
       );
 
@@ -192,7 +202,10 @@ export function ItemRegistrationForm({
       };
 
       if (item) {
-        await updateItem(item.id, payload);
+        await requestItemUpdate(item.id, {
+          ...payload,
+          reason: form.reason.trim(),
+        });
       } else {
         await createItem(payload);
       }
@@ -201,16 +214,19 @@ export function ItemRegistrationForm({
     } catch (submitError: unknown) {
       console.error(submitError);
 
-      const errorMessage = getErrorMessage(
-        submitError,
-      );
+      const errorMessage =
+        getErrorMessage(submitError);
 
       setError(
         errorMessage ??
           t(
             lang,
-            "Failed to save item.",
-            "භාණ්ඩය සුරැකීම අසාර්ථක විය.",
+            isEditing
+              ? "Failed to submit item update request."
+              : "Failed to create item.",
+            isEditing
+              ? "භාණ්ඩ යාවත්කාලීන ඉල්ලීම යොමු කිරීම අසාර්ථක විය."
+              : "භාණ්ඩය නිර්මාණය කිරීම අසාර්ථක විය.",
           ),
       );
     } finally {
@@ -226,8 +242,8 @@ export function ItemRegistrationForm({
             {isEditing
               ? t(
                   lang,
-                  "Edit Item",
-                  "භාණ්ඩය සංස්කරණය කරන්න",
+                  "Request Item Update",
+                  "භාණ්ඩ යාවත්කාලීන ඉල්ලීම",
                 )
               : t(
                   lang,
@@ -254,6 +270,16 @@ export function ItemRegistrationForm({
               </div>
             )}
 
+            {isEditing && (
+              <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+                {t(
+                  lang,
+                  "The item will not change immediately. AO or Accountant approval is required.",
+                  "භාණ්ඩ විස්තර වහාම වෙනස් නොවේ. පරිපාලන නිලධාරී හෝ ගණකාධිකාරී අනුමැතිය අවශ්‍ය වේ.",
+                )}
+              </div>
+            )}
+
             <FormInput
               label={t(
                 lang,
@@ -264,6 +290,7 @@ export function ItemRegistrationForm({
               onChange={(value) =>
                 updateField("name_en", value)
               }
+              disabled={submitting}
               required
             />
 
@@ -277,6 +304,7 @@ export function ItemRegistrationForm({
               onChange={(value) =>
                 updateField("item_code", value)
               }
+              disabled={submitting}
               required
             />
 
@@ -287,7 +315,6 @@ export function ItemRegistrationForm({
                   "Category",
                   "ප්‍රවර්ගය",
                 )}
-
                 <span className="text-red-500">
                   {" "}
                   *
@@ -338,7 +365,6 @@ export function ItemRegistrationForm({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 {t(lang, "Unit", "ඒකකය")}
-
                 <span className="text-red-500">
                   {" "}
                   *
@@ -401,6 +427,7 @@ export function ItemRegistrationForm({
                   value,
                 )
               }
+              disabled={submitting}
               required
             />
 
@@ -414,6 +441,7 @@ export function ItemRegistrationForm({
               onChange={(value) =>
                 updateField("barcode", value)
               }
+              disabled={submitting}
             />
 
             <div>
@@ -438,6 +466,40 @@ export function ItemRegistrationForm({
                 className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white resize-none disabled:opacity-60"
               />
             </div>
+
+            {isEditing && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {t(
+                    lang,
+                    "Reason for Update",
+                    "යාවත්කාලීන කිරීමේ හේතුව",
+                  )}
+                  <span className="text-red-500">
+                    {" "}
+                    *
+                  </span>
+                </label>
+
+                <textarea
+                  rows={3}
+                  value={form.reason}
+                  disabled={submitting}
+                  onChange={(event) =>
+                    updateField(
+                      "reason",
+                      event.target.value,
+                    )
+                  }
+                  placeholder={t(
+                    lang,
+                    "Explain why these item details need to be changed.",
+                    "මෙම භාණ්ඩ විස්තර වෙනස් කළ යුත්තේ ඇයිද පැහැදිලි කරන්න.",
+                  )}
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white resize-none disabled:opacity-60"
+                />
+              </div>
+            )}
           </div>
 
           <div className="sticky bottom-0 bg-white flex gap-3 px-6 py-5 border-t border-gray-100">
@@ -462,16 +524,22 @@ export function ItemRegistrationForm({
               className="flex-1 py-2.5 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting
-                ? t(
-                    lang,
-                    "Saving...",
-                    "සුරකිමින්...",
-                  )
+                ? isEditing
+                  ? t(
+                      lang,
+                      "Submitting...",
+                      "යොමු කරමින්...",
+                    )
+                  : t(
+                      lang,
+                      "Adding...",
+                      "එකතු කරමින්...",
+                    )
                 : isEditing
                   ? t(
                       lang,
-                      "Save Changes",
-                      "වෙනස්කම් සුරකින්න",
+                      "Submit for Approval",
+                      "අනුමැතිය සඳහා යොමු කරන්න",
                     )
                   : t(
                       lang,
@@ -493,6 +561,7 @@ interface FormInputProps {
   type?: string;
   min?: string;
   required?: boolean;
+  disabled?: boolean;
 }
 
 function FormInput({
@@ -502,6 +571,7 @@ function FormInput({
   type = "text",
   min,
   required = false,
+  disabled = false,
 }: FormInputProps) {
   return (
     <div>
@@ -520,10 +590,11 @@ function FormInput({
         type={type}
         min={min}
         value={value}
+        disabled={disabled}
         onChange={(event) =>
           onChange(event.target.value)
         }
-        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white"
+        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white disabled:opacity-60"
       />
     </div>
   );

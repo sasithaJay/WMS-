@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\AccountApprovalController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemCategoryController;
 use App\Http\Controllers\Api\UnitController;
+use App\Http\Controllers\Api\ItemUpdateRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,21 +140,77 @@ Route::middleware('auth:sanctum')->group(function () {
     |
     */
 
-    Route::middleware('permission:inventory.manage')->group(function () {
+    Route::middleware('permission:inventory.create')->group(function () {
 
         Route::post('/items', [
             ItemController::class,
             'store',
         ]);
 
-        Route::put('/items/{item}', [
-            ItemController::class,
-            'update',
-        ]);
+        // Route::put('/items/{item}', [
+        //     ItemController::class,
+        //     'update',
+        // ]);
 
         Route::patch('/items/{item}/status', [
             ItemController::class,
             'toggleStatus',
         ]);
+    });
+
+    Route::middleware('permission:inventory.status')->group(function () {
+
+        Route::patch('/items/{item}/status', [
+            ItemController::class,
+            'toggleStatus',
+        ]);
+    });
+
+    Route::middleware(
+        'permission:inventory.update.request'
+    )->group(function () {
+        Route::post(
+            '/items/{item}/update-requests',
+            [
+                ItemUpdateRequestController::class,
+                'store',
+            ]
+        );
+
+        Route::get(
+            '/my-item-update-requests',
+            [
+                ItemUpdateRequestController::class,
+                'myRequests',
+            ]
+        );
+    });
+
+    Route::middleware(
+        'permission:inventory.update.approve'
+    )->group(function () {
+        Route::get(
+            '/item-update-requests/pending',
+            [
+                ItemUpdateRequestController::class,
+                'pending',
+            ]
+        );
+
+        Route::patch(
+            '/item-update-requests/{itemUpdateRequest}/approve',
+            [
+                ItemUpdateRequestController::class,
+                'approve',
+            ]
+        );
+
+        Route::patch(
+            '/item-update-requests/{itemUpdateRequest}/reject',
+            [
+                ItemUpdateRequestController::class,
+                'reject',
+            ]
+        );
     });
 });
