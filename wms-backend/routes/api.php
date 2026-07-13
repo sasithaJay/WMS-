@@ -90,16 +90,6 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     | Inventory Read Routes
     |--------------------------------------------------------------------------
-    |
-    | Commissioner:
-    | - Can view inventory from both divisions
-    |
-    | Store Keeper:
-    | - Can view inventory from their own division
-    |
-    | Other roles with inventory.view:
-    | - Can view inventory according to their permitted division
-    |
     */
 
     Route::middleware('permission:inventory.view')->group(function () {
@@ -132,12 +122,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Inventory Management Routes
+    | Item Creation
     |--------------------------------------------------------------------------
-    |
-    | Only Store Keepers should receive inventory.manage.
-    | Commissioner must not receive inventory.manage.
-    |
     */
 
     Route::middleware('permission:inventory.create')->group(function () {
@@ -146,17 +132,13 @@ Route::middleware('auth:sanctum')->group(function () {
             ItemController::class,
             'store',
         ]);
-
-        // Route::put('/items/{item}', [
-        //     ItemController::class,
-        //     'update',
-        // ]);
-
-        Route::patch('/items/{item}/status', [
-            ItemController::class,
-            'toggleStatus',
-        ]);
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Item Status Management
+    |--------------------------------------------------------------------------
+    */
 
     Route::middleware('permission:inventory.status')->group(function () {
 
@@ -166,9 +148,16 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | Store Keeper Item Update Requests
+    |--------------------------------------------------------------------------
+    */
+
     Route::middleware(
         'permission:inventory.update.request'
     )->group(function () {
+
         Route::post(
             '/items/{item}/update-requests',
             [
@@ -186,9 +175,16 @@ Route::middleware('auth:sanctum')->group(function () {
         );
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | AO / Accountant Item Update Approval
+    |--------------------------------------------------------------------------
+    */
+
     Route::middleware(
         'permission:inventory.update.approve'
     )->group(function () {
+
         Route::get(
             '/item-update-requests/pending',
             [
