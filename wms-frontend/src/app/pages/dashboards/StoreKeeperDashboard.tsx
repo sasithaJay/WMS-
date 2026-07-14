@@ -4,9 +4,6 @@ import { DashboardChart } from "../../components/dashboard/DashboardChart";
 import { RecentActivityTable } from "../../components/dashboard/RecentActivityTable";
 import { ReorderLevelTable } from "../../components/inventory/ReorderLevelTable";
 import { StockIssueForm } from "../../components/inventory/StockIssueForm";
-import { InventorySummary } from "../../components/inventory/InventorySummary";
-import { StockBalanceTable } from "../../components/inventory/StockBalanceTable";
-import { ItemRegistrationForm } from "../../components/inventory/ItemRegistrationForm";
 import { StockReceivingForm } from "../../components/inventory/StockReceivingForm";
 import { StockMovementTable } from "../../components/inventory/StockMovementTable";
 import { BarcodeScannerPanel } from "../../components/inventory/BarcodeScannerPanel";
@@ -17,11 +14,11 @@ import { Package, AlertTriangle, ArrowDownToLine, Warehouse } from "lucide-react
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import { DashTab } from "../../types";
+import { InventoryPage } from "../../components/inventory/InventoryPage";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [dashTab, setDashTab] = useState<DashTab>("personal");
-  const [showAddItem, setShowAddItem] = useState(false);
   const role = "STORE_KEEPER" as const;
 
   return (
@@ -44,17 +41,9 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
       )}
       {activeNav === "issue" && <StockIssueForm lang={lang} />}
       {activeNav === "inventory" && (
-        <div className="space-y-5">
-          <InventorySummary lang={lang} />
-          <div className="flex justify-end">
-            <button onClick={() => setShowAddItem(true)} className="flex items-center gap-2 px-4 py-2 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all">
-              <Package className="w-4 h-4" />
-              {t(lang, "Add Item", "භාණ්ඩ එකතු කරන්න")}
-            </button>
-          </div>
-          <StockBalanceTable lang={lang} />
-          {showAddItem && <ItemRegistrationForm lang={lang} onClose={() => setShowAddItem(false)} />}
-        </div>
+        <InventoryPage 
+          lang={lang} 
+          userRole={role}/>
       )}
       {activeNav === "receipts" && (
         <div className="space-y-5">

@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             InstitutionTypeSeeder::class,
             PermissionSeeder::class,
             RolePermissionSeeder::class,
+            InventoryReferenceSeeder::class,
         ]);
     }
 }
