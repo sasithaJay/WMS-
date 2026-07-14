@@ -28,4 +28,14 @@ class Division extends Model
     {
         return $this->hasMany(Section::class);
     }
+
+    public function stockReceipts(): HasMany
+    {
+        return $this->hasMany(StockReceipt::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
 }

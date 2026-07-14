@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -47,5 +48,36 @@ class User extends Authenticatable
     public function organization(): HasOne
     {
         return $this->hasOne(Organization::class);
+    }
+    public function createdStockReceipts(): HasMany
+    {
+        return $this->hasMany(
+            StockReceipt::class,
+            'created_by',
+        );
+    }
+
+    public function confirmedStockReceipts(): HasMany
+    {
+        return $this->hasMany(
+            StockReceipt::class,
+            'confirmed_by',
+        );
+    }
+
+    public function cancelledStockReceipts(): HasMany
+    {
+        return $this->hasMany(
+            StockReceipt::class,
+            'cancelled_by',
+        );
+    }
+
+    public function performedStockMovements(): HasMany
+    {
+        return $this->hasMany(
+            StockMovement::class,
+            'performed_by',
+        );
     }
 }

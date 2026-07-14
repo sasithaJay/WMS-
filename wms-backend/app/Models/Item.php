@@ -60,4 +60,14 @@ class Item extends Model
     {
         return $this->hasMany(ItemUpdateRequest::class);
     }
+
+    public function stockReceiptItems(): HasMany
+    {
+        return $this->hasMany(StockReceiptItem::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
 }
