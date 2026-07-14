@@ -44,7 +44,9 @@ class RolePermissionSeeder extends Seeder
             //Store Keeper
             'STORE_KEEPER' => [
                 'inventory.view',
-                'inventory.manage',
+                'inventory.create',
+                'inventory.update.request',
+                'inventory.status',
 
                 'requests.create',
                 'requests.own.view',
@@ -89,6 +91,7 @@ class RolePermissionSeeder extends Seeder
             //Administrative Officer
             'ADMINISTRATIVE_OFFICER' => [
                 'inventory.view',
+                'inventory.update.approve',
 
                 'requests.create',
                 'requests.own.view',
@@ -110,6 +113,7 @@ class RolePermissionSeeder extends Seeder
             //Accountant
             'ACCOUNTANT' => [
                 'inventory.view',
+                'inventory.update.approve',
 
                 'requests.create',
                 'requests.own.view',

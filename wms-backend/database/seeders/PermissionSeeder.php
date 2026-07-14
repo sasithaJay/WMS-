@@ -18,10 +18,29 @@ class PermissionSeeder extends Seeder
             ],
 
             [
-                'name' => 'Manage Inventory',
-                'code' => 'inventory.manage',
+                'name' => 'Create Inventory',
+                'code' => 'inventory.create',
                 'description' =>
-                    'Create and update inventory items.',
+                    'Create new inventory items.',
+            ],
+
+            [
+                'name' => 'Update Inventory Status',
+                'code' => 'inventory.status',
+                'description' =>
+                    'Update the status of inventory items (e.g., active, inactive).',
+            ],
+            [
+                'name' => 'Update Inventory',
+                'code' => 'inventory.update.request',
+                'description' =>
+                    'Request to update inventory items.',
+            ],
+            [
+                'name' => 'Approve Inventory Updates',
+                'code' => 'inventory.update.approve',
+                'description' =>
+                    'Approve requests to update inventory items.',
             ],
 
             [
