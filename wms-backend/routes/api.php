@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemCategoryController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\ItemUpdateRequestController;
+use App\Http\Controllers\Api\StockReceiptController;
+use App\Http\Controllers\Api\StockMovementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -209,4 +211,31 @@ Route::middleware('auth:sanctum')->group(function () {
             ]
         );
     });
+
+    Route::prefix('stock-receipts')->group(function () {
+
+        Route::get('/', [StockReceiptController::class, 'index']);
+
+        Route::post('/', [StockReceiptController::class, 'store']);
+
+        Route::get('/{stockReceipt}', [StockReceiptController::class, 'show']);
+
+        Route::put('/{stockReceipt}', [StockReceiptController::class, 'update']);
+
+        Route::post('/{stockReceipt}/confirm', [
+            StockReceiptController::class,
+            'confirm',
+        ]);
+
+        Route::post('/{stockReceipt}/cancel', [
+            StockReceiptController::class,
+            'cancel',
+        ]);
+
+        
+    });
+    Route::get(
+            '/stock-movements',
+            [StockMovementController::class, 'index']
+        );
 });

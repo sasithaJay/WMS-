@@ -16,7 +16,7 @@ export interface StockReceiptItemForm {
 }
 
 export interface CreateStockReceiptPayload {
-  division_id: number;
+  //division_id: number;
   supplier_name: string;
   invoice_number?: string;
   received_date: string;
