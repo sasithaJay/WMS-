@@ -86,6 +86,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
   ],
   STORE_KEEPER: [
     { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
+    { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: Package, label: "Issue Goods", labelSi: "භාණ්ඩ ගිලිහීම", id: "issue" },
     { icon: Warehouse, label: "Inventory", labelSi: "තොග ලැයිස්තුව", id: "inventory" },
     { icon: ArrowDownToLine, label: "Stock Receipts", labelSi: "ගබඩා රිසිට්", id: "receipts" },
