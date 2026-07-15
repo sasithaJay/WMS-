@@ -23,13 +23,13 @@ export function StockReceiptDetailModal({
   onClose,
 }: StockReceiptDetailModalProps) {
   const totalQuantity = (receipt.items ?? []).reduce(
-    (sum, item) => sum + item.quantity_received,
+    (sum, item) => sum + Number(item.quantity_received),
     0,
   );
 
   const totalValue = (receipt.items ?? []).reduce((sum, item) => {
     if (item.unit_cost === null) return sum;
-    return sum + item.unit_cost * item.quantity_received;
+    return sum + Number(item.unit_cost) * Number(item.quantity_received);
   }, 0);
 
   return (
@@ -71,7 +71,7 @@ export function StockReceiptDetailModal({
                 {t(lang, "Received Date", "ලැබුණු දිනය")}
               </p>
               <p className="mt-1 text-sm font-medium text-gray-900">
-                {receipt.received_date}
+                {receipt.received_date.trim() ? new Date(receipt.received_date).toLocaleDateString() : "—"}
               </p>
             </div>
 
@@ -136,11 +136,11 @@ export function StockReceiptDetailModal({
                         {item.item.item_code} - {item.item.name_en}
                       </td>
                       <td className="px-3 py-2 text-gray-700">
-                        {item.quantity_received}
+                        {Number(item.quantity_received)}
                       </td>
                       <td className="px-3 py-2 text-gray-700">
                         {item.unit_cost !== null
-                          ? `Rs. ${item.unit_cost.toLocaleString("en-LK", { minimumFractionDigits: 2 })}`
+                          ? `Rs. ${Number(item.unit_cost).toLocaleString("en-LK", { minimumFractionDigits: 2 })}`
                           : "—"}
                       </td>
                       <td className="px-3 py-2 text-gray-500">
