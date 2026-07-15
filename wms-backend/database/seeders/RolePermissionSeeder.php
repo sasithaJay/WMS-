@@ -47,7 +47,6 @@ class RolePermissionSeeder extends Seeder
                 'inventory.create',
                 'inventory.update.request',
                 'inventory.status',
-                'inventory.manage_receipts',
 
                 'requests.create',
                 'requests.own.view',

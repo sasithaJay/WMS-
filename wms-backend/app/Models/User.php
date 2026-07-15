@@ -80,4 +80,18 @@ class User extends Authenticatable
             'performed_by',
         );
     }
+        public function divisionId(): ?int
+    {
+        return $this->staffProfile?->division_id;
+    }
+
+    public function roleCode(): ?string
+    {
+        return $this->staffProfile?->role?->code;
+    }
+
+    public function isStoreKeeper(): bool
+    {
+        return $this->roleCode() === 'STORE_KEEPER';
+    }
 }

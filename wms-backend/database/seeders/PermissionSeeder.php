@@ -44,13 +44,6 @@ class PermissionSeeder extends Seeder
             ],
 
             [
-                'name' => 'Manage Stock Receipts',
-                'code' => 'inventory.manage_receipts',
-                'description' =>
-                    'Manage stock receipts and GRNs.',
-            ],
-
-            [
                 'name' => 'Receive Stock',
                 'code' => 'stock.receive',
                 'description' =>

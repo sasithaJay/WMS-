@@ -40,6 +40,8 @@ class StockReceiptController extends Controller
         StoreStockReceiptRequest $request
     ): JsonResponse {
 
+        $this->authorize('create', StockReceipt::class);
+
         $receipt = $this->service->create(
             $request->validated()
         );
@@ -50,20 +52,22 @@ class StockReceiptController extends Controller
         ], 201);
     }
 
-    protected function authorizeDivision(StockReceipt $receipt): void
-    {
-        $divisionId = auth()->user()->staffProfile->division_id;
+    // protected function authorizeDivision(StockReceipt $receipt): void
+    // {
+    //     $divisionId = auth()->user()->staffProfile->division_id;
 
-        abort_if(
-            $receipt->division_id !== $divisionId,
-            403,
-            'You are not authorized to access this stock receipt.'
-        );
-    }
+    //     abort_if(
+    //         $receipt->division_id !== $divisionId,
+    //         403,
+    //         'You are not authorized to access this stock receipt.'
+    //     );
+    // }
 
     public function show(
         StockReceipt $stockReceipt
     ): JsonResponse {
+
+        $this->authorize('view', $stockReceipt);
 
         $stockReceipt->load([
             'division',
@@ -82,6 +86,8 @@ class StockReceiptController extends Controller
         StockReceipt $stockReceipt
     ): JsonResponse {
 
+        $this->authorize('update', $stockReceipt);
+
         $receipt = $this->service->update(
             $stockReceipt,
             $request->validated()
@@ -97,6 +103,8 @@ class StockReceiptController extends Controller
         StockReceipt $stockReceipt
     ): JsonResponse {
 
+        $this->authorize('confirm', $stockReceipt);
+
         $receipt = $this->service->confirm(
             $stockReceipt
         );
@@ -111,6 +119,8 @@ class StockReceiptController extends Controller
         CancelStockReceiptRequest $request,
         StockReceipt $stockReceipt
     ): JsonResponse {
+
+        $this->authorize('cancel', $stockReceipt);
 
         $receipt = $this->service->cancel(
             $stockReceipt,
