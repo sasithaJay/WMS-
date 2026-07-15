@@ -18,6 +18,7 @@ interface StockReceiptsListProps {
   lang: Lang;
   onEdit: (receipt: StockReceipt) => void;
   onView: (receipt: StockReceipt) => void;
+  onStockChanged?: () => void;
 }
 
 const STATUS_STYLES: Record<StockReceiptStatus, string> = {
@@ -30,6 +31,7 @@ export function StockReceiptsList({
   lang,
   onEdit,
   onView,
+  onStockChanged,
 }: StockReceiptsListProps) {
   const [receipts, setReceipts] = useState<StockReceipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +76,7 @@ export function StockReceiptsList({
       setReceipts((current) =>
         current.map((r) => (r.id === id ? updated : r)),
       );
+      onStockChanged?.();
       setConfirmingId(null);
     } catch (err) {
       console.error(err);

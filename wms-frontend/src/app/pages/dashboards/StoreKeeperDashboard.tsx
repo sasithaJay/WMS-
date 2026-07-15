@@ -31,6 +31,7 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
   const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
   const [receiptsRefreshKey, setReceiptsRefreshKey] = useState(0);
   const [receiptLoadError, setReceiptLoadError] = useState("");
+  const [stockActivityKey, setStockActivityKey] = useState(0);
   const role = "STORE_KEEPER" as const;
 
   async function handleEditReceipt(receipt: StockReceipt) {
@@ -112,16 +113,18 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
             onSaved={() => {
               setEditingReceipt(null);
               setReceiptsRefreshKey((k) => k + 1);
+              setStockActivityKey((k) => k + 1);
             }}
           />
 
-          <StockMovementTable lang={lang} />
+          <StockMovementTable lang={lang} refreshSignal={stockActivityKey} />
 
           <StockReceiptsList
             key={receiptsRefreshKey}
             lang={lang}
             onEdit={handleEditReceipt}
             onView={handleViewReceipt}
+            onStockChanged={() => setStockActivityKey((k) => k + 1)}
           />
 
           {viewingReceipt && (
