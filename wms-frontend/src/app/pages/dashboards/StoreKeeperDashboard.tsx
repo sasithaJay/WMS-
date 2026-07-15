@@ -15,10 +15,14 @@ import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import { DashTab } from "../../types";
 import { InventoryPage } from "../../components/inventory/InventoryPage";
+import { StockReceiptsList } from "../../components/inventory/StockReceiptsList";
+import { StockReceipt } from "../../types/stockReceipts";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [dashTab, setDashTab] = useState<DashTab>("personal");
+  const [editingReceipt, setEditingReceipt] = useState<StockReceipt | null>(null);
+  const [receiptsRefreshKey, setReceiptsRefreshKey] = useState(0);
   const role = "STORE_KEEPER" as const;
 
   return (
@@ -49,6 +53,14 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
         <div className="space-y-5">
           <StockReceivingForm lang={lang} />
           <StockMovementTable lang={lang} />
+          <StockReceiptsList
+            key={receiptsRefreshKey}
+            lang={lang}
+            onEdit={(receipt) => setEditingReceipt(receipt)}
+            onView={(receipt) => {
+              console.log("view", receipt);
+            }}
+          />
         </div>
       )}
       {activeNav === "reports" && <ReportsPanel lang={lang} />}

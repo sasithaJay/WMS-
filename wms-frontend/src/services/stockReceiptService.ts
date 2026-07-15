@@ -48,7 +48,18 @@ export async function confirmStockReceipt(
 
 export async function cancelStockReceipt(
   id: number,
+  reason: string
 ): Promise<StockReceipt> {
-  const response = await api.post(`/stock-receipts/${id}/cancel`);
+  const response = await api.post(`/stock-receipts/${id}/cancel`, { reason });
   return response.data.data ?? response.data;
 }
+
+
+export async function updateStockReceipt(
+  id: number,
+  payload: CreateStockReceiptPayload,
+): Promise<StockReceipt> {
+  const response = await api.put(`/stock-receipts/${id}`, payload);
+  return response.data.data ?? response.data;
+}
+

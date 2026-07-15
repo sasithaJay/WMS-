@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -6,50 +6,46 @@ import {
   PlusCircle,
   Trash2,
 } from "lucide-react";
+import { AxiosError } from "axios";
 
-import { INVENTORY_ITEMS, GRN_DATA } from "../../constants/mockData";
+import { getItems } from "../../../services/ItemService";
+import { createStockReceipt, updateStockReceipt } from "../../../services/stockReceiptService";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
+import type {
+  CreateStockReceiptPayload,
+  StockReceipt,
+} from "../../../app/types/stockReceipts";
+
+interface Item {
+  id: number;
+  item_code: string;
+  name_en: string;
+  name_si?: string;
+}
 
 interface ReceiptItemRow {
   rowId: string;
-  itemCode: string;
-  quantityReceived: string;
-  unitCost: string;
+  item_id: number | "";
+  quantity_received: string;
+  unit_cost: string;
   remarks: string;
 }
 
 interface ReceiptHeaderForm {
-  receivedDate: string;
-  supplierName: string;
-  invoiceNumber: string;
+  received_date: string;
+  supplier_name: string;
+  invoice_number: string;
   notes: string;
-}
-
-export interface StockReceiptPayload {
-  receivedDate: string;
-  supplierName: string;
-  invoiceNumber?: string;
-  notes?: string;
-  items: {
-    itemCode: string;
-    quantityReceived: number;
-    unitCost?: number;
-    remarks?: string;
-  }[];
 }
 
 interface StockReceivingFormProps {
   lang: Lang;
-
-  /*
-   * You can pass an API function later:
-   *
-   * onSave={async (payload) => {
-   *   await createStockReceipt(payload);
-   * }}
-   */
-  onSave?: (payload: StockReceiptPayload) => Promise<void> | void;
+  onSaved?: (receipt: StockReceipt) => void;
+  /** If provided, form opens pre-filled in edit mode instead of create mode */
+  editingReceipt?: StockReceipt | null;
+  /** Called when the user cancels/closes edit mode */
+  onCancelEdit?: () => void;
 }
 
 function getToday(): string {
@@ -63,30 +59,40 @@ function createRowId(): string {
   ) {
     return crypto.randomUUID();
   }
-
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function createEmptyItemRow(): ReceiptItemRow {
   return {
     rowId: createRowId(),
-    itemCode: "",
-    quantityReceived: "",
-    unitCost: "",
+    item_id: "",
+    quantity_received: "",
+    unit_cost: "",
     remarks: "",
   };
 }
 
+// Laravel 422 shape: { message: string, errors: { [field]: string[] } }
+interface LaravelValidationErrorBody {
+  message?: string;
+  errors?: Record<string, string[]>;
+}
+
 export function StockReceivingForm({
   lang,
-  onSave,
+  onSaved,
+  editingReceipt = null,
+  onCancelEdit,
 }: StockReceivingFormProps) {
   const [showForm, setShowForm] = useState(false);
+  const isEditMode = editingReceipt !== null;
+  const [items, setItems] = useState<Item[]>([]);
+  const [loadingItems, setLoadingItems] = useState(true);
 
   const [form, setForm] = useState<ReceiptHeaderForm>({
-    receivedDate: getToday(),
-    supplierName: "",
-    invoiceNumber: "",
+    received_date: getToday(),
+    supplier_name: "",
+    invoice_number: "",
     notes: "",
   });
 
@@ -95,24 +101,71 @@ export function StockReceivingForm({
   ]);
 
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [lastGrnNumber, setLastGrnNumber] = useState<string | null>(null);
+  const [receiptCount, setReceiptCount] = useState(0);
 
-  const receiptCount = GRN_DATA.length;
+  useEffect(() => {
+    if (editingReceipt) {
+      setForm({
+        received_date: editingReceipt.received_date,
+        supplier_name: editingReceipt.supplier_name,
+        invoice_number: editingReceipt.invoice_number ?? "",
+        notes: editingReceipt.notes ?? "",
+      });
 
-  const selectedItemCodes = useMemo(
+      setItemRows(
+        (editingReceipt.items ?? []).map((item) => ({
+          rowId: createRowId(),
+          item_id: item.item_id,
+          quantity_received: String(item.quantity_received),
+          unit_cost: item.unit_cost !== null ? String(item.unit_cost) : "",
+          remarks: item.remarks ?? "",
+        })),
+      );
+
+      setShowForm(true);
+    }
+  }, [editingReceipt]);
+
+  const closeForm = () => {
+    resetForm();
+    setShowForm(false);
+    if (isEditMode) {
+      onCancelEdit?.();
+    }
+  };
+
+  useEffect(() => {
+    loadItems();
+  }, []);
+
+  async function loadItems() {
+    try {
+      setLoadingItems(true);
+      const response = await getItems({ per_page: 500 });
+      setItems(response.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingItems(false);
+    }
+  }
+
+  const selectedItemIds = useMemo(
     () =>
       itemRows
-        .map((row) => row.itemCode)
-        .filter((itemCode) => itemCode !== ""),
+        .map((row) => row.item_id)
+        .filter((id): id is number => id !== ""),
     [itemRows],
   );
 
   const totalQuantity = useMemo(
     () =>
       itemRows.reduce((total, row) => {
-        const quantity = Number(row.quantityReceived);
-
+        const quantity = Number(row.quantity_received);
         return Number.isFinite(quantity) && quantity > 0
           ? total + quantity
           : total;
@@ -123,8 +176,8 @@ export function StockReceivingForm({
   const totalValue = useMemo(
     () =>
       itemRows.reduce((total, row) => {
-        const quantity = Number(row.quantityReceived);
-        const unitCost = Number(row.unitCost);
+        const quantity = Number(row.quantity_received);
+        const unitCost = Number(row.unit_cost);
 
         if (
           !Number.isFinite(quantity) ||
@@ -134,7 +187,6 @@ export function StockReceivingForm({
         ) {
           return total;
         }
-
         return total + quantity * unitCost;
       }, 0),
     [itemRows],
@@ -144,11 +196,7 @@ export function StockReceivingForm({
     field: keyof ReceiptHeaderForm,
     value: string,
   ) => {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-
+    setForm((current) => ({ ...current, [field]: value }));
     setError("");
     setSuccessMessage("");
   };
@@ -159,68 +207,54 @@ export function StockReceivingForm({
     value: string,
   ) => {
     setItemRows((currentRows) =>
-      currentRows.map((row) =>
-        row.rowId === rowId
-          ? {
-              ...row,
-              [field]: value,
-            }
-          : row,
-      ),
-    );
+      currentRows.map((row) => {
+        if (row.rowId !== rowId) return row;
 
+        if (field === "item_id") {
+          return {
+            ...row,
+            item_id: value === "" ? "" : Number(value),
+          };
+        }
+
+        return { ...row, [field]: value };
+      }),
+    );
     setError("");
     setSuccessMessage("");
   };
 
   const addItemRow = () => {
-    setItemRows((currentRows) => [
-      ...currentRows,
-      createEmptyItemRow(),
-    ]);
-
+    setItemRows((currentRows) => [...currentRows, createEmptyItemRow()]);
     setError("");
   };
 
   const removeItemRow = (rowId: string) => {
     setItemRows((currentRows) => {
-      if (currentRows.length === 1) {
-        return currentRows;
-      }
-
+      if (currentRows.length === 1) return currentRows;
       return currentRows.filter((row) => row.rowId !== rowId);
     });
-
     setError("");
   };
 
   const resetForm = () => {
     setForm({
-      receivedDate: getToday(),
-      supplierName: "",
-      invoiceNumber: "",
+      received_date: getToday(),
+      supplier_name: "",
+      invoice_number: "",
       notes: "",
     });
-
     setItemRows([createEmptyItemRow()]);
     setError("");
-  };
-
-  const closeForm = () => {
-    resetForm();
-    setShowForm(false);
+    setFieldErrors({});
   };
 
   const validateForm = (): string | null => {
-    if (!form.receivedDate) {
-      return t(
-        lang,
-        "Received date is required.",
-        "ලැබුණු දිනය අවශ්‍යයි.",
-      );
+    if (!form.received_date.trim()) {
+      return t(lang, "Received date is required.", "ලැබුණු දිනය අවශ්‍යයි.");
     }
 
-    if (!form.supplierName.trim()) {
+    if (!form.supplier_name.trim()) {
       return t(
         lang,
         "Supplier name is required.",
@@ -236,10 +270,7 @@ export function StockReceivingForm({
       );
     }
 
-    const hasUnselectedItem = itemRows.some(
-      (row) => row.itemCode === "",
-    );
-
+    const hasUnselectedItem = itemRows.some((row) => row.item_id === "");
     if (hasUnselectedItem) {
       return t(
         lang,
@@ -249,8 +280,7 @@ export function StockReceivingForm({
     }
 
     const duplicateItems =
-      new Set(selectedItemCodes).size !== selectedItemCodes.length;
-
+      new Set(selectedItemIds).size !== selectedItemIds.length;
     if (duplicateItems) {
       return t(
         lang,
@@ -260,15 +290,13 @@ export function StockReceivingForm({
     }
 
     const hasInvalidQuantity = itemRows.some((row) => {
-      const quantity = Number(row.quantityReceived);
-
+      const quantity = Number(row.quantity_received);
       return (
-        row.quantityReceived.trim() === "" ||
+        row.quantity_received.trim() === "" ||
         !Number.isFinite(quantity) ||
         quantity <= 0
       );
     });
-
     if (hasInvalidQuantity) {
       return t(
         lang,
@@ -278,15 +306,10 @@ export function StockReceivingForm({
     }
 
     const hasInvalidUnitCost = itemRows.some((row) => {
-      if (row.unitCost.trim() === "") {
-        return false;
-      }
-
-      const unitCost = Number(row.unitCost);
-
+      if (row.unit_cost.trim() === "") return false;
+      const unitCost = Number(row.unit_cost);
       return !Number.isFinite(unitCost) || unitCost < 0;
     });
-
     if (hasInvalidUnitCost) {
       return t(
         lang,
@@ -298,29 +321,41 @@ export function StockReceivingForm({
     return null;
   };
 
+  // Maps Laravel's "items.0.quantity_received" style keys to something
+  // readable, and surfaces the first message per row-level field.
+  const applyServerValidationErrors = (
+    errors: Record<string, string[]>,
+  ) => {
+    const flat: Record<string, string> = {};
+
+    Object.entries(errors).forEach(([key, messages]) => {
+      flat[key] = messages[0];
+    });
+
+    setFieldErrors(flat);
+
+    const firstMessage = Object.values(flat)[0];
+    if (firstMessage) {
+      setError(firstMessage);
+    }
+  };
+
   const handleSubmit = async () => {
     const validationError = validateForm();
-
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    const payload: StockReceiptPayload = {
-      receivedDate: form.receivedDate,
-      supplierName: form.supplierName.trim(),
-      invoiceNumber: form.invoiceNumber.trim() || undefined,
+    const payload: CreateStockReceiptPayload = {
+      supplier_name: form.supplier_name.trim(),
+      invoice_number: form.invoice_number.trim() || undefined,
+      received_date: form.received_date,
       notes: form.notes.trim() || undefined,
-
       items: itemRows.map((row) => ({
-        itemCode: row.itemCode,
-        quantityReceived: Number(row.quantityReceived),
-
-        unitCost:
-          row.unitCost.trim() === ""
-            ? undefined
-            : Number(row.unitCost),
-
+        item_id: row.item_id as number,
+        quantity_received: Number(row.quantity_received),
+        unit_cost: row.unit_cost.trim() === "" ? undefined : Number(row.unit_cost),
         remarks: row.remarks.trim() || undefined,
       })),
     };
@@ -328,46 +363,69 @@ export function StockReceivingForm({
     try {
       setSubmitting(true);
       setError("");
+      setFieldErrors({});
       setSuccessMessage("");
 
-      if (onSave) {
-        await onSave(payload);
-      } else {
-        /*
-         * Temporary while the backend is not connected.
-         * Remove this console.log after connecting the API.
-         */
-        console.log("Stock receipt payload:", payload);
+      const receipt = isEditMode
+        ? await updateStockReceipt(editingReceipt!.id, payload)
+        : await createStockReceipt(payload);
 
-        await new Promise((resolve) => {
-          window.setTimeout(resolve, 500);
-        });
+      if (!isEditMode) {
+        setReceiptCount((count) => count + 1);
+        setLastGrnNumber(receipt.grn_number);
       }
 
+      setReceiptCount((count) => count + 1);
+      setLastGrnNumber(receipt.grn_number);
+
       setSuccessMessage(
-        t(
-          lang,
-          "Stock receipt saved successfully.",
-          "තොග ලැබීම සාර්ථකව සුරකින ලදී.",
-        ),
+        isEditMode
+          ? t(lang, `Receipt ${receipt.grn_number} updated.`, `රිසිට් ${receipt.grn_number} යාවත්කාලීන කරන ලදී.`)
+          : t(lang, `Stock receipt ${receipt.grn_number} saved successfully.`, `තොග රිසිට් ${receipt.grn_number} සාර්ථකව සුරකින ලදී.`),
       );
 
+      onSaved?.(receipt);
       resetForm();
 
       window.setTimeout(() => {
         setShowForm(false);
         setSuccessMessage("");
-      }, 1000);
-    } catch (saveError) {
-      console.error("Failed to save stock receipt:", saveError);
+      }, 1500);
+    } catch (err) {
+      const axiosError = err as AxiosError<LaravelValidationErrorBody>;
 
-      setError(
-        t(
-          lang,
-          "Unable to save the stock receipt. Please try again.",
-          "තොග ලැබීම සුරැකීමට නොහැකි විය. නැවත උත්සාහ කරන්න.",
-        ),
-      );
+      if (axiosError.response?.status === 422) {
+        const body = axiosError.response.data;
+        if (body?.errors) {
+          applyServerValidationErrors(body.errors);
+        } else {
+          setError(
+            body?.message ??
+              t(
+                lang,
+                "Please check the form for errors.",
+                "පෝරමයේ දෝෂ ඇත්දැයි පරීක්ෂා කරන්න.",
+              ),
+          );
+        }
+      } else if (axiosError.response?.status === 403) {
+        setError(
+          t(
+            lang,
+            "You are not authorized to record stock receipts.",
+            "තොග ලැබීම් සටහන් කිරීමට ඔබට අවසර නැත.",
+          ),
+        );
+      } else {
+        console.error("Failed to save stock receipt:", err);
+        setError(
+          t(
+            lang,
+            "Unable to save the stock receipt. Please try again.",
+            "තොග ලැබීම සුරැකීමට නොහැකි විය. නැවත උත්සාහ කරන්න.",
+          ),
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -378,10 +436,11 @@ export function StockReceivingForm({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-gray-500">
           {receiptCount}{" "}
-          {t(
-            lang,
-            "receipts recorded",
-            "රිසිට් සටහන් කර ඇත",
+          {t(lang, "receipts recorded this session", "රිසිට් සටහන් කර ඇත")}
+          {lastGrnNumber && (
+            <span className="ml-1 text-gray-400">
+              ({t(lang, "last", "අවසන්")}: {lastGrnNumber})
+            </span>
           )}
         </p>
 
@@ -391,17 +450,13 @@ export function StockReceivingForm({
             onClick={() => {
               setShowForm(true);
               setError("");
+              setFieldErrors({});
               setSuccessMessage("");
             }}
             className="flex items-center justify-center gap-2 rounded-xl bg-[#4295D9] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#3280C4]"
           >
             <PlusCircle className="h-4 w-4" />
-
-            {t(
-              lang,
-              "Record Receipt",
-              "රිසිට් සටහන් කරන්න",
-            )}
+            {t(lang, "Record Receipt", "රිසිට් සටහන් කරන්න")}
           </button>
         )}
       </div>
@@ -410,13 +465,8 @@ export function StockReceivingForm({
         <div className="space-y-6 rounded-xl border border-[#4295D9]/30 bg-white p-5 shadow-sm md:p-6">
           <div>
             <h3 className="text-base font-semibold text-gray-900">
-              {t(
-                lang,
-                "New Stock Receipt",
-                "නව ගබඩා රිසිට්",
-              )}
+              {t(lang, "New Stock Receipt", "නව ගබඩා රිසිට්")}
             </h3>
-
             <p className="mt-1 text-xs text-gray-500">
               {t(
                 lang,
@@ -447,38 +497,31 @@ export function StockReceivingForm({
                 {t(lang, "Received Date", "ලැබුණු දිනය")}
                 <span className="ml-1 text-red-500">*</span>
               </label>
-
               <input
                 type="date"
-                value={form.receivedDate}
+                value={form.received_date}
                 onChange={(event) =>
-                  updateHeaderField(
-                    "receivedDate",
-                    event.target.value,
-                  )
+                  updateHeaderField("received_date", event.target.value)
                 }
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm outline-none transition focus:border-[#4295D9] focus:bg-white focus:ring-2 focus:ring-[#4295D9]/20"
               />
+              {fieldErrors.received_date && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.received_date}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                {t(
-                  lang,
-                  "Supplier Name",
-                  "සැපයුම්කරු නාමය",
-                )}
+                {t(lang, "Supplier Name", "සැපයුම්කරු නාමය")}
                 <span className="ml-1 text-red-500">*</span>
               </label>
-
               <input
                 type="text"
-                value={form.supplierName}
+                value={form.supplier_name}
                 onChange={(event) =>
-                  updateHeaderField(
-                    "supplierName",
-                    event.target.value,
-                  )
+                  updateHeaderField("supplier_name", event.target.value)
                 }
                 placeholder={t(
                   lang,
@@ -487,25 +530,22 @@ export function StockReceivingForm({
                 )}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm outline-none transition focus:border-[#4295D9] focus:bg-white focus:ring-2 focus:ring-[#4295D9]/20"
               />
+              {fieldErrors.supplier_name && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.supplier_name}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                {t(
-                  lang,
-                  "Invoice Number",
-                  "ඉන්වොයිස් අංකය",
-                )}
+                {t(lang, "Invoice Number", "ඉන්වොයිස් අංකය")}
               </label>
-
               <input
                 type="text"
-                value={form.invoiceNumber}
+                value={form.invoice_number}
                 onChange={(event) =>
-                  updateHeaderField(
-                    "invoiceNumber",
-                    event.target.value,
-                  )
+                  updateHeaderField("invoice_number", event.target.value)
                 }
                 placeholder={t(
                   lang,
@@ -520,7 +560,6 @@ export function StockReceivingForm({
               <label className="mb-1.5 block text-xs font-medium text-gray-600">
                 {t(lang, "GRN Number", "GRN අංකය")}
               </label>
-
               <input
                 type="text"
                 value={t(
@@ -537,7 +576,6 @@ export function StockReceivingForm({
               <label className="mb-1.5 block text-xs font-medium text-gray-600">
                 {t(lang, "Notes", "සටහන්")}
               </label>
-
               <textarea
                 rows={3}
                 value={form.notes}
@@ -559,13 +597,8 @@ export function StockReceivingForm({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-sm font-semibold text-gray-900">
-                  {t(
-                    lang,
-                    "Received Items",
-                    "ලැබුණු භාණ්ඩ",
-                  )}
+                  {t(lang, "Received Items", "ලැබුණු භාණ්ඩ")}
                 </h4>
-
                 <p className="mt-1 text-xs text-gray-500">
                   {t(
                     lang,
@@ -581,7 +614,6 @@ export function StockReceivingForm({
                 className="flex items-center justify-center gap-2 rounded-xl border border-[#4295D9] px-3.5 py-2 text-xs font-semibold text-[#4295D9] transition hover:bg-blue-50"
               >
                 <Plus className="h-4 w-4" />
-
                 {t(lang, "Add Item", "භාණ්ඩයක් එක් කරන්න")}
               </button>
             </div>
@@ -596,16 +628,11 @@ export function StockReceivingForm({
                     <span className="text-xs font-semibold text-gray-500">
                       {t(lang, "Item", "භාණ්ඩය")} {index + 1}
                     </span>
-
                     <button
                       type="button"
                       onClick={() => removeItemRow(row.rowId)}
                       disabled={itemRows.length === 1}
-                      title={t(
-                        lang,
-                        "Remove item",
-                        "භාණ්ඩය ඉවත් කරන්න",
-                      )}
+                      title={t(lang, "Remove item", "භාණ්ඩය ඉවත් කරන්න")}
                       className="rounded-lg p-1.5 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -618,44 +645,34 @@ export function StockReceivingForm({
                         {t(lang, "Item", "භාණ්ඩය")}
                         <span className="ml-1 text-red-500">*</span>
                       </label>
-
                       <select
-                        value={row.itemCode}
+                        value={row.item_id === "" ? "" : String(row.item_id)}
+                        disabled={loadingItems}
                         onChange={(event) =>
-                          updateItemRow(
-                            row.rowId,
-                            "itemCode",
-                            event.target.value,
-                          )
+                          updateItemRow(row.rowId, "item_id", event.target.value)
                         }
                         className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
                       >
                         <option value="">
-                          {t(
-                            lang,
-                            "Select item…",
-                            "භාණ්ඩය තෝරන්න…",
-                          )}
+                          {loadingItems
+                            ? t(lang, "Loading items…", "පූරණය වෙමින්…")
+                            : t(lang, "Select item…", "භාණ්ඩය තෝරන්න…")}
                         </option>
 
-                        {INVENTORY_ITEMS.map((item) => {
+                        {items.map((item) => {
                           const alreadySelected =
-                            selectedItemCodes.includes(item.code) &&
-                            row.itemCode !== item.code;
+                            selectedItemIds.includes(item.id) &&
+                            row.item_id !== item.id;
 
                           return (
                             <option
-                              key={item.code}
-                              value={item.code}
+                              key={item.id}
+                              value={item.id}
                               disabled={alreadySelected}
                             >
-                              {item.code} - {item.name}
+                              {item.item_code} - {item.name_en}
                               {alreadySelected
-                                ? t(
-                                    lang,
-                                    " (Already selected)",
-                                    " (දැනටමත් තෝරා ඇත)",
-                                  )
+                                ? t(lang, " (Already selected)", " (දැනටමත් තෝරා ඇත)")
                                 : ""}
                             </option>
                           );
@@ -665,23 +682,18 @@ export function StockReceivingForm({
 
                     <div className="lg:col-span-2">
                       <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                        {t(
-                          lang,
-                          "Quantity Received",
-                          "ලැබුණු ප්‍රමාණය",
-                        )}
+                        {t(lang, "Quantity Received", "ලැබුණු ප්‍රමාණය")}
                         <span className="ml-1 text-red-500">*</span>
                       </label>
-
                       <input
                         type="number"
                         min="1"
                         step="1"
-                        value={row.quantityReceived}
+                        value={row.quantity_received}
                         onChange={(event) =>
                           updateItemRow(
                             row.rowId,
-                            "quantityReceived",
+                            "quantity_received",
                             event.target.value,
                           )
                         }
@@ -694,18 +706,13 @@ export function StockReceivingForm({
                       <label className="mb-1.5 block text-xs font-medium text-gray-600">
                         {t(lang, "Unit Cost", "ඒකක මිල")}
                       </label>
-
                       <input
                         type="number"
                         min="0"
                         step="0.01"
-                        value={row.unitCost}
+                        value={row.unit_cost}
                         onChange={(event) =>
-                          updateItemRow(
-                            row.rowId,
-                            "unitCost",
-                            event.target.value,
-                          )
+                          updateItemRow(row.rowId, "unit_cost", event.target.value)
                         }
                         placeholder="0.00"
                         className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
@@ -716,16 +723,11 @@ export function StockReceivingForm({
                       <label className="mb-1.5 block text-xs font-medium text-gray-600">
                         {t(lang, "Remarks", "සටහන්")}
                       </label>
-
                       <input
                         type="text"
                         value={row.remarks}
                         onChange={(event) =>
-                          updateItemRow(
-                            row.rowId,
-                            "remarks",
-                            event.target.value,
-                          )
+                          updateItemRow(row.rowId, "remarks", event.target.value)
                         }
                         placeholder={t(
                           lang,
@@ -747,7 +749,6 @@ export function StockReceivingForm({
               <p className="text-xs text-gray-500">
                 {t(lang, "Item Rows", "භාණ්ඩ පේළි")}
               </p>
-
               <p className="mt-1 text-lg font-bold text-gray-900">
                 {itemRows.length}
               </p>
@@ -755,13 +756,8 @@ export function StockReceivingForm({
 
             <div>
               <p className="text-xs text-gray-500">
-                {t(
-                  lang,
-                  "Total Quantity",
-                  "මුළු ප්‍රමාණය",
-                )}
+                {t(lang, "Total Quantity", "මුළු ප්‍රමාණය")}
               </p>
-
               <p className="mt-1 text-lg font-bold text-gray-900">
                 {totalQuantity}
               </p>
@@ -769,13 +765,8 @@ export function StockReceivingForm({
 
             <div>
               <p className="text-xs text-gray-500">
-                {t(
-                  lang,
-                  "Estimated Total Value",
-                  "ඇස්තමේන්තුගත මුළු වටිනාකම",
-                )}
+                {t(lang, "Estimated Total Value", "ඇස්තමේන්තුගත මුළු වටිනාකම")}
               </p>
-
               <p className="mt-1 text-lg font-bold text-gray-900">
                 Rs.{" "}
                 {totalValue.toLocaleString("en-LK", {
@@ -804,11 +795,7 @@ export function StockReceivingForm({
             >
               {submitting
                 ? t(lang, "Saving…", "සුරකිමින්…")
-                : t(
-                    lang,
-                    "Save Stock Receipt",
-                    "තොග රිසිට් සුරකින්න",
-                  )}
+                : t(lang, "Save Stock Receipt", "තොග රිසිට් සුරකින්න")}
             </button>
           </div>
         </div>
