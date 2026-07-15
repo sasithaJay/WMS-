@@ -1,4 +1,3 @@
-// src/components/stockReceipts/StockReceiptsList.tsx
 
 import { useEffect, useState } from "react";
 import { CheckCircle2, Eye, Pencil, XCircle } from "lucide-react";
@@ -42,9 +41,11 @@ export function StockReceiptsList({
   const [cancelReason, setCancelReason] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
 
+  const [receiptsRefreshKey, setReceiptsRefreshKey] = useState(0);
+
   useEffect(() => {
     loadReceipts();
-  }, []);
+  }, [receiptsRefreshKey]);
 
   async function loadReceipts() {
     try {
