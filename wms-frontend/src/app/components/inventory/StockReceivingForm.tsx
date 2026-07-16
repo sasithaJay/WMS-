@@ -777,12 +777,12 @@ export function StockReceivingForm({
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row">
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={closeForm}
               disabled={submitting}
-              className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {t(lang, "Cancel", "අවලංගු")}
             </button>
@@ -791,7 +791,7 @@ export function StockReceivingForm({
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex-1 rounded-xl bg-[#4295D9] py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#3280C4] disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-[#4295D9] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#3280C4] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {submitting
                 ? t(lang, "Saving…", "සුරකිමින්…")
