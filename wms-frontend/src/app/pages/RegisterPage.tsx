@@ -144,10 +144,24 @@ const [showDsOptions, setShowDsOptions] = useState(false);
         (typeof SECTIONLESS_ROLES)[number],
     );
 
+    const isStoreKeeper = selectedRole?.code === "STORE_KEEPER"; // confirm this is the actual code
+
   //Load Registration Options
 
   const [dsOffices, setDsOffices] =
   useState<DsOffice[]>([]);
+
+  useEffect(() => {
+  if (!isStoreKeeper) return;
+
+  const accountSection = sections.find(
+    (section) => section.id === 1,
+  );
+
+  if (accountSection && form.sectionId !== String(accountSection.id)) {
+    updateField("sectionId", String(accountSection.id));
+  }
+}, [isStoreKeeper, sections]);
 
   useEffect(() => {
     const loadRegistrationOptions =
@@ -1113,10 +1127,10 @@ const [showDsOptions, setShowDsOptions] = useState(false);
 
                         {roles
                         .filter((role) => {
-                          if (divisionId === 1 && role.name_en === "Assistant Commissioner") {
+                          if (divisionId === 1 && role.code === "ASSISTANT_COMMISSIONER") {
                             return false;
                           }
-                          if (divisionId === 2 && role.name_en === "Assistant Director") {
+                          if (divisionId === 2 && role.code === "ASSISTANT_DIRECTOR") {
                             return false;
                           }
                           return true;
@@ -1155,7 +1169,7 @@ const [showDsOptions, setShowDsOptions] = useState(false);
                             )
                           }
                           disabled={
-                            loadingSections
+                            loadingSections || isStoreKeeper
                           }
                           className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 disabled:opacity-60"
                         >
@@ -1346,63 +1360,6 @@ const [showDsOptions, setShowDsOptions] = useState(false);
                   "ds" && (
                   <>
 
-                    {/* <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        {t(
-                          lang,
-                          "DS Office / Division",
-                          "DS කාර්යාලය / කොට්ඨාශය",
-                        )}
-                      </label>
-
-                      <select
-                        value={form.dsOfficeId || ""}
-                        onChange={(event) => {
-                          const selectedId =
-                            event.target.value;
-
-                          const selectedOffice =
-                            dsOffices.find(
-                              (office) =>
-                                office.id ===
-                                Number(selectedId),
-                            );
-
-                          setForm((current) => ({
-                            ...current,
-
-                            dsOfficeId:
-                              selectedId,
-
-                            dsOfficeName:
-                              selectedOffice?.name_en ?? "",
-
-                            district:
-                              selectedOffice?.district ?? "",
-                          }));
-                        }}
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50"
-                      >
-                        <option value="">
-                          {t(
-                            lang,
-                            "Select DS Office",
-                            "DS කාර්යාලය තෝරන්න",
-                          )}
-                        </option>
-
-                        {dsOffices.map((office) => (
-                          <option
-                            key={office.id}
-                            value={office.id}
-                          >
-                            {lang === "en"
-                              ? office.name_en
-                              : office.name_si}
-                          </option>
-                        ))}
-                      </select>
-                    </div> */}
                     <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         {t(
