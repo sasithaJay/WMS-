@@ -15,11 +15,56 @@ import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import { DashTab } from "../../types";
 import { InventoryPage } from "../../components/inventory/InventoryPage";
+import { StockReceiptsList } from "../../components/inventory/StockReceiptsList";
+import { StockReceiptDetailModal } from "../../components/inventory/StockReceiptDetailModal";
+import { StockReceipt } from "../../types/stockReceipts";
+import { getStockReceipt } from "../../../services/stockReceiptService";
+import { RequestForm } from "../../components/requests/RequestForm";
+import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [showNewRequest, setShowNewRequest] = useState(false);
   const [dashTab, setDashTab] = useState<DashTab>("personal");
+  const [editingReceipt, setEditingReceipt] = useState<StockReceipt | null>(null);
+  const [viewingReceipt, setViewingReceipt] = useState<StockReceipt | null>(null);
+  const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
+  const [receiptsRefreshKey, setReceiptsRefreshKey] = useState(0);
+  const [receiptLoadError, setReceiptLoadError] = useState("");
+  const [stockActivityKey, setStockActivityKey] = useState(0);
   const role = "STORE_KEEPER" as const;
+
+  async function handleEditReceipt(receipt: StockReceipt) {
+    try {
+      setReceiptLoadError("");
+      setLoadingReceiptId(receipt.id);
+      const fullReceipt = await getStockReceipt(receipt.id);
+      setEditingReceipt(fullReceipt);
+    } catch (err) {
+      console.error(err);
+      setReceiptLoadError(
+        t(lang, "Unable to load this receipt for editing.", "සංස්කරණය සඳහා රිසිට් පූරණය කළ නොහැක."),
+      );
+    } finally {
+      setLoadingReceiptId(null);
+    }
+  }
+
+  async function handleViewReceipt(receipt: StockReceipt) {
+    try {
+      setReceiptLoadError("");
+      setLoadingReceiptId(receipt.id);
+      const fullReceipt = await getStockReceipt(receipt.id);
+      setViewingReceipt(fullReceipt);
+    } catch (err) {
+      console.error(err);
+      setReceiptLoadError(
+        t(lang, "Unable to load this receipt.", "රිසිට් පූරණය කළ නොහැක."),
+      );
+    } finally {
+      setLoadingReceiptId(null);
+    }
+  }
 
   return (
     <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav} setActiveNav={setActiveNav} onLogout={onLogout} canSeeSummary={true} dashTab={dashTab} setDashTab={setDashTab}>
@@ -39,18 +84,59 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
           <BarcodeScannerPanel lang={lang} />
         </div>
       )}
-      {activeNav === "issue" && <StockIssueForm lang={lang} />}
-      {activeNav === "inventory" && (
-        <InventoryPage 
-          lang={lang} 
-          userRole={role}/>
+
+      {activeNav === "requests" && !showNewRequest && (
+        <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} />
       )}
+      {activeNav === "requests" && showNewRequest && (
+        <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} />
+      )}
+
+      {activeNav === "issue" && <StockIssueForm lang={lang} />}
+
+      {activeNav === "inventory" && (
+        <InventoryPage lang={lang} userRole={role} />
+      )}
+
       {activeNav === "receipts" && (
         <div className="space-y-5">
-          <StockReceivingForm lang={lang} />
-          <StockMovementTable lang={lang} />
+          {receiptLoadError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {receiptLoadError}
+            </div>
+          )}
+
+          <StockReceivingForm
+            lang={lang}
+            editingReceipt={editingReceipt}
+            onCancelEdit={() => setEditingReceipt(null)}
+            onSaved={() => {
+              setEditingReceipt(null);
+              setReceiptsRefreshKey((k) => k + 1);
+              setStockActivityKey((k) => k + 1);
+            }}
+          />
+
+          <StockMovementTable lang={lang} refreshSignal={stockActivityKey} />
+
+          <StockReceiptsList
+            key={receiptsRefreshKey}
+            lang={lang}
+            onEdit={handleEditReceipt}
+            onView={handleViewReceipt}
+            onStockChanged={() => setStockActivityKey((k) => k + 1)}
+          />
+
+          {viewingReceipt && (
+            <StockReceiptDetailModal
+              lang={lang}
+              receipt={viewingReceipt}
+              onClose={() => setViewingReceipt(null)}
+            />
+          )}
         </div>
       )}
+
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
