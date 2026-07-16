@@ -52,6 +52,8 @@ const SECTIONLESS_ROLES = [
   "ACCOUNTANT",
 ] as const;
 
+
+
 export function RegisterPage({
   lang,
   setLang,
@@ -1109,23 +1111,21 @@ const [showDsOptions, setShowDsOptions] = useState(false);
                           )}
                         </option>
 
-                        {roles.map(
-                          (role) => (
-                            <option
-                              key={
-                                role.id
-                              }
-                              value={
-                                role.id
-                              }
-                            >
-                              {lang ===
-                              "en"
-                                ? role.name_en
-                                : role.name_si}
-                            </option>
-                          ),
-                        )}
+                        {roles
+                        .filter((role) => {
+                          if (divisionId === 1 && role.name_en === "Assistant Commissioner") {
+                            return false;
+                          }
+                          if (divisionId === 2 && role.name_en === "Assistant Director") {
+                            return false;
+                          }
+                          return true;
+                        })
+                        .map((role) => (
+                          <option key={role.id} value={role.id}>
+                            {lang === "en" ? role.name_en : role.name_si}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
