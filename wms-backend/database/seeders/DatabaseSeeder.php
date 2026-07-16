@@ -29,6 +29,8 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RolePermissionSeeder::class,
             InventoryReferenceSeeder::class,
+            ApprovalRuleSeeder::class,
+            RecommendationRuleSeeder::class,
         ]);
     }
 }
