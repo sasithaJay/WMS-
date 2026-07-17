@@ -243,14 +243,40 @@ Route::middleware('auth:sanctum')->group(function () {
     // routes/api.php addition
 
     Route::prefix('stock-requests')->group(function () {
-        Route::get('/', [StockRequestController::class, 'index']);
-        Route::get('/pending-recommendation', [StockRequestController::class, 'pendingRecommendation']);
-        Route::get('/pending-approval', [StockRequestController::class, 'pendingApproval']);
-        Route::post('/', [StockRequestController::class, 'store']);
-        Route::get('/{stockRequest}', [StockRequestController::class, 'show']);
-        Route::post('/{stockRequest}/recommend', [StockRequestController::class, 'recommend']);
-        Route::post('/{stockRequest}/approve', [StockRequestController::class, 'approve']);
-        Route::post('/{stockRequest}/reject', [StockRequestController::class, 'reject']);
-        Route::post('/{stockRequest}/return', [StockRequestController::class, 'returnRequest']);
+        Route::get('/', [
+            StockRequestController::class, 'index']
+        );
+
+        Route::get('/pending-recommendation', [
+            StockRequestController::class, 'pendingRecommendation']
+        );
+
+        Route::get('/pending-approval', [
+            StockRequestController::class, 'pendingApproval']
+        );
+
+        Route::post('/', [
+            StockRequestController::class, 'store']
+        );
+
+        Route::get('/{stockRequest}', [
+            StockRequestController::class, 'show']
+        );
+
+        Route::post('/{stockRequest}/recommend', [
+            StockRequestController::class, 'recommend']
+        );
+
+        Route::post('/{stockRequest}/approve', [
+            StockRequestController::class, 'approve']
+        );
+
+        Route::post('/{stockRequest}/reject', [
+            StockRequestController::class, 'reject']
+        );
+
+        Route::post('/{stockRequest}/return', [
+            StockRequestController::class, 'returnRequest']
+        );
     });
 });
