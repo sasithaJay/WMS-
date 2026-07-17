@@ -1130,7 +1130,7 @@ const [showDsOptions, setShowDsOptions] = useState(false);
                           if (divisionId === 1 && role.code === "ASSISTANT_COMMISSIONER") {
                             return false;
                           }
-                          if (divisionId === 2 && role.code === "ASSISTANT_DIRECTOR") {
+                          if (divisionId === 2 && (role.code === "ASSISTANT_DIRECTOR" || role.code === "ACCOUNTANT")) {
                             return false;
                           }
                           return true;
