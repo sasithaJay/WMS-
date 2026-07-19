@@ -15,11 +15,7 @@ use App\Http\Controllers\Api\StockReceiptController;
 use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\StockRequestController;
 
-/*
-|--------------------------------------------------------------------------
-| Public Routes
-|--------------------------------------------------------------------------
-*/
+//Public Routes
 
 Route::post('/register', [
     RegisterController::class,
