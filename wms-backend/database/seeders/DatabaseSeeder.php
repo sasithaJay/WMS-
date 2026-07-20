@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             InitialDataSeeder::class,
+            RoleSeeder::class,
             CommissionerSeeder::class,
             InstitutionTypeSeeder::class,
             PermissionSeeder::class,
@@ -31,6 +32,7 @@ class DatabaseSeeder extends Seeder
             InventoryReferenceSeeder::class,
             ApprovalRuleSeeder::class,
             RecommendationRuleSeeder::class,
+            DsOfficeSeeder::class,
         ]);
     }
 }

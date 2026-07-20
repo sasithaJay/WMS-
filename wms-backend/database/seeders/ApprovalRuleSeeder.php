@@ -38,6 +38,17 @@ class ApprovalRuleSeeder extends Seeder
             'priority' => 10,
         ];
 
+        // AC / AD / AO / Accountant's own PERSONAL requests — Commissioner only,
+        // not the peer group (overrides the wildcard rule via exact role match)
+        foreach (['ASSISTANT_COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ADMINISTRATIVE_OFFICER', 'ACCOUNTANT'] as $code) {
+            $rules[] = [
+                'requester_role_id' => $role($code),
+                'request_context' => 'PERSONAL',
+                'approver_role_id' => $role('COMMISSIONER'),
+                'priority' => 10,
+            ];
+}
+
         // --- Section Head's SECTION_COMMON request — Accountant, AC, AD, or
         // Commissioner (AO excluded — AO already recommended it) ---
         foreach (['ACCOUNTANT', 'ASSISTANT_COMMISSIONER', 'ASSISTANT_DIRECTOR', 'COMMISSIONER'] as $code) {

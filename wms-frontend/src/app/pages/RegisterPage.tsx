@@ -134,6 +134,24 @@ const [showDsOptions, setShowDsOptions] = useState(false);
     [roles, form.roleId],
   );
 
+  const selectedDivision = useMemo(
+    () =>
+      divisions.find(
+        (division) =>
+          division.id === divisionId,
+      ),
+    [divisions, divisionId],
+  );
+
+  const selectedSection = useMemo(
+    () =>
+      sections.find(
+        (section) =>
+          section.id === Number(form.sectionId),
+      ),
+    [sections, form.sectionId],
+  );
+
   //Whether Selected Staff Role Requires Section
 
   const requiresSection =
@@ -144,24 +162,39 @@ const [showDsOptions, setShowDsOptions] = useState(false);
         (typeof SECTIONLESS_ROLES)[number],
     );
 
-    const isStoreKeeper = selectedRole?.code === "STORE_KEEPER"; // confirm this is the actual code
+    const isStoreKeeper = selectedRole?.code === "STORE_KEEPER"; 
 
   //Load Registration Options
 
   const [dsOffices, setDsOffices] =
   useState<DsOffice[]>([]);
 
-  useEffect(() => {
-  if (!isStoreKeeper) return;
 
-  const accountSection = sections.find(
-    (section) => section.id === 1,
-  );
+useEffect(() => {
+    if (selectedRole?.code !== "STORE_KEEPER") {
+        return;
+    }
 
-  if (accountSection && form.sectionId !== String(accountSection.id)) {
-    updateField("sectionId", String(accountSection.id));
-  }
-}, [isStoreKeeper, sections]);
+    if (!selectedDivision || sections.length === 0) {
+        return;
+    }
+
+    let targetSection;
+
+    if (selectedDivision.code === "SOCIAL_SERVICES") {
+        targetSection = sections.find(
+            section => section.code === "SOCIAL_ACCOUNTS"
+        );
+    } else if (selectedDivision.code === "CHILD_SERVICES") {
+        targetSection = sections.find(
+            section => section.code === "CHILD_INSTITUTE"
+        );
+    }
+
+    if (targetSection) {
+        updateField("sectionId", targetSection.id.toString());
+    }
+}, [selectedRole, selectedDivision, sections]);
 
   useEffect(() => {
     const loadRegistrationOptions =
