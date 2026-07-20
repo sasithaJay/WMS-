@@ -14,6 +14,7 @@ export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang;
   const [activeNav, setActiveNav] = useState("dashboard");
   const [dashTab, setDashTab] = useState<DashTab>("personal");
   const [showNewRequest, setShowNewRequest] = useState(false);
+  const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
 
   const role = "COMMISSIONER" as const;
 
@@ -27,10 +28,14 @@ export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang;
           : <DashboardOverview lang={lang} />
       )}
       {activeNav === "requests" && !showNewRequest && (
-        <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} />
+        <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} refreshSignal={requestsRefreshSignal} />
       )}
       {activeNav === "requests" && showNewRequest && (
-        <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} />
+        <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} 
+          onSubmitted={() => {
+            setRequestsRefreshSignal((s) => s + 1);
+            setShowNewRequest(false);
+          }} />
       )}
       {activeNav === "approve" && <ApprovalQueue lang={lang} />}
       {activeNav === "reports" && <ReportsPanel lang={lang} />}

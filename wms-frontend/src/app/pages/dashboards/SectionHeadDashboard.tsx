@@ -11,17 +11,29 @@ import type { Lang } from "../../types";
 export function SectionHeadDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [showNewRequest, setShowNewRequest] = useState(false);
+  const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
   const role = "SECTION_HEAD" as const;
 
   return (
     <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav}
       setActiveNav={(id) => { setActiveNav(id); setShowNewRequest(false); }}
       onLogout={onLogout}>
+
       {activeNav === "dashboard" && <MonthlyRequestStatus lang={lang} onNewRequest={() => { setActiveNav("requests"); setShowNewRequest(true); }} />}
-      {activeNav === "requests" && !showNewRequest && <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} />}
-      {activeNav === "requests" && showNewRequest && <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} />}
+        
+      {activeNav === "requests" && !showNewRequest && <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} 
+        refreshSignal={requestsRefreshSignal} />}
+
+      {activeNav === "requests" && showNewRequest && <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} 
+        onSubmitted={() => {
+          setRequestsRefreshSignal((s) => s + 1);
+          setShowNewRequest(false);
+        }} />}
+
       {activeNav === "recommend" && <RecommendationQueue lang={lang} />}
+
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
+
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );
