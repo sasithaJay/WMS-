@@ -27,6 +27,12 @@ class RequestWorkflowService
             $request->current_stage = 'RECOMMENDATION';
             $request->status = 'PENDING_RECOMMENDATION';
             $request->recommender_id = $this->resolveRecommenderUser($rule, $request)?->id;
+        } elseif ($this->isAutoApproved($request)) {
+            // e.g. Commissioner's own personal request — no recommendation,
+            // no approval, ready for issuance immediately.
+            $request->current_stage = 'ISSUANCE';
+            $request->status = 'APPROVED';
+            $request->approver_id = $request->requester_id;
         } else {
             $request->current_stage = 'APPROVAL';
             $request->status = 'PENDING_APPROVAL';
@@ -143,7 +149,17 @@ class RequestWorkflowService
      */
     public function isAutoApproved(StockRequest $request): bool
     {
+        // Auto-approval only applies to staff-based requests, never to
+        // organization-based ones (institutions/DS offices always need approval).
+        if ($request->organization_id) {
+            return false;
+        }
+
         $roleId = $request->requester->staffProfile?->role_id;
+
+        if (! $roleId) {
+            return false;
+        }
 
         $rule = ApprovalRule::whereNull('organization_kind')
             ->where('request_context', $request->request_context)
