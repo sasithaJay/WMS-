@@ -13,6 +13,7 @@ export function Sidebar({
   collapsed,
   onToggle,
   onLogout,
+  badges = {},
 }: {
   lang: Lang;
   role: Role;
@@ -21,6 +22,7 @@ export function Sidebar({
   collapsed: boolean;
   onToggle: () => void;
   onLogout: () => void;
+  badges?: Record<string, number>;
 }) {
   const nav = NAV_ITEMS[role] ?? [];
   const roleLabel = ROLE_LABELS[role] ?? { en: role, si: role };
@@ -70,6 +72,8 @@ export function Sidebar({
         {nav.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
+          const badgeValue = badges[item.id];
+
           return (
             <button
               key={item.id}
@@ -86,14 +90,14 @@ export function Sidebar({
                   {t(lang, item.label, item.labelSi)}
                 </span>
               )}
-              {!collapsed && "badge" in item && item.badge && (
+              {!collapsed && badgeValue !== undefined && badgeValue > 0 && (
                 <span className="bg-[#35df6e] text-white text-[10px] px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                  {item.badge}
+                  {badgeValue}
                 </span>
               )}
-              {collapsed && "badge" in item && item.badge && (
+              {collapsed && badgeValue !== undefined && badgeValue > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {item.badge}
+                  {badgeValue}
                 </span>
               )}
             </button>

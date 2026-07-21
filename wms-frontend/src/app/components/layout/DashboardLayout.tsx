@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { t } from "../../constants/translations";
@@ -8,6 +8,7 @@ import type { Lang, Role, DashTab } from "../../types";
 import { DashboardOverview } from "../dashboard/DashboardOverview";
 import { DashboardMyView } from "../dashboard/DashboardMyView";
 import { DashboardChart } from "../dashboard/DashboardChart";
+import { getNavBadgeCounts } from "../../../services/badgeCountService";
 
 const NAV_TITLES: Record<string, { en: string; si: string }> = {
   dashboard: { en: "Dashboard", si: "උපකරණ පුවරුව" },
@@ -61,6 +62,12 @@ export function DashboardLayout({
   };
   console.log("ACTIVE NAV:", activeNav, "DASH TAB:", dashTab);
 
+  const [badges, setBadges] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    getNavBadgeCounts().then(setBadges);
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
       <Sidebar
@@ -71,6 +78,7 @@ export function DashboardLayout({
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((c) => !c)}
         onLogout={onLogout}
+        badges={badges}
       />
       <div className="flex-1 flex flex-col min-w-0 ">
         <Topbar lang={lang} setLang={setLang} title={title} />
