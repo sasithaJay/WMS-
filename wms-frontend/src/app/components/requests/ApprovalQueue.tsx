@@ -9,6 +9,7 @@ import { t } from "../../constants/translations";
 import { EmptyState } from "../common/EmptyState";
 import type { Lang } from "../../types";
 import type { StockRequest } from "../../types/stockRequests";
+import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
 
 function formatDate(value: string | null): string {
   if (!value) return "-";
@@ -30,6 +31,7 @@ function baselineQuantity(item: {
 
 export function ApprovalQueue({ lang }: { lang: Lang }) {
   const [requests, setRequests] = useState<StockRequest[]>([]);
+  const { triggerBadgeRefresh } = useBadgeRefresh();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -142,6 +144,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         remarks: changed ? comment : undefined,
       });
       setRequests((current) => current.filter((r) => r.id !== request.id));
+      triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
       setError(
@@ -162,6 +165,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
       setRequests((current) => current.filter((r) => r.id !== id));
       setRejectingId(null);
       setRejectReason("");
+      triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
       setError(

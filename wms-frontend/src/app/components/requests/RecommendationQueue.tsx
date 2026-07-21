@@ -9,6 +9,7 @@ import { t } from "../../constants/translations";
 import { EmptyState } from "../common/EmptyState";
 import type { Lang } from "../../types";
 import type { StockRequest, StockRequestUser } from "../../types/stockRequests";
+import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
 
 function formatDate(value: string | null): string {
   if (!value) return "-";
@@ -19,6 +20,7 @@ function formatDate(value: string | null): string {
 type QuantityDraft = Record<number, Record<number, string>>;
 
 export function RecommendationQueue({ lang }: { lang: Lang }) {
+  const { triggerBadgeRefresh } = useBadgeRefresh();
   const [requests, setRequests] = useState<StockRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -108,6 +110,7 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
       setError("");
       await recommendStockRequest(request.id, { items });
       setRequests((current) => current.filter((r) => r.id !== request.id));
+      triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
       setError(
@@ -128,6 +131,7 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
       setRequests((current) => current.filter((r) => r.id !== id));
       setRejectingId(null);
       setRejectReason("");
+      triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
       setError(
