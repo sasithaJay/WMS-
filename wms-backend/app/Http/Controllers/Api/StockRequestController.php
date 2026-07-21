@@ -52,11 +52,18 @@ class StockRequestController extends Controller
     public function pendingApproval(): JsonResponse
     {
         $roleId = auth()->user()->staffProfile?->role_id;
+        $isCommissioner = auth()->user()->staffProfile?->role?->code === 'COMMISSIONER';
 
-        $requests = StockRequest::with(['requester', 'items.item'])
+        $query = StockRequest::with(['requester.staffProfile', 'requester.organization', 'items.item'])
             ->where('current_stage', 'APPROVAL')
-            ->where('division_id', auth()->user()->staffProfile?->division_id)
-            ->latest()
+            ->latest();
+
+        if (!$isCommissioner) {
+            // Non-commissioners can only see requests from their own division.
+            $query->where('division_id', auth()->user()->staffProfile?->division_id);
+        }
+
+        $requests = $query
             ->paginate(15);
 
         // Further filtered in-memory by eligibility since it depends on
