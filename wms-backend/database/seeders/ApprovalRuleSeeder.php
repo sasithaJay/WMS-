@@ -30,13 +30,25 @@ class ApprovalRuleSeeder extends Seeder
             ];
         }
 
-        // Commissioner's own PERSONAL request — auto-approved, no approval step
+        // Commissioner's own PERSONAL request — division-specific approver,
+        // since she can request from either division's store.
         $rules[] = [
+            'division_id' => $division('CHILD_SERVICES'),
             'requester_role_id' => $role('COMMISSIONER'),
             'request_context' => 'PERSONAL',
-            'approver_role_id' => null,
-            'priority' => 10,
+            'approver_role_id' => $role('ASSISTANT_COMMISSIONER'),
+            'priority' => 20,
         ];
+
+        foreach (['ACCOUNTANT', 'ASSISTANT_DIRECTOR'] as $code) {
+            $rules[] = [
+                'division_id' => $division('SOCIAL_SERVICES'),
+                'requester_role_id' => $role('COMMISSIONER'),
+                'request_context' => 'PERSONAL',
+                'approver_role_id' => $role($code),
+                'priority' => 20,
+            ];
+        }
 
         // AC / AD / AO / Accountant's own PERSONAL requests — Commissioner only,
         // not the peer group (overrides the wildcard rule via exact role match)

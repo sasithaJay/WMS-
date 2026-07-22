@@ -116,30 +116,27 @@ class RequestWorkflowService
         }
 
         $roleId = $request->requester->staffProfile?->role_id;
+        $divisionId = $request->division_id;
 
-        $exact = ApprovalRule::whereNull('organization_kind')
+        $candidates = ApprovalRule::whereNull('organization_kind')
             ->where('request_context', $request->request_context)
-            ->where('requester_role_id', $roleId)
-            ->orderByDesc('priority')
+            ->where(function ($q) use ($roleId) {
+                $q->where('requester_role_id', $roleId)->orWhereNull('requester_role_id');
+            })
+            ->where(function ($q) use ($divisionId) {
+                $q->where('division_id', $divisionId)->orWhereNull('division_id');
+            })
             ->get();
 
-        $rows = $exact->isNotEmpty()
-            ? $exact
-            : ApprovalRule::whereNull('organization_kind')
-                ->where('request_context', $request->request_context)
-                ->whereNull('requester_role_id')
-                ->orderByDesc('priority')
-                ->get();
-
-        if ($rows->isEmpty()) {
+        if ($candidates->isEmpty()) {
             return collect();
         }
 
-        $topPriority = $rows->max('priority');
+        $topPriority = $candidates->max('priority');
 
-        return $rows->where('priority', $topPriority)
+        return $candidates->where('priority', $topPriority)
             ->pluck('approver_role_id')
-            ->filter() // drop nulls (auto-approve rows)
+            ->filter()
             ->values();
     }
 
@@ -149,21 +146,23 @@ class RequestWorkflowService
      */
     public function isAutoApproved(StockRequest $request): bool
     {
-        // Auto-approval only applies to staff-based requests, never to
-        // organization-based ones (institutions/DS offices always need approval).
         if ($request->organization_id) {
             return false;
         }
 
         $roleId = $request->requester->staffProfile?->role_id;
-
         if (! $roleId) {
             return false;
         }
 
+        $divisionId = $request->division_id;
+
         $rule = ApprovalRule::whereNull('organization_kind')
             ->where('request_context', $request->request_context)
             ->where('requester_role_id', $roleId)
+            ->where(function ($q) use ($divisionId) {
+                $q->where('division_id', $divisionId)->orWhereNull('division_id');
+            })
             ->orderByDesc('priority')
             ->first();
 
