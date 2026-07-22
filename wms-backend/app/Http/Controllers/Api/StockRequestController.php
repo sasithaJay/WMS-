@@ -24,7 +24,7 @@ class StockRequestController extends Controller
     {
         $user = auth()->user();
 
-        $query = StockRequest::with(['requester', 'items.item'])
+        $query = StockRequest::with(['requester', 'organization', 'items.item'])
             ->withCount('items')
             ->latest();
 

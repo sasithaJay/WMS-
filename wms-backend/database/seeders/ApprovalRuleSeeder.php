@@ -1,14 +1,14 @@
 <?php
+// database/seeders/ApprovalRuleSeeder.php
 
 namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\ApprovalRule;
 use App\Models\Role;
+use App\Models\RecommendationRule;
+use App\Models\ApprovalRule;
 use App\Models\Division;
-
-// database/seeders/ApprovalRuleSeeder.php
 
 class ApprovalRuleSeeder extends Seeder
 {
@@ -19,19 +19,7 @@ class ApprovalRuleSeeder extends Seeder
 
         $rules = [];
 
-        // --- Regular PERSONAL requests (staff, section heads, AC/AD/AO/Accountant's
-        // own requests) — any one of the five senior roles can approve ---
-        foreach (['COMMISSIONER', 'ASSISTANT_COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ADMINISTRATIVE_OFFICER', 'ACCOUNTANT'] as $code) {
-            $rules[] = [
-                'requester_role_id' => null, // wildcard
-                'request_context' => 'PERSONAL',
-                'approver_role_id' => $role($code),
-                'priority' => 1,
-            ];
-        }
-
-        // Commissioner's own PERSONAL request — division-specific approver,
-        // since she can request from either division's store.
+        // --- Commissioner's own PERSONAL request — division-specific, AO excluded ---
         $rules[] = [
             'division_id' => $division('CHILD_SERVICES'),
             'requester_role_id' => $role('COMMISSIONER'),
@@ -39,7 +27,6 @@ class ApprovalRuleSeeder extends Seeder
             'approver_role_id' => $role('ASSISTANT_COMMISSIONER'),
             'priority' => 20,
         ];
-
         foreach (['ACCOUNTANT', 'ASSISTANT_DIRECTOR'] as $code) {
             $rules[] = [
                 'division_id' => $division('SOCIAL_SERVICES'),
@@ -50,29 +37,119 @@ class ApprovalRuleSeeder extends Seeder
             ];
         }
 
-        // AC / AD / AO / Accountant's own PERSONAL requests — Commissioner only,
-        // not the peer group (overrides the wildcard rule via exact role match)
-        foreach (['ASSISTANT_COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ADMINISTRATIVE_OFFICER', 'ACCOUNTANT'] as $code) {
+        // --- AC / AD / Accountant's own PERSONAL request — Commissioner only ---
+        foreach (['ASSISTANT_COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ACCOUNTANT'] as $code) {
             $rules[] = [
                 'requester_role_id' => $role($code),
                 'request_context' => 'PERSONAL',
                 'approver_role_id' => $role('COMMISSIONER'),
                 'priority' => 10,
             ];
-}
+        }
 
-        // --- Section Head's SECTION_COMMON request — Accountant, AC, AD, or
-        // Commissioner (AO excluded — AO already recommended it) ---
-        foreach (['ACCOUNTANT', 'ASSISTANT_COMMISSIONER', 'ASSISTANT_DIRECTOR', 'COMMISSIONER'] as $code) {
+        // --- AO's own PERSONAL request — division pool minus self ---
+        foreach (['COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ACCOUNTANT'] as $code) {
             $rules[] = [
-                'requester_role_id' => $role('SECTION_HEAD'),
-                'request_context' => 'SECTION_COMMON',
+                'division_id' => $division('SOCIAL_SERVICES'),
+                'requester_role_id' => $role('ADMINISTRATIVE_OFFICER'),
+                'request_context' => 'PERSONAL',
                 'approver_role_id' => $role($code),
-                'priority' => 10,
+                'priority' => 20,
+            ];
+        }
+        foreach (['COMMISSIONER', 'ASSISTANT_COMMISSIONER'] as $code) {
+            $rules[] = [
+                'division_id' => $division('CHILD_SERVICES'),
+                'requester_role_id' => $role('ADMINISTRATIVE_OFFICER'),
+                'request_context' => 'PERSONAL',
+                'approver_role_id' => $role($code),
+                'priority' => 20,
             ];
         }
 
-        // --- External Institutions — division-specific approver set ---
+        // --- Store Keeper — full division pool (AO included; recommender was Section Head) ---
+        foreach (['COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ACCOUNTANT', 'ADMINISTRATIVE_OFFICER'] as $code) {
+            $rules[] = [
+                'division_id' => $division('SOCIAL_SERVICES'),
+                'requester_role_id' => $role('STORE_KEEPER'),
+                'request_context' => 'PERSONAL',
+                'approver_role_id' => $role($code),
+                'priority' => 20,
+            ];
+        }
+        foreach (['COMMISSIONER', 'ASSISTANT_COMMISSIONER', 'ADMINISTRATIVE_OFFICER'] as $code) {
+            $rules[] = [
+                'division_id' => $division('CHILD_SERVICES'),
+                'requester_role_id' => $role('STORE_KEEPER'),
+                'request_context' => 'PERSONAL',
+                'approver_role_id' => $role($code),
+                'priority' => 20,
+            ];
+        }
+
+        // --- Development Officer & Other Officer — same full division pool as Store Keeper ---
+        foreach (['DEVELOPMENT_OFFICER', 'OTHER_OFFICER'] as $requesterCode) {
+            foreach (['COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ACCOUNTANT', 'ADMINISTRATIVE_OFFICER'] as $code) {
+                $rules[] = [
+                    'division_id' => $division('SOCIAL_SERVICES'),
+                    'requester_role_id' => $role($requesterCode),
+                    'request_context' => 'PERSONAL',
+                    'approver_role_id' => $role($code),
+                    'priority' => 20,
+                ];
+            }
+            foreach (['COMMISSIONER', 'ASSISTANT_COMMISSIONER', 'ADMINISTRATIVE_OFFICER'] as $code) {
+                $rules[] = [
+                    'division_id' => $division('CHILD_SERVICES'),
+                    'requester_role_id' => $role($requesterCode),
+                    'request_context' => 'PERSONAL',
+                    'approver_role_id' => $role($code),
+                    'priority' => 20,
+                ];
+            }
+        }
+
+        // --- Section Head PERSONAL — division pool minus AO (AO was the recommender) ---
+        foreach (['COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ACCOUNTANT'] as $code) {
+            $rules[] = [
+                'division_id' => $division('SOCIAL_SERVICES'),
+                'requester_role_id' => $role('SECTION_HEAD'),
+                'request_context' => 'PERSONAL',
+                'approver_role_id' => $role($code),
+                'priority' => 20,
+            ];
+        }
+        foreach (['COMMISSIONER', 'ASSISTANT_COMMISSIONER'] as $code) {
+            $rules[] = [
+                'division_id' => $division('CHILD_SERVICES'),
+                'requester_role_id' => $role('SECTION_HEAD'),
+                'request_context' => 'PERSONAL',
+                'approver_role_id' => $role($code),
+                'priority' => 20,
+            ];
+        }
+
+        // --- Section Head SECTION_COMMON — same shape as PERSONAL (AO excluded) ---
+        foreach (['COMMISSIONER', 'ASSISTANT_DIRECTOR', 'ACCOUNTANT'] as $code) {
+            $rules[] = [
+                'division_id' => $division('SOCIAL_SERVICES'),
+                'requester_role_id' => $role('SECTION_HEAD'),
+                'request_context' => 'SECTION_COMMON',
+                'approver_role_id' => $role($code),
+                'priority' => 20,
+            ];
+        }
+        foreach (['COMMISSIONER', 'ASSISTANT_COMMISSIONER'] as $code) {
+            $rules[] = [
+                'division_id' => $division('CHILD_SERVICES'),
+                'requester_role_id' => $role('SECTION_HEAD'),
+                'request_context' => 'SECTION_COMMON',
+                'approver_role_id' => $role($code),
+                'priority' => 20,
+            ];
+        }
+
+        // --- Institutions — unchanged ---
         foreach (['ASSISTANT_COMMISSIONER', 'COMMISSIONER'] as $code) {
             $rules[] = [
                 'division_id' => $division('CHILD_SERVICES'),
@@ -90,7 +167,7 @@ class ApprovalRuleSeeder extends Seeder
             ];
         }
 
-        // --- Divisional Secretary Offices — mirrors institution mapping exactly ---
+        // --- DS Offices — same pool as Institutions (AO excluded, since AO effectively originated it) ---
         foreach (['ASSISTANT_COMMISSIONER', 'COMMISSIONER'] as $code) {
             $rules[] = [
                 'division_id' => $division('CHILD_SERVICES'),

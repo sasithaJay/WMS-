@@ -33,6 +33,8 @@ const STATUS_LABELS: Record<StockRequestStatus, { en: string; si: string }> = {
   CANCELLED: { en: "Cancelled", si: "අවලංගු" },
 };
 
+type RequestTab = "personal" | "section" | "ds_office";
+
 export function MyRequestsTable({
   lang,
   role,
@@ -44,9 +46,10 @@ export function MyRequestsTable({
   onNewRequest?: () => void;
   refreshSignal?: number;
 }) {
-  const [tab, setTab] = useState<"personal" | "section">("personal");
-  const isFA = role === "SECTION_HEAD";
+  const isFa = role === "SECTION_HEAD";
+  const isAo = role === "ADMINISTRATIVE_OFFICER";
 
+  const [tab, setTab] = useState<RequestTab>("personal");
   const [requests, setRequests] = useState<StockRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -80,15 +83,30 @@ export function MyRequestsTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshSignal]);
 
-  const visibleRequests = requests.filter((r) =>
-    tab === "personal" ? r.request_context === "PERSONAL" : r.request_context === "SECTION_COMMON",
-  );
+  const availableTabs: RequestTab[] = isFa
+    ? ["personal", "section"]
+    : isAo
+      ? ["personal", "ds_office"]
+      : ["personal"];
+
+  const visibleRequests = requests.filter((r) => {
+    if (tab === "personal") return r.request_context === "PERSONAL";
+    if (tab === "section") return r.request_context === "SECTION_COMMON";
+    if (tab === "ds_office") return r.request_context === "DS_OFFICE";
+    return false;
+  });
+
+  const tabLabel = (tb: RequestTab) => {
+    if (tb === "personal") return t(lang, "Personal", "පෞද්ගලික");
+    if (tb === "section") return t(lang, "Section (Common Use)", "අංශ (පොදු)");
+    return t(lang, "DS Offices", "ප්‍රාදේශීය ලේකම් කාර්යාල");
+  };
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
-          {(isFA ? (["personal", "section"] as const) : (["personal"] as const)).map((tb) => (
+          {availableTabs.map((tb) => (
             <button
               key={tb}
               onClick={() => setTab(tb)}
@@ -96,9 +114,7 @@ export function MyRequestsTable({
                 tab === tb ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
               }`}
             >
-              {tb === "personal"
-                ? t(lang, "Personal", "පෞද්ගලික")
-                : t(lang, "Section (Common Use)", "අංශ (පොදු)")}
+              {tabLabel(tb)}
             </button>
           ))}
         </div>
@@ -113,10 +129,23 @@ export function MyRequestsTable({
         )}
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-700 flex items-center gap-2">
-        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-        {t(lang, "You may submit one personal request per month.", "ඔබට මසකට පෞද්ගලික ඉල්ලීමක් ඉදිරිපත් කළ හැකිය.")}
-      </div>
+      {tab === "personal" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-700 flex items-center gap-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {t(lang, "You may submit one personal request per month.", "ඔබට මසකට පෞද්ගලික ඉල්ලීමක් ඉදිරිපත් කළ හැකිය.")}
+        </div>
+      )}
+
+      {tab === "ds_office" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-700 flex items-center gap-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {t(
+            lang,
+            "Each Divisional Secretary Office may submit one request per year.",
+            "එක් එක් ප්‍රාදේශීය ලේකම් කාර්යාලයට වසරකට එක් ඉල්ලීමක් ඉදිරිපත් කළ හැක.",
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -131,6 +160,7 @@ export function MyRequestsTable({
               {[
                 t(lang, "Date", "දිනය"),
                 t(lang, "Reference No.", "යොමු අංකය"),
+                ...(tab === "ds_office" ? [t(lang, "DS Office", "ප්‍රාදේශීය ලේකම් කාර්යාලය")] : []),
                 t(lang, "Items", "භාණ්ඩ"),
                 t(lang, "Status", "තත්ත්වය"),
               ].map((h) => (
@@ -143,7 +173,7 @@ export function MyRequestsTable({
           <tbody className="divide-y divide-gray-50">
             {loading && (
               <tr>
-                <td colSpan={4} className="px-5 py-8 text-center text-gray-400">
+                <td colSpan={tab === "ds_office" ? 5 : 4} className="px-5 py-8 text-center text-gray-400">
                   {t(lang, "Loading…", "පූරණය වෙමින්…")}
                 </td>
               </tr>
@@ -151,8 +181,10 @@ export function MyRequestsTable({
 
             {!loading && visibleRequests.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-5 py-8 text-center text-gray-400">
-                  {t(lang, "No requests yet.", "ඉල්ලීම් නොමැත.")}
+                <td colSpan={tab === "ds_office" ? 5 : 4} className="px-5 py-8 text-center text-gray-400">
+                  {tab === "ds_office"
+                    ? t(lang, "No DS Office requests yet.", "ප්‍රාදේශීය ලේකම් කාර්යාල ඉල්ලීම් නොමැත.")
+                    : t(lang, "No requests yet.", "ඉල්ලීම් නොමැත.")}
                 </td>
               </tr>
             )}
@@ -168,6 +200,11 @@ export function MyRequestsTable({
                     <td className="px-5 py-3.5 font-mono text-xs font-semibold text-gray-700">
                       {r.request_number}
                     </td>
+                    {tab === "ds_office" && (
+                      <td className="px-5 py-3.5 text-gray-700 text-xs">
+                        {r.organization?.name ?? "-"}
+                      </td>
+                    )}
                     <td className="px-5 py-3.5">
                       <div className="flex flex-wrap gap-1">
                         {(r.items ?? []).map((it) => (

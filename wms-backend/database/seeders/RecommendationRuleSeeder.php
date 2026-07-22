@@ -30,7 +30,7 @@ class RecommendationRuleSeeder extends Seeder
             [
                 'requester_role_id' => $role('SECTION_HEAD'),
                 'request_context' => 'PERSONAL',
-                'recommender_role_id' => null,
+                'recommender_role_id' => $role('ADMINISTRATIVE_OFFICER'),
                 'priority' => 10,
             ],
 
@@ -66,7 +66,7 @@ class RecommendationRuleSeeder extends Seeder
             // Divisional Secretary Offices → recommended by AO
             [
                 'organization_kind' => 'DS_OFFICE',
-                'recommender_role_id' => $role('ADMINISTRATIVE_OFFICER'),
+                'recommender_role_id' => null,
                 'priority' => 10,
             ],
         ];

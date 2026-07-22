@@ -17,6 +17,12 @@ export type StockRequestStatus =
 
 export type StockRequestStage = "RECOMMENDATION" | "APPROVAL" | "ISSUANCE" | null;
 
+export interface StockRequestOrganization {
+  id: number;
+  name: string;
+  organization_kind: "INSTITUTION" | "DS_OFFICE";
+}
+
 export interface StockRequestItemPayload {
   item_id: number;
   quantity_requested: number;
@@ -73,6 +79,7 @@ export interface StockRequest {
   approver?: StockRequestUser;
   created_at: string;
   updated_at: string;
+  organization?: StockRequestOrganization;
 }
 
 export interface StockRequestListResponse {

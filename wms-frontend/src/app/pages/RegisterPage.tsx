@@ -66,7 +66,6 @@ export function RegisterPage({
   //registration steps
 
  const [dsSearch, setDsSearch] = useState("");
-const [showDsOptions, setShowDsOptions] = useState(false);
 
   const [step, setStep] = useState(0);
 
@@ -997,26 +996,6 @@ useEffect(() => {
                       "ළමා නිවාස, රිමාන්ඩ් නිවාස හෝ වෙනත් ආයතනය",
                     ),
                   },
-
-                  {
-                    id: "ds" as const,
-
-                    icon: (
-                      <FileText className="w-5 h-5" />
-                    ),
-
-                    title: t(
-                      lang,
-                      "Divisional Secretary Office",
-                      "ප්‍රාදේශීය ලේකම් කාර්යාලය",
-                    ),
-
-                    desc: t(
-                      lang,
-                      "Divisional Secretariat Office",
-                      "ප්‍රාදේශීය ලේකම් කාර්යාලය",
-                    ),
-                  },
                 ].map((account) => (
                   <button
                     key={account.id}
@@ -1069,8 +1048,8 @@ useEffect(() => {
 
                       {t(
                         lang,
-                        "Institution and DS office requests must be recommended by the Administrative Officer.",
-                        "ආයතන හා DS ඉල්ලීම් පරිපාලන නිලධාරී විසින් නිර්දේශ කළ යුතුය.",
+                        "Institution office requests must be recommended by the Administrative Officer.",
+                        "ආයතන ඉල්ලීම් පරිපාලන නිලධාරී විසින් නිර්දේශ කළ යුතුය.",
                       )}
                     </div>
                   )}
@@ -1388,155 +1367,6 @@ useEffect(() => {
                   </>
                 )}
 
-                {/* DS Office */}
-                {accountType ===
-                  "ds" && (
-                  <>
-
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        {t(
-                          lang,
-                          "DS Office / Division",
-                          "DS කාර්යාලය / කොට්ඨාශය",
-                        )}
-                      </label>
-
-                      <input
-                        type="text"
-                        value={dsSearch}
-                        onFocus={() => setShowDsOptions(true)}
-                        onChange={(event) => {
-                          setDsSearch(event.target.value);
-                          setShowDsOptions(true);
-                        }}
-                        placeholder={t(
-                          lang,
-                          "Search DS Office...",
-                          "DS කාර්යාලය සොයන්න...",
-                        )}
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white"
-                      />
-
-                      {showDsOptions && (
-                        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg">
-                          {filteredDsOffices.length > 0 ? (
-                            filteredDsOffices.map((office) => (
-                              <button
-                                key={office.id}
-                                type="button"
-                                onClick={() => {
-                                  setForm((current) => ({
-                                    ...current,
-                                    dsOfficeId: String(office.id),
-                                    dsOfficeName: office.name_en,
-                                    district: office.district,
-                                  }));
-
-                                  setDsSearch(
-                                    lang === "en"
-                                      ? office.name_en
-                                      : office.name_si,
-                                  );
-
-                                  setShowDsOptions(false);
-                                }}
-                                className="w-full px-4 py-3 text-left hover:bg-[#EBF4FD] transition-colors border-b border-gray-100 last:border-b-0"
-                              >
-                                <div className="text-sm font-medium text-gray-900">
-                                  {lang === "en"
-                                    ? office.name_en
-                                    : office.name_si}
-                                </div>
-
-                                <div className="text-xs text-gray-500 mt-0.5">
-                                  {office.district}
-                                </div>
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-4 py-3 text-sm text-gray-500">
-                              {t(
-                                lang,
-                                "No DS offices found.",
-                                "DS කාර්යාල හමු නොවීය.",
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {form.district && (
-                      <div className="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5">
-                        <p className="text-xs text-gray-500">
-                          {t(lang, "District", "දිස්ත්‍රික්කය")}
-                        </p>
-
-                        <p className="text-sm font-medium text-gray-800">
-                          {form.district}
-                        </p>
-                      </div>
-                    )}
-
-                    {field(
-                      "officeAddress",
-                      "Office Address",
-                      "කාර්යාල ලිපිනය",
-                    )}
-
-                    {field(
-                      "officeContact",
-                      "Office Contact Number",
-                      "කාර්යාල සම්බන්ධතා",
-                      "tel",
-                    )}
-
-                    <div className="pt-2 border-t border-gray-100">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                        {t(
-                          lang,
-                          "Authorised Contact Person",
-                          "බලයලත් සම්බන්ධතා පුද්ගලයා",
-                        )}
-                      </p>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        {field(
-                          "cpName",
-                          "Full Name",
-                          "සම්පූර්ණ නම",
-                        )}
-
-                        {field(
-                          "cpDesig",
-                          "Designation",
-                          "තනතුර",
-                        )}
-
-                        {field(
-                          "cpNic",
-                          "NIC",
-                          "ජාතික හැඳුනුම්පත",
-                        )}
-
-                        {field(
-                          "cpPhone",
-                          "Phone",
-                          "දුරකථනය",
-                          "tel",
-                        )}
-                      </div>
-
-                      {field(
-                        "cpEmail",
-                        "Email",
-                        "විද්‍යුත් තැපෑල",
-                        "email",
-                      )}
-                    </div>
-                  </>
-                )}
               </div>
             )}
 

@@ -4,13 +4,14 @@
 
 namespace App\Services\Workflow;
 
+use App\Models\InventoryBalance;
+use App\Models\Organization;
 use App\Models\StockRequest;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\RequestWorkflowService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use App\Models\InventoryBalance;
 
 class StockRequestService
 {
@@ -31,6 +32,9 @@ class StockRequestService
 
             [$divisionId, $sectionId, $organizationId] =
                 $this->resolveRequesterContext($user, $data);
+
+            // DS Offices may only submit once per calendar year.
+            $this->assertDsOfficeFrequency($organizationId);
 
             $store = Store::where('division_id', $divisionId)->first();
 
@@ -105,13 +109,13 @@ class StockRequestService
             $this->applyQuantities($request, $data['items'] ?? [], 'quantity_approved', 'quantity_recommended');
 
             foreach ($request->items as $requestItem) {
-            $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
-                ['item_id' => $requestItem->item_id],
-                ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
-            );
+                $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
+                    ['item_id' => $requestItem->item_id],
+                    ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
+                );
 
-            $balance->increment('reserved_quantity', $requestItem->quantity_approved);
-        }
+                $balance->increment('reserved_quantity', $requestItem->quantity_approved);
+            }
 
             $request->actions()->create([
                 'stage'    => 'APPROVAL',
@@ -224,6 +228,17 @@ class StockRequestService
      */
     private function resolveRequesterContext(User $user, array $data): array
     {
+        // AO submitting on behalf of a DS Office — organization comes from
+        // the request payload, not from the submitting user's own account.
+        if (($data['request_context'] ?? null) === 'DS_OFFICE') {
+            $organization = Organization::findOrFail($data['organization_id']);
+
+            return [$organization->division_id, null, $organization->id];
+        }
+
+        // Institution/DS Office accounts logging in and submitting directly
+        // (institutions still do this; DS offices no longer have accounts,
+        // but this branch stays harmless for institutions).
         if ($user->account_type === 'INSTITUTION' || $user->account_type === 'DS_OFFICE') {
             $org = $user->organization;
 
@@ -249,6 +264,32 @@ class StockRequestService
         }
 
         return [$divisionId, $profile->section_id, null];
+    }
+
+    /**
+     * DS Offices may only submit one active request per calendar year.
+     * Rejected/cancelled/returned requests don't count against the limit.
+     */
+    private function assertDsOfficeFrequency(?int $organizationId): void
+    {
+        if (! $organizationId) {
+            return;
+        }
+
+        $org = Organization::find($organizationId);
+
+        if (! $org || $org->organization_kind !== 'DS_OFFICE') {
+            return;
+        }
+
+        $alreadyRequestedThisYear = StockRequest::where('organization_id', $organizationId)
+            ->whereYear('created_at', now()->year)
+            ->whereNotIn('status', ['REJECTED', 'CANCELLED', 'RETURNED'])
+            ->exists();
+
+        if ($alreadyRequestedThisYear) {
+            abort(422, 'This Divisional Secretary Office has already submitted a request this year.');
+        }
     }
 
     private function applyQuantities(
