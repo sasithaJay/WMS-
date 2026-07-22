@@ -63,7 +63,7 @@ export function DashboardLayout({
     if (h < 17) return t(lang, "Good afternoon", "සුභ දහවලක්");
     return t(lang, "Good evening", "සුභ සැන්දෑවක්");
   };
-  console.log("ACTIVE NAV:", activeNav, "DASH TAB:", dashTab);
+ //console.log("ACTIVE NAV:", activeNav, "DASH TAB:", dashTab);
 
   const loadBadges = useCallback(async () => {
     const counts = await getNavBadgeCounts();

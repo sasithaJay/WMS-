@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ItemUpdateRequestController;
 use App\Http\Controllers\Api\StockReceiptController;
 use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\StockRequestController;
+use App\Http\Controllers\Api\InventoryBalanceController;
 
 //Public Routes
 
@@ -275,4 +276,7 @@ Route::middleware('auth:sanctum')->group(function () {
             StockRequestController::class, 'returnRequest']
         );
     });
+
+    // routes/api.php
+    Route::get('/inventory-balances', [InventoryBalanceController::class, 'index']);
 });

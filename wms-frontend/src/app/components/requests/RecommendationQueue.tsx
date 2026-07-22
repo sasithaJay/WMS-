@@ -10,6 +10,7 @@ import { EmptyState } from "../common/EmptyState";
 import type { Lang } from "../../types";
 import type { StockRequest, StockRequestUser } from "../../types/stockRequests";
 import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
+import { getInventoryBalances, type InventoryBalanceInfo } from "../../../services/InventoryBalanceService";
 
 function formatDate(value: string | null): string {
   if (!value) return "-";
@@ -29,6 +30,10 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [drafts, setDrafts] = useState<QuantityDraft>({});
+
+  const [balances, setBalances] = useState<Record<number, InventoryBalanceInfo>>({});
+  const [sessionCommitted, setSessionCommitted] = useState<Record<number, number>>({});
+
 
   const loadQueue = useCallback(async () => {
     try {
@@ -65,6 +70,22 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
     loadQueue();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+  const allItemIds = Array.from(
+    new Set(requests.flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
+  );
+  if (allItemIds.length > 0) {
+    getInventoryBalances(allItemIds).then(setBalances);
+  }
+}, [requests]);
+
+function liveAvailable(itemId: number): number | null {
+  const base = balances[itemId]?.available;
+  if (base === undefined) return null;
+  const committed = sessionCommitted[itemId] ?? 0;
+  return Math.max(0, base - committed);
+}
 
   function setDraftQuantity(requestId: number, itemId: number, value: string) {
     setDrafts((current) => ({
@@ -110,6 +131,13 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
       setError("");
       await recommendStockRequest(request.id, { items });
       setRequests((current) => current.filter((r) => r.id !== request.id));
+      setSessionCommitted((current) => {
+        const next = { ...current };
+        items.forEach(({ item_id, quantity }) => {
+          next[item_id] = (next[item_id] ?? 0) + quantity;
+        });
+        return next;
+      });
       triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
@@ -224,6 +252,9 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
                           <th className="w-28 px-3 py-2 text-center">
                             {t(lang, "Recommend", "නිර්දේශ")}
                           </th>
+                          <th className="w-28 px-3 py-2 text-center">
+                            {t(lang, "Available", "ලබාගත හැකි")}
+                          </th>
                         </tr>
                       </thead>
 
@@ -243,15 +274,23 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
                                 type="number"
                                 min={1}
                                 value={drafts[r.id]?.[it.item_id] ?? ""}
-                                onChange={(e) =>
-                                  setDraftQuantity(
-                                    r.id,
-                                    it.item_id,
-                                    e.target.value
-                                  )
-                                }
+                                onChange={(e) => setDraftQuantity(r.id, it.item_id, e.target.value)}
                                 className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-center text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
                               />
+                        
+                            </td>
+                            <td>
+                              {(() => {
+                                const avail = liveAvailable(it.item_id);
+                                if (avail === null) return null;
+                                const requestedQty = Number(drafts[r.id]?.[it.item_id] ?? 0);
+                                const short = requestedQty > avail;
+                                return (
+                                  <p className={`mt-1 text-[12px] text-center ${short ? "text-red-500 font-semibold" : "text-gray-400 font-semibold"}`}>
+                                    {t(lang, `${avail} in stock`, `තොගයේ ${avail}`)}
+                                  </p>
+                                );
+                              })()}
                             </td>
                           </tr>
                         ))}

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\RequestWorkflowService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Models\InventoryBalance;
 
 class StockRequestService
 {
@@ -102,6 +103,15 @@ class StockRequestService
             $this->assertEligibleApprover($request);
 
             $this->applyQuantities($request, $data['items'] ?? [], 'quantity_approved', 'quantity_recommended');
+
+            foreach ($request->items as $requestItem) {
+            $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
+                ['item_id' => $requestItem->item_id],
+                ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
+            );
+
+            $balance->increment('reserved_quantity', $requestItem->quantity_approved);
+        }
 
             $request->actions()->create([
                 'stage'    => 'APPROVAL',

@@ -59,9 +59,7 @@ export function RequestForm({
   const isFA = role === "SECTION_HEAD";
   const isCommissioner = role === "COMMISSIONER";
 
-  // Commissioner store/division picker — until you have a real
-  // GET /divisions endpoint, these IDs must match your InitialDataSeeder rows.
-  // TODO: replace with a fetched divisions list once that endpoint exists.
+
   const [selectedDivisionId, setSelectedDivisionId] = useState<number | "">("");
 
   const [error, setError] = useState("");

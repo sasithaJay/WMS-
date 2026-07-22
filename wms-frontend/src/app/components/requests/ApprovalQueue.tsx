@@ -10,6 +10,7 @@ import { EmptyState } from "../common/EmptyState";
 import type { Lang } from "../../types";
 import type { StockRequest } from "../../types/stockRequests";
 import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
+import { getInventoryBalances, InventoryBalanceInfo } from "../../../services/InventoryBalanceService";
 
 function formatDate(value: string | null): string {
   if (!value) return "-";
@@ -41,6 +42,8 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
   const [drafts, setDrafts] = useState<QuantityDraft>({});
   const [qtyChangeComments, setQtyChangeComments] = useState<Record<number, string>>({});
   const [validationError, setValidationError] = useState<Record<number, string>>({});
+
+  const [balances, setBalances] = useState<Record<number, InventoryBalanceInfo>>({});
 
   const loadQueue = useCallback(async () => {
     try {
@@ -76,6 +79,15 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
     loadQueue();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+  const allItemIds = Array.from(
+    new Set(requests.flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
+  );
+  if (allItemIds.length > 0) {
+    getInventoryBalances(allItemIds).then(setBalances);
+  }
+}, [requests]);
 
   function setDraftQuantity(requestId: number, itemId: number, value: string) {
     setDrafts((current) => ({
@@ -144,6 +156,12 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         remarks: changed ? comment : undefined,
       });
       setRequests((current) => current.filter((r) => r.id !== request.id));
+      const remainingItemIds = Array.from(
+        new Set(requests.filter((r) => r.id !== request.id).flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
+      );
+      if (remainingItemIds.length > 0) {
+        getInventoryBalances(remainingItemIds).then(setBalances);
+      }
       triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
@@ -265,6 +283,10 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                         <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">
                           {t(lang, "Approve Qty", "අනුමත ප්‍රමාණය")}
                         </th>
+
+                        <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">
+                          {t(lang, "Available", "ලබාගත හැකි")}
+                        </th>
                       </tr>
                     </thead>
 
@@ -295,6 +317,22 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                               className="w-20 rounded-lg border border-gray-200 px-2 py-1.5 text-center text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
                             />
                           </td>
+                         <td className="px-4 py-2.5 text-center">
+                          
+                          {(() => {
+                            const balance = balances[it.item_id];
+                            if (!balance) return null;
+
+                            const approvingQty = Number(drafts[r.id]?.[it.item_id] ?? 0);
+                            const short = approvingQty > balance.available;
+
+                            return (
+                              <p className={`mt-1 text-[12px] text-center ${short ? "text-red-500 font-semibold" : "text-gray-400 font-semibold"}`}>
+                                {t(lang, `${balance.available} in stock`, `තොගයේ ${balance.available}`)}
+                              </p>
+                            );
+                          })()}
+                        </td>
                         </tr>
                       ))}
                     </tbody>
