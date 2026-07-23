@@ -74,6 +74,28 @@ export function RequestForm({
   const [successMessage, setSuccessMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const [dsSearch, setDsSearch] = useState("");
+  const [showDsOptions, setShowDsOptions] = useState(false);
+
+  const filteredDsOffices = dsOffices.filter((office) => {
+  const search = dsSearch.toLowerCase().trim();
+
+  return (
+    office.name_en.toLowerCase().includes(search) ||
+    office.name_si.includes(dsSearch) ||
+    office.district.toLowerCase().includes(search)
+  );
+});
+
+useEffect(() => {
+  const handler = () => setShowDsOptions(false);
+
+  window.addEventListener("click", handler);
+
+  return () =>
+    window.removeEventListener("click", handler);
+}, []);
+
   useEffect(() => {
     loadItems();
   }, []);
@@ -324,25 +346,72 @@ export function RequestForm({
               {t(lang, "Divisional Secretary Office", "ප්‍රාදේශීය ලේකම් කාර්යාලය")}
             </label>
 
-            <select
-              value={selectedOrgId}
-              onChange={(e) =>
-                setSelectedOrgId(e.target.value === "" ? "" : Number(e.target.value))
-              }
-              disabled={loadingDsOffices}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
-            >
-              <option value="">
-                {loadingDsOffices
-                  ? t(lang, "Loading offices…", "පූරණය වෙමින්…")
-                  : t(lang, "Select DS Office...", "කාර්යාලය තෝරන්න...")}
-              </option>
-              {dsOffices.map((office) => (
-                <option key={office.id} value={office.id}>
-                  {office.name_en}({office.district})
-                </option>
-              ))}
-            </select>
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                value={dsSearch}
+                onFocus={() => setShowDsOptions(true)}
+                onChange={(e) => {
+                  setDsSearch(e.target.value);
+                  setShowDsOptions(true);
+                }}
+                placeholder={t(
+                  lang,
+                  "Search DS Office...",
+                  "DS කාර්යාලය සොයන්න...",
+                )}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3"
+              />
+
+              {showDsOptions && (
+                <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+                  {filteredDsOffices.map((office) => (
+                    <button
+                      key={office.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrgId(office.id);
+
+                        setDsSearch(
+                          lang === "en"
+                            ? office.name_en
+                            : office.name_si,
+                        );
+
+                        setShowDsOptions(false);
+                      }}
+                      className="w-full border-b border-gray-100 px-4 py-3 text-left hover:bg-[#EBF4FD]"
+                    >
+                      <div className="font-medium">
+                        {lang === "en"
+                          ? office.name_en
+                          : office.name_si}
+                      </div>
+
+                      <div className="text-xs text-gray-500">
+                        {office.district}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {selectedOrgId !== "" && (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">
+                    {t(lang, "District", "දිස්ත්‍රික්කය")}
+                  </p>
+
+                  <p className="text-sm font-medium text-gray-800">
+                    {
+                      dsOffices.find(
+                        (office) => office.id === selectedOrgId,
+                      )?.district
+                    }
+                  </p>
+                </div>
+              )}
+            </div>
 
             {!loadingDsOffices && dsOffices.length === 0 && (
               <p className="mt-1.5 text-xs text-gray-400">
