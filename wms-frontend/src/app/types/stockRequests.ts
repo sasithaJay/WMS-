@@ -31,6 +31,7 @@ export interface StockRequestItemPayload {
 
 export interface CreateStockRequestPayload {
   request_context: StockRequestContext;
+  ds_office_id?: number;
   division_id?: number; // only honored server-side for Commissioner
   notes?: string;
   items: StockRequestItemPayload[];
@@ -65,6 +66,7 @@ export interface StockRequest {
   store_id: number;
   section_id: number | null;
   organization_id: number | null;
+  ds_office_id: number | null;
   request_context: StockRequestContext;
   status: StockRequestStatus;
   current_stage: StockRequestStage;
@@ -80,6 +82,7 @@ export interface StockRequest {
   created_at: string;
   updated_at: string;
   organization?: StockRequestOrganization;
+  ds_office?: { id: number; name_en: string; district: string };
 }
 
 export interface StockRequestListResponse {

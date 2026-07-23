@@ -49,10 +49,8 @@ class RequestWorkflowService
      */
     protected function findRecommendationRule(StockRequest $request): ?RecommendationRule
     {
-        if ($request->organization_id) {
-            $orgKind = $request->organization->organization_kind;
-
-            return RecommendationRule::where('organization_kind', $orgKind)
+        if (in_array($request->request_context, ['INSTITUTION', 'DS_OFFICE'], true)) {
+            return RecommendationRule::where('organization_kind', $request->request_context)
                 ->orderByDesc('priority')
                 ->first();
         }
@@ -62,10 +60,8 @@ class RequestWorkflowService
         return RecommendationRule::whereNull('organization_kind')
             ->where('request_context', $request->request_context)
             ->where(function ($q) use ($roleId) {
-                $q->where('requester_role_id', $roleId)
-                    ->orWhereNull('requester_role_id');
+                $q->where('requester_role_id', $roleId)->orWhereNull('requester_role_id');
             })
-            // exact role match (0) sorts before wildcard (1)
             ->orderByRaw('requester_role_id IS NULL')
             ->orderByDesc('priority')
             ->first();
@@ -100,10 +96,8 @@ class RequestWorkflowService
      */
     public function resolveApprovalRoleIds(StockRequest $request): Collection
     {
-        $orgKind = $request->organization?->organization_kind;
-
-        if ($orgKind) {
-            return ApprovalRule::where('organization_kind', $orgKind)
+        if (in_array($request->request_context, ['INSTITUTION', 'DS_OFFICE'], true)) {
+            return ApprovalRule::where('organization_kind', $request->request_context)
                 ->where('division_id', $request->division_id)
                 ->orderByDesc('priority')
                 ->get()
@@ -146,7 +140,7 @@ class RequestWorkflowService
      */
     public function isAutoApproved(StockRequest $request): bool
     {
-        if ($request->organization_id) {
+        if (in_array($request->request_context, ['INSTITUTION', 'DS_OFFICE'], true)) {
             return false;
         }
 

@@ -30,11 +30,11 @@ class StockRequestService
             $user = auth()->user();
             $requestNumber = $this->generateRequestNumber();
 
-            [$divisionId, $sectionId, $organizationId] =
+            [$divisionId, $sectionId, $organizationId, $dsOfficeId] =
                 $this->resolveRequesterContext($user, $data);
 
             // DS Offices may only submit once per calendar year.
-            $this->assertDsOfficeFrequency($organizationId);
+            $this->assertDsOfficeFrequency($dsOfficeId, $divisionId);
 
             $store = Store::where('division_id', $divisionId)->first();
 
@@ -49,6 +49,7 @@ class StockRequestService
                 'store_id'         => $store->id,
                 'section_id'       => $sectionId,
                 'organization_id'  => $organizationId,
+                'ds_office_id'     => $dsOfficeId,
                 'request_context'  => $data['request_context'],
                 'notes'            => $data['notes'] ?? null,
             ]);
@@ -231,9 +232,13 @@ class StockRequestService
         // AO submitting on behalf of a DS Office — organization comes from
         // the request payload, not from the submitting user's own account.
         if (($data['request_context'] ?? null) === 'DS_OFFICE') {
-            $organization = Organization::findOrFail($data['organization_id']);
+            $profile = $user->staffProfile;
 
-            return [$organization->division_id, null, $organization->id];
+            if (! $profile) {
+                abort(403, 'Your account is not assigned to a staff profile.');
+            }
+
+            return [$profile->division_id, null, null, $data['ds_office_id']];
         }
 
         // Institution/DS Office accounts logging in and submitting directly
@@ -246,7 +251,7 @@ class StockRequestService
                 abort(422, 'This account has no linked organization record.');
             }
 
-            return [$org->division_id, null, $org->id];
+            return [$org->division_id, null, $org->id, null];
         }
 
         $profile = $user->staffProfile;
@@ -263,32 +268,27 @@ class StockRequestService
             $divisionId = $data['division_id'];
         }
 
-        return [$divisionId, $profile->section_id, null];
+        return [$divisionId, $profile->section_id, null, null];
     }
 
     /**
      * DS Offices may only submit one active request per calendar year.
      * Rejected/cancelled/returned requests don't count against the limit.
      */
-    private function assertDsOfficeFrequency(?int $organizationId): void
+   private function assertDsOfficeFrequency(?int $dsOfficeId, int $divisionId): void
     {
-        if (! $organizationId) {
+        if (! $dsOfficeId) {
             return;
         }
 
-        $org = Organization::find($organizationId);
-
-        if (! $org || $org->organization_kind !== 'DS_OFFICE') {
-            return;
-        }
-
-        $alreadyRequestedThisYear = StockRequest::where('organization_id', $organizationId)
+        $alreadyRequestedThisYear = StockRequest::where('ds_office_id', $dsOfficeId)
+            ->where('division_id', $divisionId)
             ->whereYear('created_at', now()->year)
             ->whereNotIn('status', ['REJECTED', 'CANCELLED', 'RETURNED'])
             ->exists();
 
         if ($alreadyRequestedThisYear) {
-            abort(422, 'This Divisional Secretary Office has already submitted a request this year.');
+            abort(422, 'This Divisional Secretary Office has already submitted a request to this division this year.');
         }
     }
 

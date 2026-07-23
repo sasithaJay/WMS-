@@ -22,6 +22,7 @@ class StockRequest extends Model
         'current_stage',
         'recommender_id',
         'approver_id',
+        'ds_office_id',
         'notes',
         'submitted_at',
     ];
@@ -56,6 +57,11 @@ class StockRequest extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function dsOffice(): BelongsTo
+    {
+        return $this->belongsTo(DsOffice::class);
     }
 
     public function recommender(): BelongsTo

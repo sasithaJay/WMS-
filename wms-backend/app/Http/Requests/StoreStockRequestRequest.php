@@ -1,9 +1,8 @@
 <?php
 
-// app/Http/Requests/StoreStockRequestRequest.php
-
 namespace App\Http\Requests;
 
+use App\Models\DsOffice;
 use App\Models\Organization;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -12,9 +11,6 @@ class StoreStockRequestRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Role-based restriction for DS_OFFICE lives here since it's a
-        // permission check (who is allowed to submit this kind of request),
-        // not a data-shape validation rule.
         if ($this->input('request_context') === 'DS_OFFICE') {
             return $this->user()?->staffProfile?->role?->code === 'ADMINISTRATIVE_OFFICER';
         }
@@ -26,11 +22,18 @@ class StoreStockRequestRequest extends FormRequest
     {
         return [
             'request_context' => ['required', 'in:PERSONAL,SECTION_COMMON,INSTITUTION,DS_OFFICE'],
-            'division_id' => ['nullable', 'exists:divisions,id'], 
+            'division_id' => ['nullable', 'exists:divisions,id'], // only honored for Commissioner
+
             'organization_id' => [
                 'nullable',
-                'required_if:request_context,DS_OFFICE',
+                'required_if:request_context,INSTITUTION',
                 'exists:organizations,id',
+            ],
+
+            'ds_office_id' => [
+                'nullable',
+                'required_if:request_context,DS_OFFICE',
+                'exists:ds_offices,id',
             ],
 
             'notes' => ['nullable', 'string'],
@@ -42,41 +45,23 @@ class StoreStockRequestRequest extends FormRequest
         ];
     }
 
-    /**
-     * Cross-field checks that go beyond simple rule validation:
-     * the organization must actually be a DS_OFFICE, and it must belong
-     * to the submitting AO's own division.
-     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            if ($this->input('request_context') !== 'DS_OFFICE') {
-                return;
+            if ($this->input('request_context') === 'INSTITUTION') {
+                $organization = Organization::find($this->input('organization_id'));
+
+                if ($organization && $organization->organization_kind !== 'INSTITUTION') {
+                    $validator->errors()->add('organization_id', 'The selected organization is not an Institution.');
+                }
             }
 
-            $organizationId = $this->input('organization_id');
+            if ($this->input('request_context') === 'DS_OFFICE') {
+                $dsOffice = DsOffice::find($this->input('ds_office_id'));
 
-            if (! $organizationId) {
-                return; // already caught by required_if above
-            }
-
-            $organization = Organization::find($organizationId);
-
-            if (! $organization || $organization->organization_kind !== 'DS_OFFICE') {
-                $validator->errors()->add(
-                    'organization_id',
-                    'The selected organization is not a Divisional Secretary Office.',
-                );
-                return;
-            }
-
-            $aoDivisionId = $this->user()?->staffProfile?->division_id;
-
-            if ($organization->division_id !== $aoDivisionId) {
-                $validator->errors()->add(
-                    'organization_id',
-                    'You may only submit requests for a Divisional Secretary Office in your own division.',
-                );
+                if ($dsOffice && ! $dsOffice->is_active) {
+                    $validator->errors()->add('ds_office_id', 'This Divisional Secretary Office is not active.');
+                }
             }
         });
     }

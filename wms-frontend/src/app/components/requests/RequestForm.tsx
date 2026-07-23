@@ -4,6 +4,7 @@ import { AxiosError } from "axios";
 
 import { getItems } from "../../../services/ItemService";
 import { createStockRequest } from "../../../services/stockRequestService";
+import { getDsOffices, type DsOffice } from "../../../services/dsOfficeService";
 import { t } from "../../constants/translations";
 import type { Lang, Role } from "../../types";
 import type {
@@ -17,6 +18,7 @@ interface Item {
   name_en: string;
   name_si?: string;
 }
+
 
 interface RequestRow {
   rowId: string;
@@ -46,7 +48,7 @@ export function RequestForm({
   onCancel: () => void;
   onSubmitted?: () => void;
 }) {
-  const [reqType, setReqType] = useState<"personal" | "section">("personal");
+  const [reqType, setReqType] = useState<"personal" | "section" | "ds_office">("personal");
   const [rows, setRows] = useState<RequestRow[]>([
     { rowId: createRowId(), item_id: "", qty: 1 },
   ]);
@@ -58,9 +60,14 @@ export function RequestForm({
 
   const isFA = role === "SECTION_HEAD";
   const isCommissioner = role === "COMMISSIONER";
-
+  const isAo = role === "ADMINISTRATIVE_OFFICER";
 
   const [selectedDivisionId, setSelectedDivisionId] = useState<number | "">("");
+
+  // DS Office picker — only relevant for AO
+  const [dsOffices, setDsOffices] = useState<DsOffice[]>([]);
+  const [loadingDsOffices, setLoadingDsOffices] = useState(false);
+  const [selectedOrgId, setSelectedOrgId] = useState<number | "">("");
 
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -71,6 +78,13 @@ export function RequestForm({
     loadItems();
   }, []);
 
+  useEffect(() => {
+    if (isAo && reqType === "ds_office") {
+      loadDsOffices();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reqType]);
+
   async function loadItems() {
     try {
       setLoadingItems(true);
@@ -80,6 +94,18 @@ export function RequestForm({
       console.error(err);
     } finally {
       setLoadingItems(false);
+    }
+  }
+
+  async function loadDsOffices() {
+    try {
+      setLoadingDsOffices(true);
+      const response = await getDsOffices();
+      setDsOffices(response.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDsOffices(false);
     }
   }
 
@@ -114,6 +140,9 @@ export function RequestForm({
     if (isCommissioner && !selectedDivisionId) {
       return t(lang, "Please select a store/division.", "කරුණාකර ගබඩාව තෝරන්න.");
     }
+    if (isAo && reqType === "ds_office" && !selectedOrgId) {
+      return t(lang, "Please select a Divisional Secretary Office.", "කරුණාකර ප්‍රාදේශීය ලේකම් කාර්යාලය තෝරන්න.");
+    }
     if (rows.some((r) => r.item_id === "")) {
       return t(lang, "Select an item in every row.", "සෑම පේළියකටම භාණ්ඩයක් තෝරන්න.");
     }
@@ -135,7 +164,11 @@ export function RequestForm({
     }
 
     const context: StockRequestContext =
-      isFA && reqType === "section" ? "SECTION_COMMON" : "PERSONAL";
+      isAo && reqType === "ds_office"
+        ? "DS_OFFICE"
+        : isFA && reqType === "section"
+          ? "SECTION_COMMON"
+          : "PERSONAL";
 
     const payload: CreateStockRequestPayload = {
       request_context: context,
@@ -146,6 +179,9 @@ export function RequestForm({
       })),
       ...(isCommissioner && selectedDivisionId
         ? { division_id: selectedDivisionId as number }
+        : {}),
+      ...(context === "DS_OFFICE" && selectedOrgId
+        ? { ds_office_id: selectedOrgId as number }
         : {}),
     };
 
@@ -210,10 +246,39 @@ export function RequestForm({
         </div>
       )}
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-700 flex items-center gap-2">
-        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-        {t(lang, "You may submit one personal request per month.", "ඔබට මසකට පෞද්ගලික ඉල්ලීමක් ඉදිරිපත් කළ හැකිය.")}
-      </div>
+      {isAo && (
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5 w-fit">
+          {(["personal", "ds_office"] as const).map((tb) => (
+            <button
+              key={tb}
+              onClick={() => setReqType(tb)}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                reqType === tb ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+              }`}
+            >
+              {tb === "personal"
+                ? t(lang, "Personal Request", "පෞද්ගලික ඉල්ලීම")
+                : t(lang, "DS Office Request", "ප්‍රාදේශීය ලේකම් කාර්යාල ඉල්ලීම")}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {reqType === "ds_office" ? (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-700 flex items-center gap-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {t(
+            lang,
+            "Each Divisional Secretary Office may submit one request per year.",
+            "එක් එක් ප්‍රාදේශීය ලේකම් කාර්යාලයට වසරකට එක් ඉල්ලීමක් ඉදිරිපත් කළ හැක.",
+          )}
+        </div>
+      ) : (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-700 flex items-center gap-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {t(lang, "You may submit one personal request per month.", "ඔබට මසකට පෞද්ගලික ඉල්ලීමක් ඉදිරිපත් කළ හැකිය.")}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -253,6 +318,40 @@ export function RequestForm({
           </div>
         )}
 
+        {isAo && reqType === "ds_office" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t(lang, "Divisional Secretary Office", "ප්‍රාදේශීය ලේකම් කාර්යාලය")}
+            </label>
+
+            <select
+              value={selectedOrgId}
+              onChange={(e) =>
+                setSelectedOrgId(e.target.value === "" ? "" : Number(e.target.value))
+              }
+              disabled={loadingDsOffices}
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
+            >
+              <option value="">
+                {loadingDsOffices
+                  ? t(lang, "Loading offices…", "පූරණය වෙමින්…")
+                  : t(lang, "Select DS Office...", "කාර්යාලය තෝරන්න...")}
+              </option>
+              {dsOffices.map((office) => (
+                <option key={office.id} value={office.id}>
+                  {office.name_en}({office.district})
+                </option>
+              ))}
+            </select>
+
+            {!loadingDsOffices && dsOffices.length === 0 && (
+              <p className="mt-1.5 text-xs text-gray-400">
+                {t(lang, "No DS Offices found for your division.", "ඔබගේ අංශය සඳහා කාර්යාල හමු නොවීය.")}
+              </p>
+            )}
+          </div>
+        )}
+
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -271,7 +370,11 @@ export function RequestForm({
                 )}
 
                 <select
-                  disabled={isCommissioner && !selectedDivisionId || loadingItems}
+                  disabled={
+                    (isCommissioner && !selectedDivisionId) ||
+                    (isAo && reqType === "ds_office" && !selectedOrgId) ||
+                    loadingItems
+                  }
                   value={row.item_id === "" ? "" : String(row.item_id)}
                   onChange={(e) =>
                     setRow(row.rowId, "item_id", e.target.value === "" ? "" : Number(e.target.value))
@@ -281,9 +384,11 @@ export function RequestForm({
                   <option value="">
                     {isCommissioner && !selectedDivisionId
                       ? t(lang, "Select store first…", "පළමුව ගබඩාව තෝරන්න…")
-                      : loadingItems
-                        ? t(lang, "Loading items…", "පූරණය වෙමින්…")
-                        : t(lang, "Select item…", "භාණ්ඩය තෝරන්න…")}
+                      : isAo && reqType === "ds_office" && !selectedOrgId
+                        ? t(lang, "Select DS Office first…", "පළමුව කාර්යාලය තෝරන්න…")
+                        : loadingItems
+                          ? t(lang, "Loading items…", "පූරණය වෙමින්…")
+                          : t(lang, "Select item…", "භාණ්ඩය තෝරන්න…")}
                   </option>
                   {(search ? filteredItems : items).map((it) => (
                     <option key={it.id} value={it.id}>

@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\StockRequestController;
 use App\Http\Controllers\Api\InventoryBalanceController;
 use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\DsOfficeController;
 
 //Public Routes
 
@@ -282,4 +283,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory-balances', [InventoryBalanceController::class, 'index']);
 
     Route::get('/organizations', [OrganizationController::class, 'index']);
+    Route::get('/ds-offices', [DsOfficeController::class, 'index']);
+
 });
