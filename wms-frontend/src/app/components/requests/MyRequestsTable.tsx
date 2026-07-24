@@ -202,7 +202,9 @@ export function MyRequestsTable({
                     </td>
                     {tab === "ds_office" && (
                       <td className="px-5 py-3.5 text-gray-700 text-xs">
-                        {r.ds_office?.name_en ?? r.organization?.name ?? "-"}
+                        {r.ds_office
+                          ? t(lang, r.ds_office.name_en, r.ds_office.name_si)
+                          : r.organization?.name ?? "-"}
                       </td>
                     )}
                     <td className="px-5 py-3.5">

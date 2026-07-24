@@ -97,14 +97,6 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
   });
 }, [requests]);
 
-//   useEffect(() => {
-//   const allItemIds = Array.from(
-//     new Set(requests.flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
-//   );
-//   if (allItemIds.length > 0) {
-//     getInventoryBalances(allItemIds).then(setBalances);
-//   }
-// }, [requests]);
 
   function setDraftQuantity(requestId: number, itemId: number, value: string) {
     setDrafts((current) => ({

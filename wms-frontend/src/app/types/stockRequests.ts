@@ -82,7 +82,12 @@ export interface StockRequest {
   created_at: string;
   updated_at: string;
   organization?: StockRequestOrganization;
-  ds_office?: { id: number; name_en: string; district: string };
+  ds_office?: { 
+    id: number; 
+    name_en: string; 
+    name_si: string;
+    district: string 
+  };
 }
 
 export interface StockRequestListResponse {

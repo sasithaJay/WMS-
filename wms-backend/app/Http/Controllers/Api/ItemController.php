@@ -114,32 +114,6 @@ class ItemController extends Controller
         ]);
     }
 
-    // public function update(
-    //     UpdateItemRequest $request,
-    //     Item $item
-    // ): JsonResponse {
-    //     $this->ensureItemAccess($request, $item);
-
-    //     $data = $request->validated();
-    //     $user = $request->user();
-
-    //     if (!$this->canChooseDivision($user)) {
-    //         unset($data['division_id']);
-    //     }
-
-    //     $item->update($data);
-
-    //     return response()->json([
-    //         'message' => 'Item updated successfully.',
-    //         'data' => $item->load([
-    //             'division',
-    //             'category',
-    //             'unit',
-    //             'balance',
-    //         ]),
-    //     ]);
-    // }
-
     public function update(
         UpdateItemRequest $request,
         Item $item

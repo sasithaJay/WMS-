@@ -24,7 +24,7 @@ class StockRequestController extends Controller
     {
         $user = auth()->user();
 
-        $query = StockRequest::with(['requester', 'organization', 'items.item'])
+        $query = StockRequest::with(['requester', 'organization', 'dsOffice', 'items.item'])
             ->withCount('items')
             ->latest();
 
@@ -49,34 +49,45 @@ class StockRequestController extends Controller
         return response()->json($requests);
     }
 
-    public function pendingApproval(): JsonResponse
+    public function pendingApproval(Request $request): JsonResponse
     {
-        $roleId = auth()->user()->staffProfile?->role_id;
-        $isCommissioner = auth()->user()->staffProfile?->role?->code === 'COMMISSIONER';
+        $user = auth()->user();
+        $roleId = $user->staffProfile?->role_id;
+        $isCommissioner = $user->staffProfile?->role?->code === 'COMMISSIONER';
 
         $query = StockRequest::with(['requester.staffProfile', 'requester.organization', 'items.item'])
             ->where('current_stage', 'APPROVAL')
             ->latest();
 
-        if (!$isCommissioner) {
-            // Non-commissioners can only see requests from their own division.
-            $query->where('division_id', auth()->user()->staffProfile?->division_id);
+        if (! $isCommissioner) {
+            $query->where('division_id', $user->staffProfile?->division_id);
         }
 
-        $requests = $query
-            ->paginate(15);
+        // Pull every candidate first — filtering must happen before pagination,
+        // since eligibility depends on per-request rule resolution, not a
+        // column we can filter with SQL directly.
+        $allCandidates = $query->get();
 
-        // Further filtered in-memory by eligibility since it depends on
-        // per-request rule resolution, not a simple column match.
-        $eligible = $requests->getCollection()->filter(
+        $eligible = $allCandidates->filter(
             fn (StockRequest $r) => app(\App\Services\RequestWorkflowService::class)
                 ->resolveApprovalRoleIds($r)
                 ->contains($roleId)
         )->values();
 
-        $requests->setCollection($eligible);
+        $perPage = $request->integer('per_page', 15);
+        $page = $request->integer('page', 1);
 
-        return response()->json($requests);
+        $paged = $eligible->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paged,
+            $eligible->count(), // ← now the TRUE eligible total, not the pre-filter count
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return response()->json($paginator);
     }
 
     public function store(StoreStockRequestRequest $request): JsonResponse
