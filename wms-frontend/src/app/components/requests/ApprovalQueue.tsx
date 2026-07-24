@@ -81,13 +81,30 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
   }, []);
 
   useEffect(() => {
-  const allItemIds = Array.from(
-    new Set(requests.flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
-  );
-  if (allItemIds.length > 0) {
-    getInventoryBalances(allItemIds).then(setBalances);
-  }
+  const byDivision = new Map<number, Set<number>>();
+
+  requests.forEach((r) => {
+    if (!byDivision.has(r.division_id)) {
+      byDivision.set(r.division_id, new Set());
+    }
+    (r.items ?? []).forEach((it) => byDivision.get(r.division_id)!.add(it.item_id));
+  });
+
+  byDivision.forEach((itemIdSet, divisionId) => {
+    getInventoryBalances(Array.from(itemIdSet), divisionId).then((result) => {
+      setBalances((prev) => ({ ...prev, ...result }));
+    });
+  });
 }, [requests]);
+
+//   useEffect(() => {
+//   const allItemIds = Array.from(
+//     new Set(requests.flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
+//   );
+//   if (allItemIds.length > 0) {
+//     getInventoryBalances(allItemIds).then(setBalances);
+//   }
+// }, [requests]);
 
   function setDraftQuantity(requestId: number, itemId: number, value: string) {
     setDrafts((current) => ({
@@ -156,11 +173,16 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         remarks: changed ? comment : undefined,
       });
       setRequests((current) => current.filter((r) => r.id !== request.id));
-      const remainingItemIds = Array.from(
-        new Set(requests.filter((r) => r.id !== request.id).flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
+      const remainingSameDivision = requests.filter(
+        (r) => r.id !== request.id && r.division_id === request.division_id,
       );
-      if (remainingItemIds.length > 0) {
-        getInventoryBalances(remainingItemIds).then(setBalances);
+      const itemIds = Array.from(
+        new Set(remainingSameDivision.flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
+      );
+      if (itemIds.length > 0) {
+        getInventoryBalances(itemIds, request.division_id).then((result) => {
+          setBalances((prev) => ({ ...prev, ...result }));
+        });
       }
       triggerBadgeRefresh();
     } catch (err) {

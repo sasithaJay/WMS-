@@ -111,7 +111,10 @@ class StockRequestService
 
             foreach ($request->items as $requestItem) {
                 $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
-                    ['item_id' => $requestItem->item_id],
+                    [
+                        'item_id' => $requestItem->item_id,
+                        'division_id' => $request->division_id,
+                    ],
                     ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
                 );
 

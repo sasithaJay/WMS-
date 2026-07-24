@@ -97,8 +97,17 @@ useEffect(() => {
 }, []);
 
   useEffect(() => {
-    loadItems();
-  }, []);
+  if (isCommissioner && !selectedDivisionId) {
+    setItems([]);
+    return;
+  }
+  loadItems();
+}, [selectedDivisionId]);
+
+useEffect(() => {
+  setRows([{ rowId: createRowId(), item_id: "", qty: 1 }]);
+}, [selectedDivisionId]);
+
 
   useEffect(() => {
     if (isAo && reqType === "ds_office") {
@@ -110,7 +119,10 @@ useEffect(() => {
   async function loadItems() {
     try {
       setLoadingItems(true);
-      const response = await getItems({ per_page: 500 });
+      const response = await getItems({ 
+        per_page: 500,
+        ...(isCommissioner && selectedDivisionId ? { division_id: selectedDivisionId as number } : {}),
+      });
       setItems(response.data);
     } catch (err) {
       console.error(err);
@@ -333,7 +345,6 @@ useEffect(() => {
               className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               <option value="">{t(lang, "Select store...", "ගබඩාව තෝරන්න...")}</option>
-              {/* TODO: replace hardcoded IDs with a fetched /divisions list */}
               <option value="1">{t(lang, "Social Services Division Store", "සමාජ සේවා අංශ ගබඩාව")}</option>
               <option value="2">{t(lang, "Child Services Division Store", "ළමා සේවා අංශ ගබඩාව")}</option>
             </select>

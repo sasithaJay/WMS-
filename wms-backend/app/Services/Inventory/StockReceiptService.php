@@ -112,6 +112,7 @@ class StockReceiptService
                     ->firstOrCreate(
                         [
                             'item_id' => $receiptItem->item_id,
+                            'division_id' => $receipt->division_id,
                         ],
                         [
                             'quantity_on_hand' => 0,

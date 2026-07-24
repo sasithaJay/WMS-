@@ -11,11 +11,12 @@ export interface InventoryBalanceInfo {
 
 export async function getInventoryBalances(
   itemIds: number[],
+  divisionId?: number,
 ): Promise<Record<number, InventoryBalanceInfo>> {
   if (itemIds.length === 0) return {};
 
   const response = await api.get("/inventory-balances", {
-    params: { item_ids: itemIds },
+    params: { item_ids: itemIds, division_id: divisionId },
   });
 
   const map: Record<number, InventoryBalanceInfo> = {};

@@ -23,7 +23,12 @@ class InventoryBalanceController extends Controller
             ->unique()
             ->values();
 
-        $balances = InventoryBalance::whereIn('item_id', $itemIds)->get()
+        $divisionId = $request->integer('division_id')
+        ?: auth()->user()->staffProfile?->division_id;
+
+        $balances = InventoryBalance::whereIn('item_id', $itemIds)  
+            ->where('division_id', $divisionId)
+            ->get()
             ->keyBy('item_id');
 
         $result = $itemIds->mapWithKeys(function ($itemId) use ($balances) {
