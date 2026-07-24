@@ -270,6 +270,11 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
 
                 <div className="text-sm font-semibold text-gray-900">
                   {r.requester?.name ?? `#${r.requester_id}`}
+                  {r.requester?.role_label && (
+                      <span className="ml-1.5 text-xs font-semibold text-gray-500">
+                        ({r.requester.role_label})
+                      </span>
+                    )}
                 </div>
 
                 <div className="text-xs text-gray-400 mb-4">

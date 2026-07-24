@@ -56,6 +56,7 @@ export interface StockRequestItemView {
 export interface StockRequestUser {
   id: number;
   name: string;
+  role_label?: string;
 }
 
 export interface StockRequest {

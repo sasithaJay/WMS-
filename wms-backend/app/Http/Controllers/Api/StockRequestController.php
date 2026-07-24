@@ -1,7 +1,5 @@
 <?php
 
-// app/Http/Controllers/Api/StockRequestController.php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -40,7 +38,7 @@ class StockRequestController extends Controller
 
     public function pendingRecommendation(): JsonResponse
     {
-        $requests = StockRequest::with(['requester', 'items.item'])
+        $requests = StockRequest::with(['requester.staffProfile', 'requester.organization', 'dsOffice', 'items.item'])
             ->where('current_stage', 'RECOMMENDATION')
             ->where('recommender_id', auth()->id())
             ->latest()

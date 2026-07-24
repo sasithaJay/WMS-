@@ -104,6 +104,10 @@ function liveAvailable(itemId: number): number | null {
     return `#${requester?.id ?? fallbackId}`;
   }
 
+  function getRequesterRoleLabel(requester: StockRequestUser | undefined): string | null {
+    return requester?.role_label ?? null;
+  }
+
   function isDraftValid(request: StockRequest): boolean {
     const itemDrafts = drafts[request.id] ?? {};
     return (request.items ?? []).every((it) => {
@@ -225,8 +229,12 @@ function liveAvailable(itemId: number): number | null {
                   </div>
 
                   <div className="text-sm font-semibold text-gray-900">
-                    {/* {r.requester?.name ?? `#${r.requester_id}`} */}
-                    {getRequesterName(r.requester, r.id)}
+                    {getRequesterName(r.requester, r.requester_id)}
+                    {r.requester?.role_label && (
+                      <span className="ml-1.5 text-xs font-normal text-gray-400">
+                        ({r.requester.role_label})
+                      </span>
+                    )}
                   </div>
 
                   <div className="mb-3 text-xs text-gray-400">

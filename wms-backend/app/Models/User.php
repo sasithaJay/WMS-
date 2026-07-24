@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class User extends Authenticatable
 {
@@ -39,6 +40,22 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->staffProfile?->full_name ?? $this->organization?->name ?? $this->username,
+        );
+    }
+
+    protected function roleLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn () =>  $this->staffProfile?->role?->name_en,
+        );
+    }
+
+    protected $appends = ['name', 'role_label'];
 
     public function staffProfile(): HasOne
     {
