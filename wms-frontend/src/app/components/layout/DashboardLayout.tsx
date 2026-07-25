@@ -63,7 +63,7 @@ export function DashboardLayout({
     if (h < 17) return t(lang, "Good afternoon", "සුභ දහවලක්");
     return t(lang, "Good evening", "සුභ සැන්දෑවක්");
   };
- //console.log("ACTIVE NAV:", activeNav, "DASH TAB:", dashTab);
+ 
 
   const loadBadges = useCallback(async () => {
     const counts = await getNavBadgeCounts();
@@ -80,11 +80,9 @@ export function DashboardLayout({
     }
   }, [badgeRefreshSignal, loadBadges]);
 
-  // Also refresh whenever the user navigates — cheap safety net in case
-  // an action happened somewhere that didn't call triggerBadgeRefresh.
+
   useEffect(() => {
     loadBadges();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeNav]);
 
   const triggerBadgeRefresh = useCallback(() => {
