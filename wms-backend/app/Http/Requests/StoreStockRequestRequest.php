@@ -1,7 +1,5 @@
 <?php
 
-// app/Http/Requests/StoreStockRequestRequest.php
-
 namespace App\Http\Requests;
 
 use App\Models\DsOffice;
@@ -136,12 +134,6 @@ class StoreStockRequestRequest extends FormRequest
         }
     }
 
-    /**
-     * Every submitted item must belong to the division this request is
-     * actually targeting — prevents a Commissioner (or anyone else) from
-     * submitting items from the wrong store, and protects against stale
-     * frontend state sending mismatched item_ids.
-     */
     private function validateItemsBelongToTargetDivision(Validator $validator): void
     {
         $items = $this->input('items', []);
@@ -173,13 +165,6 @@ class StoreStockRequestRequest extends FormRequest
         }
     }
 
-    /**
-     * Resolves which division this request's items must belong to, based
-     * on who's submitting and what context they selected. Mirrors the same
-     * account-type-aware resolution used in StockRequestService and
-     * ItemController — every account type (staff, Commissioner, institution,
-     * AO-on-behalf-of-DS-office) is handled explicitly, no silent nulls.
-     */
     private function resolveTargetDivisionId(): ?int
     {
         $user = $this->user();
