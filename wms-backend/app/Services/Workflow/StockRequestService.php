@@ -29,6 +29,7 @@ class StockRequestService
 
             $user = auth()->user();
             $requestNumber = $this->generateRequestNumber();
+            $requestContext = $this->resolveRequestContext($user, $data);
 
             [$divisionId, $sectionId, $organizationId, $dsOfficeId] =
                 $this->resolveRequesterContext($user, $data);
@@ -50,7 +51,7 @@ class StockRequestService
                 'section_id'       => $sectionId,
                 'organization_id'  => $organizationId,
                 'ds_office_id'     => $dsOfficeId,
-                'request_context'  => $data['request_context'],
+                'request_context'  => $requestContext, // ← backend-derived, not client-trusted
                 'notes'            => $data['notes'] ?? null,
             ]);
 
@@ -227,6 +228,26 @@ class StockRequestService
     }
 
     /**
+     * Authoritatively determines the request context based on account type
+     * and role, rather than trusting whatever the client sent. Institutions
+     * always have a fixed context; DS Office requests are identified by the
+     * AO's chosen context in the payload; everything else falls back to
+     * whatever the staff member selected (PERSONAL / SECTION_COMMON).
+     */
+    private function resolveRequestContext(User $user, array $data): string
+    {
+        if ($user->account_type === 'INSTITUTION') {
+            return 'INSTITUTION';
+        }
+
+        if (($data['request_context'] ?? null) === 'DS_OFFICE') {
+            return 'DS_OFFICE';
+        }
+
+        return $data['request_context'];
+    }
+
+    /**
      * Determines division/section/organization for the new request based
      * on who's submitting it and what context they selected.
      */
@@ -278,7 +299,7 @@ class StockRequestService
      * DS Offices may only submit one active request per calendar year.
      * Rejected/cancelled/returned requests don't count against the limit.
      */
-   private function assertDsOfficeFrequency(?int $dsOfficeId, int $divisionId): void
+    private function assertDsOfficeFrequency(?int $dsOfficeId, int $divisionId): void
     {
         if (! $dsOfficeId) {
             return;

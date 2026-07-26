@@ -196,7 +196,7 @@ class ItemController extends Controller
 
         $query->where(
             'division_id',
-            $user->staffProfile->division_id
+            $this->resolveUserDivisionId($user)
         );
     }
 
@@ -211,7 +211,7 @@ class ItemController extends Controller
         }
 
         abort_unless(
-            $item->division_id === $user->staffProfile->division_id,
+            $item->division_id === $this->resolveUserDivisionId($user),
             403,
             'You cannot access this item.'
         );
@@ -221,5 +221,19 @@ class ItemController extends Controller
     {
         return $user->account_type === 'admin'
             || $user->staffProfile?->role?->code === 'COMMISSIONER';
+    }
+
+    /**
+     * Resolves a user's division regardless of account type — staff
+     * accounts get it from their staff profile, institution/DS office
+     * accounts get it from their linked organization.
+     */
+    private function resolveUserDivisionId($user): ?int
+    {
+        if (in_array($user->account_type, ['INSTITUTION', 'DS_OFFICE'], true)) {
+            return $user->organization?->division_id;
+        }
+
+        return $user->staffProfile?->division_id;
     }
 }

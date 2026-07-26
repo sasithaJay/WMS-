@@ -33,7 +33,7 @@ const STATUS_LABELS: Record<StockRequestStatus, { en: string; si: string }> = {
   CANCELLED: { en: "Cancelled", si: "අවලංගු" },
 };
 
-type RequestTab = "personal" | "section" | "ds_office";
+type RequestTab = "personal" | "section" | "ds_office" | "institution";
 
 export function MyRequestsTable({
   lang,
@@ -48,8 +48,9 @@ export function MyRequestsTable({
 }) {
   const isFa = role === "SECTION_HEAD";
   const isAo = role === "ADMINISTRATIVE_OFFICER";
+  const isInstitution = role === "INSTITUTION";
 
-  const [tab, setTab] = useState<RequestTab>("personal");
+  const [tab, setTab] = useState<RequestTab>(isInstitution ? "institution" : "personal");
   const [requests, setRequests] = useState<StockRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -87,20 +88,24 @@ export function MyRequestsTable({
     ? ["personal", "section"]
     : isAo
       ? ["personal", "ds_office"]
-      : ["personal"];
+      : isInstitution
+        ? ["institution"]
+        : ["personal"];
 
   const visibleRequests = requests.filter((r) => {
     if (tab === "personal") return r.request_context === "PERSONAL";
     if (tab === "section") return r.request_context === "SECTION_COMMON";
     if (tab === "ds_office") return r.request_context === "DS_OFFICE";
+    if (tab === "institution") return r.request_context === "INSTITUTION";
     return false;
   });
 
-  const tabLabel = (tb: RequestTab) => {
-    if (tb === "personal") return t(lang, "Personal", "පෞද්ගලික");
-    if (tb === "section") return t(lang, "Section (Common Use)", "අංශ (පොදු)");
-    return t(lang, "DS Offices", "ප්‍රාදේශීය ලේකම් කාර්යාල");
-  };
+const tabLabel = (tb: RequestTab) => {
+  if (tb === "personal") return t(lang, "Personal", "පෞද්ගලික");
+  if (tb === "section") return t(lang, "Section (Common Use)", "අංශ (පොදු)");
+  if (tb === "ds_office") return t(lang, "DS Offices", "ප්‍රාදේශීය ලේකම් කාර්යාල");
+  return t(lang, "My Requests", "මගේ ඉල්ලීම්");
+};
 
   return (
     <div className="space-y-5">
