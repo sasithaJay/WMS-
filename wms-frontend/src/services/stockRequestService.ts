@@ -1,4 +1,3 @@
-// src/services/stockRequestService.ts
 
 import api from "../api/axios";
 import type {
@@ -66,5 +65,21 @@ export async function rejectStockRequest(id: number, reason: string): Promise<St
 
 export async function returnStockRequest(id: number, reason: string): Promise<StockRequest> {
   const response = await api.post(`/stock-requests/${id}/return`, { reason });
+  return response.data.data ?? response.data;
+}
+
+export async function getPendingIssuance(params?: {
+  page?: number;
+  per_page?: number;
+}): Promise<StockRequestListResponse> {
+  const response = await api.get("/stock-requests/pending-issuance", { params });
+  return response.data;
+}
+
+export async function issueStockRequest(
+  id: number,
+  payload: { remarks?: string; items?: { item_id: number; quantity: number }[] },
+): Promise<StockRequest> {
+  const response = await api.post(`/stock-requests/${id}/issue`, payload);
   return response.data.data ?? response.data;
 }
