@@ -10,6 +10,7 @@ import type { Lang } from "../../types";
 
 export function InstitutionDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
   const role = "INSTITUTION" as const;
 
   return (
@@ -23,8 +24,12 @@ export function InstitutionDashboard({ lang, setLang, onLogout }: { lang: Lang; 
           <MonthlyRequestStatus lang={lang} onNewRequest={() => setActiveNav("new")} />
         </div>
       )}
-      {activeNav === "requests" && <MyRequestsTable lang={lang} role={role} />}
-      {activeNav === "new" && <RequestForm lang={lang} role={role} onCancel={() => setActiveNav("requests")} />}
+      {activeNav === "requests" && <MyRequestsTable lang={lang} role={role} refreshSignal={requestsRefreshSignal} />}
+      {activeNav === "new" && <RequestForm lang={lang} role={role} onCancel={() => setActiveNav("requests")} 
+        onSubmitted={() => {
+          setRequestsRefreshSignal((s) => s + 1);
+          setActiveNav("requests");
+        }} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

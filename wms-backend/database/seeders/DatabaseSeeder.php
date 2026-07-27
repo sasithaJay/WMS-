@@ -24,11 +24,15 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             InitialDataSeeder::class,
+            RoleSeeder::class,
             CommissionerSeeder::class,
             InstitutionTypeSeeder::class,
             PermissionSeeder::class,
             RolePermissionSeeder::class,
             InventoryReferenceSeeder::class,
+            ApprovalRuleSeeder::class,
+            RecommendationRuleSeeder::class,
+            DsOfficeSeeder::class,
         ]);
     }
 }

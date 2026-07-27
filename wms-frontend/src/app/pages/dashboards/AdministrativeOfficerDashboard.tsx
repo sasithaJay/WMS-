@@ -14,6 +14,7 @@ export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { la
   const [activeNav, setActiveNav] = useState("dashboard");
   const [dashTab, setDashTab] = useState<DashTab>("personal");
   const [showNewRequest, setShowNewRequest] = useState(false);
+  const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
   const role = "ADMINISTRATIVE_OFFICER" as const;
 
   return (
@@ -21,8 +22,12 @@ export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { la
       setActiveNav={(id) => { setActiveNav(id); setShowNewRequest(false); }}
       onLogout={onLogout} canSeeSummary={true} dashTab={dashTab} setDashTab={setDashTab}>
       {activeNav === "dashboard" && <DashboardOverview lang={lang} />}
-      {activeNav === "requests" && !showNewRequest && <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} />}
-      {activeNav === "requests" && showNewRequest && <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} />}
+      {activeNav === "requests" && !showNewRequest && <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} refreshSignal={requestsRefreshSignal} />}
+      {activeNav === "requests" && showNewRequest && <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} 
+        onSubmitted={() => {
+          setRequestsRefreshSignal((s) => s + 1);
+          setShowNewRequest(false);
+        }} />}
       {activeNav === "recommend" && <RecommendationQueue lang={lang} />}
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
