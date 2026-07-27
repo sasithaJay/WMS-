@@ -35,41 +35,85 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
   const [sessionCommitted, setSessionCommitted] = useState<Record<number, number>>({});
 
 
-  const loadQueue = useCallback(async () => {
-    try {
-      setLoading((prev) => (requests.length === 0 ? true : prev));
-      setError("");
-      const response = await getPendingRecommendation({ per_page: 50 });
-      setRequests(response.data);
+  // const loadQueue = useCallback(async () => {
+  //   try {
+  //     setLoading((prev) => (requests.length === 0 ? true : prev));
+  //     setError("");
+  //     const response = await getPendingRecommendation({ per_page: 50 });
+  //     setRequests(response.data);
 
-      // seed drafts with the originally requested quantities
-      setDrafts((current) => {
-        const next = { ...current };
-        response.data.forEach((r) => {
-          if (!next[r.id]) {
-            next[r.id] = {};
-            (r.items ?? []).forEach((it) => {
-              next[r.id][it.item_id] = String(Number(it.quantity_requested));
-            });
-          }
-        });
-        return next;
+  //     // seed drafts with the originally requested quantities
+  //     setDrafts((current) => {
+  //       const next = { ...current };
+  //       response.data.forEach((r) => {
+  //         if (!next[r.id]) {
+  //           next[r.id] = {};
+  //           (r.items ?? []).forEach((it) => {
+  //             next[r.id][it.item_id] = String(Number(it.quantity_requested));
+  //           });
+  //         }
+  //       });
+  //       return next;
+  //     });
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError(
+  //       t(lang, "Unable to load the recommendation queue.", "නිර්දේශ පෝලිම පූරණය කළ නොහැක."),
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [lang]);
+
+const loadQueue = useCallback(async (showLoading = false) => {
+  try {
+    if (showLoading) {
+      setLoading(true);
+    }
+
+    setError("");
+    const response = await getPendingRecommendation({ per_page: 50 });
+    setRequests(response.data);
+
+    // seed drafts with the originally requested quantities
+    setDrafts((current) => {
+      const next = { ...current };
+      response.data.forEach((r) => {
+        if (!next[r.id]) {
+          next[r.id] = {};
+          (r.items ?? []).forEach((it) => {
+            next[r.id][it.item_id] = String(Number(it.quantity_requested));
+          });
+        }
       });
-    } catch (err) {
-      console.error(err);
-      setError(
-        t(lang, "Unable to load the recommendation queue.", "නිර්දේශ පෝලිම පූරණය කළ නොහැක."),
-      );
-    } finally {
+      return next;
+    });
+  } catch (err) {
+    console.error(err);
+    setError(
+      t(lang, "Unable to load the recommendation queue.", "නිර්දේශ පෝලිම පූරණය කළ නොහැක."),
+    );
+  } finally {
+    if (showLoading) {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }
+}, [lang]);
 
   useEffect(() => {
-    loadQueue();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadQueue(true); // Show loading spinner on initial load
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+        if (document.visibilityState === "visible") {
+            loadQueue(false); // No loading spinner
+        }
+    }, 5000);
+
+    return () => clearInterval(interval);
+}, [loadQueue]);
 
   useEffect(() => {
   const allItemIds = Array.from(
