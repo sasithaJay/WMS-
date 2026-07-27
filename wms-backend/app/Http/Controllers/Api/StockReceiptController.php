@@ -18,22 +18,22 @@ class StockReceiptController extends Controller
     ) {
     }
 
-    public function index(Request $request): JsonResponse
+   public function index(Request $request): JsonResponse
     {
-        $divisionId = auth()->user()->staffProfile->division_id;
+        $user = auth()->user();
+        $isCommissioner = $user->staffProfile?->role?->code === 'COMMISSIONER';
 
-        $receipts = StockReceipt::with([
-                'division',
-                'creator',
-            ])
-            ->where('division_id', $divisionId)
+        $query = StockReceipt::with(['division', 'creator'])
             ->withCount('items')
-            ->latest()
-            ->paginate(
-                $request->integer('per_page', 15)
-            );
+            ->latest();
 
-        return response()->json($receipts);
+        if (! $isCommissioner) {
+            $query->where('division_id', $user->staffProfile?->division_id);
+        }
+
+        return response()->json(
+            $query->paginate($request->integer('per_page', 15))
+        );
     }
 
     public function store(

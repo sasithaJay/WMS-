@@ -17,9 +17,14 @@ class InventoryReferenceSeeder extends Seeder
                 'code' => 'STATIONERY',
             ],
             [
-                'name_en' => 'Equipment',
-                'name_si' => 'උපකරණ',
-                'code' => 'EQUIPMENT',
+                'name_en' => 'Office Equipment',
+                'name_si' => 'කාර්යාල උපකරණ',
+                'code' => 'OFFICE_EQUIPMENT',
+            ],
+            [
+                'name_en' => 'Computer Equipment',
+                'name_si' => 'පරිගණක උපකරණ',
+                'code' => 'COMPUTER_EQUIPMENT',
             ],
             [
                 'name_en' => 'Filing',
@@ -38,6 +43,7 @@ class InventoryReferenceSeeder extends Seeder
         $units = [
             ['name_en' => 'Piece', 'name_si' => 'කැබැල්ල', 'symbol' => 'pcs'],
             ['name_en' => 'Box', 'name_si' => 'පෙට්ටිය', 'symbol' => 'box'],
+            ['name_en' => 'Bundle', 'name_si' => 'ගොන්න', 'symbol' => 'bundle'],
             ['name_en' => 'Packet', 'name_si' => 'පැකට්ටුව', 'symbol' => 'pkt'],
             ['name_en' => 'Bottle', 'name_si' => 'බෝතලය', 'symbol' => 'btl'],
             ['name_en' => 'Ream', 'name_si' => 'රීමය', 'symbol' => 'ream'],

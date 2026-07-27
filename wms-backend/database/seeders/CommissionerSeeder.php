@@ -25,7 +25,7 @@ class CommissionerSeeder extends Seeder
                 'email' => 'commissioner@wms.gov.lk',
 
                 'password' => Hash::make(
-                    'Commissioner@123'
+                    '12345678'
                 ),
 
                 'account_type' => 'STAFF',

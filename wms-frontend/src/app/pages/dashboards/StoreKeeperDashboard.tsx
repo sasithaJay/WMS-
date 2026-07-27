@@ -32,6 +32,7 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
   const [receiptsRefreshKey, setReceiptsRefreshKey] = useState(0);
   const [receiptLoadError, setReceiptLoadError] = useState("");
   const [stockActivityKey, setStockActivityKey] = useState(0);
+  const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
   const role = "STORE_KEEPER" as const;
 
   async function handleEditReceipt(receipt: StockReceipt) {
@@ -86,10 +87,15 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
       )}
 
       {activeNav === "requests" && !showNewRequest && (
-        <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} />
+        <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)}
+        refreshSignal={requestsRefreshSignal} />
       )}
       {activeNav === "requests" && showNewRequest && (
-        <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} />
+        <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} 
+        onSubmitted={() => {
+          setRequestsRefreshSignal((s) => s + 1);
+          setShowNewRequest(false); // return to the table so the new row is visible immediately
+        }}/>
       )}
 
       {activeNav === "issue" && <StockIssueForm lang={lang} />}
