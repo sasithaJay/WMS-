@@ -439,7 +439,12 @@ class StockRequestService
                 'current_stage' => $allFullyIssued ? null : 'ISSUANCE',
             ]);
 
-            return $request->fresh(['items.item', 'actions']);
+            return $request->fresh([
+                'requester.staffProfile',
+                'requester.organization',
+                'items.item', 
+                'actions',
+            ]);
         });
     }
 
