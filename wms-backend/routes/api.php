@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\StockRequestController;
 use App\Http\Controllers\Api\InventoryBalanceController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\DsOfficeController;
+use App\Http\Controllers\Api\PasswordController;
 
 //Public Routes
 
@@ -59,8 +60,11 @@ Route::middleware('auth:sanctum')->group(function () {
             'staffProfile.role',
             'staffProfile.division',
             'staffProfile.section',
+            'organization.division',
         ]);
     });
+
+    Route::put('/user/password', [PasswordController::class, 'update']);
 
     /*
     |--------------------------------------------------------------------------
