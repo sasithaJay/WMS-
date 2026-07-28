@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Package } from "lucide-react";
+import { Package, ClipboardList } from "lucide-react";
 
 import { t } from "../../constants/translations";
 import { InventorySummary } from "./InventorySummary";
 import { StockBalanceTable } from "./StockBalanceTable";
 import { ItemRegistrationForm } from "./ItemRegistrationForm";
+import { MyItemUpdateRequestsTable } from "./MyItemUpdateRequestsTable";
 
 import {
   getItems,
@@ -35,6 +36,9 @@ export function InventoryPage({
 
   const [selectedItem, setSelectedItem] =
     useState<InventoryItem | null>(null);
+
+  const [activeTab, setActiveTab] = useState<"stock" | "my-updates">("stock");
+  const [updateRequestsRefreshSignal, setUpdateRequestsRefreshSignal] = useState(0);
 
   const normalizedRole = userRole
     ?.trim()
@@ -95,6 +99,13 @@ export function InventoryPage({
   async function handleSaved() {
     await loadItems();
 
+    // If this was an edit (update request), refresh the "My Update
+    // Requests" tab too, so the newly submitted request shows up
+    // immediately if the store keeper switches over to check it.
+    if (selectedItem) {
+      setUpdateRequestsRefreshSignal((s) => s + 1);
+    }
+
     setShowItemForm(false);
     setSelectedItem(null);
   }
@@ -112,8 +123,40 @@ export function InventoryPage({
         total={total}
       />
 
-      {canManageItems && (
-        <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        {canManageItems ? (
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5 w-fit">
+            <button
+              type="button"
+              onClick={() => setActiveTab("stock")}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                activeTab === "stock"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500"
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              {t(lang, "Stock Balance", "තොග ශේෂය")}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("my-updates")}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                activeTab === "my-updates"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500"
+              }`}
+            >
+              <ClipboardList className="w-3.5 h-3.5" />
+              {t(lang, "My Update Requests", "මගේ යාවත්කාලීන ඉල්ලීම්")}
+            </button>
+          </div>
+        ) : (
+          <div />
+        )}
+
+        {canManageItems && activeTab === "stock" && (
           <button
             type="button"
             onClick={handleAddItem}
@@ -127,17 +170,26 @@ export function InventoryPage({
               "භාණ්ඩ එකතු කරන්න",
             )}
           </button>
-        </div>
+        )}
+      </div>
+
+      {activeTab === "stock" && (
+        <StockBalanceTable
+          lang={lang}
+          items={items}
+          loading={loading}
+          canManageItems={canManageItems}
+          onEdit={handleEdit}
+          onToggleStatus={handleToggleStatus}
+        />
       )}
 
-      <StockBalanceTable
-        lang={lang}
-        items={items}
-        loading={loading}
-        canManageItems={canManageItems}
-        onEdit={handleEdit}
-        onToggleStatus={handleToggleStatus}
-      />
+      {activeTab === "my-updates" && canManageItems && (
+        <MyItemUpdateRequestsTable
+          lang={lang}
+          refreshSignal={updateRequestsRefreshSignal}
+        />
+      )}
 
       {showItemForm && (
         <ItemRegistrationForm

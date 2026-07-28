@@ -18,7 +18,8 @@ class AccountApprovalController extends Controller
         $users = User::query()
             ->where('account_status', 'PENDING')
             ->with([
-                'staffProfile',
+                'staffProfile.role',
+                'staffProfile.division',
                 'organization',
             ])
             ->latest()

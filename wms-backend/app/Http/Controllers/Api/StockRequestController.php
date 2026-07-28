@@ -144,4 +144,39 @@ class StockRequestController extends Controller
             'data'    => $updated,
         ]);
     }
+
+    public function pendingIssuance(Request $request): JsonResponse
+    {
+        $profile = auth()->user()->staffProfile;
+
+        abort_unless(
+            $profile?->role?->code === 'STORE_KEEPER',
+            403,
+            'Only Store Keepers can view the issuance queue.'
+        );
+
+        $requests = StockRequest::with([
+                'requester.staffProfile',
+                'requester.organization',
+                'dsOffice',
+                'organization',
+                'items.item',
+            ])
+            ->where('current_stage', 'ISSUANCE')
+            ->where('division_id', $profile->division_id)
+            ->latest()
+            ->paginate($request->integer('per_page', 50));
+
+        return response()->json($requests);
+    }
+
+    public function issue(StockRequestActionRequest $request, StockRequest $stockRequest): JsonResponse
+    {
+        $updated = $this->service->issue($stockRequest, $request->validated());
+
+        return response()->json([
+            'message' => 'Stock issued successfully.',
+            'data'    => $updated,
+        ]);
+    }
 }

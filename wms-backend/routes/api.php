@@ -254,6 +254,10 @@ Route::middleware('auth:sanctum')->group(function () {
             StockRequestController::class, 'pendingApproval']
         );
 
+        Route::get('/pending-issuance', [
+            StockRequestController::class, 'pendingIssuance']
+        );
+
         Route::post('/', [
             StockRequestController::class, 'store']
         );
@@ -277,6 +281,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{stockRequest}/return', [
             StockRequestController::class, 'returnRequest']
         );
+
+        Route::post('/{stockRequest}/issue', [
+            StockRequestController::class, 'issue']
+        );
     });
 
     // routes/api.php
@@ -284,5 +292,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/organizations', [OrganizationController::class, 'index']);
     Route::get('/ds-offices', [DsOfficeController::class, 'index']);
+
 
 });

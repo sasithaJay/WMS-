@@ -15,12 +15,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
 
         $this->call([
             InitialDataSeeder::class,
@@ -33,6 +27,7 @@ class DatabaseSeeder extends Seeder
             ApprovalRuleSeeder::class,
             RecommendationRuleSeeder::class,
             DsOfficeSeeder::class,
+            AdminSeeder::class,
         ]);
     }
 }
