@@ -9,6 +9,7 @@ import { UserVerificationTable } from "../../components/users/UserVerificationTa
 import { UserManagementTable } from "../../components/users/UserManagementTable";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang, DashTab } from "../../types";
+import { DashboardMyView } from "../../components/dashboard/DashboardMyView";
 
 export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -25,7 +26,7 @@ export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang;
       {activeNav === "dashboard" && (
         dashTab === "summary"
           ? <DashboardOverview lang={lang} />
-          : <DashboardOverview lang={lang} />
+          : <DashboardMyView lang={lang} role={role} />
       )}
       {activeNav === "requests" && !showNewRequest && (
         <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} refreshSignal={requestsRefreshSignal} />
