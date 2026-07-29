@@ -10,6 +10,7 @@ import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang, DashTab } from "../../types";
 import { UserManagementTable } from "../../components/users/UserManagementTable";
 import { UserVerificationTable } from "../../components/users/UserVerificationTable";
+import { DashboardMyView } from "../../components/dashboard/DashboardMyView";
 
 export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -22,7 +23,11 @@ export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { la
     <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav}
       setActiveNav={(id) => { setActiveNav(id); setShowNewRequest(false); }}
       onLogout={onLogout} canSeeSummary={true} dashTab={dashTab} setDashTab={setDashTab}>
-      {activeNav === "dashboard" && <DashboardOverview lang={lang} />}
+      {activeNav === "dashboard" && (
+                    dashTab === "summary"
+                      ? <DashboardOverview lang={lang} />
+                      : <DashboardMyView lang={lang} role={role} />
+      )}
       {activeNav === "requests" && !showNewRequest && <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} refreshSignal={requestsRefreshSignal} />}
       {activeNav === "requests" && showNewRequest && <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} 
         onSubmitted={() => {

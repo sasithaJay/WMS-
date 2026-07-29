@@ -140,33 +140,8 @@ export function DashboardLayout({
                 </div>
               </div>
             )}
-            {/* {children} */}
+            {children}
 
-            {/* {activeNav === "dashboard" && role === "COMMISSIONER" ? (
-              dashTab === "summary" ? (
-                <DashboardOverview lang={lang} />
-              ) : (
-                <DashboardMyView lang={lang} role={role} />
-              )
-            ) : (
-              children
-            )} */}
-
-            {activeNav === "dashboard" ? (
-              dashTab === "summary" ? (
-                role === "STORE_KEEPER" ? (
-                  children
-                ) : (
-                  <DashboardOverview lang={lang} />
-                )
-              ) : role === "COMMISSIONER" ? (
-                <DashboardMyView lang={lang} role={role} />
-              ) : (
-                children
-              )
-            ) : (
-              children
-            )}
           </main>
         </div>
       </div>

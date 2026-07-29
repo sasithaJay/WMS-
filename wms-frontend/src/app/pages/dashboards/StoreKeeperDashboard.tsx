@@ -21,6 +21,7 @@ import { StockReceipt } from "../../types/stockReceipts";
 import { getStockReceipt } from "../../../services/stockReceiptService";
 import { RequestForm } from "../../components/requests/RequestForm";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
+import { DashboardOverview } from "../../components/dashboard/DashboardOverview";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -69,7 +70,7 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
 
   return (
     <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav} setActiveNav={setActiveNav} onLogout={onLogout} canSeeSummary={true} dashTab={dashTab} setDashTab={setDashTab}>
-      {activeNav === "dashboard" && (
+      {/* {activeNav === "dashboard" && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label={t(lang, "Items to Issue", "ගිලිහිය යුතු")} value="12" color="amber" icon={<Package className="w-5 h-5" />} />
@@ -84,7 +85,26 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
           <ReorderLevelTable lang={lang} />
           <BarcodeScannerPanel lang={lang} />
         </div>
-      )}
+      )} */}
+
+      {activeNav === "dashboard" && (
+                          dashTab === "summary"
+                            ? <DashboardOverview lang={lang} />
+                            : <div className="space-y-6">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                  <StatCard label={t(lang, "Items to Issue", "ගිලිහිය යුතු")} value="12" color="amber" icon={<Package className="w-5 h-5" />} />
+                                  <StatCard label={t(lang, "Low Stock Alerts", "අඩු තොග")} value="3" color="red" icon={<AlertTriangle className="w-5 h-5" />} />
+                                  <StatCard label={t(lang, "Month Receipts", "මාසේ රිසිට්")} value="18" color="green" icon={<ArrowDownToLine className="w-5 h-5" />} />
+                                  <StatCard label={t(lang, "Total SKUs", "මුළු SKU")} value="347" color="blue" icon={<Warehouse className="w-5 h-5" />} />
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                                  <div className="lg:col-span-3"><DashboardChart lang={lang} /></div>
+                                  <div className="lg:col-span-2"><RecentActivityTable lang={lang} /></div>
+                                </div>
+                                <ReorderLevelTable lang={lang} />
+                                <BarcodeScannerPanel lang={lang} />
+                              </div>
+            )}
 
       {activeNav === "requests" && !showNewRequest && (
         <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)}
