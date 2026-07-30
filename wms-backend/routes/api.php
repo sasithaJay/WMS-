@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\InventoryBalanceController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\DsOfficeController;
 use App\Http\Controllers\Api\PasswordController;
+use App\Http\Controllers\Api\DashboardController;
 
 //Public Routes
 
@@ -65,6 +66,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::put('/user/password', [PasswordController::class, 'update']);
+
+    // routes/api.php — inside auth:sanctum group
+    Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+    Route::get('/dashboard/my-view', [DashboardController::class, 'myView']);
 
     /*
     |--------------------------------------------------------------------------
