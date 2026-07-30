@@ -8,6 +8,8 @@ import { getDashboardOverview } from "../../../services/dashboardService";
 import { isIncomingMovement } from "../../types/stockMovements";
 import type { Lang } from "../../types";
 import type { DivisionDashboardSummary } from "../../types/dashboard";
+import { MultiDivisionStockPie } from "./MultiDivisionStockPie";
+import { MultiDivisionMonthlyChart } from "./MultiDivisionMonthlyChart";
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString(undefined, {
@@ -108,18 +110,13 @@ export function DashboardOverview({ lang }: { lang: Lang }) {
 
       {/* Charts */}
       {isMultiDivision ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <StockStatusPieChart lang={lang} breakdown={combinedStockStatus} />
-          <div className="space-y-4">
-            {divisions.map((d) => (
-              <DashboardChart
-                key={d.division_id}
-                lang={lang}
-                data={d.monthly_chart}
-                title={t(lang, d.division_name_en, d.division_name_si)}
-              />
-            ))}
+        <div className="space-y-4">
+          <MultiDivisionMonthlyChart lang={lang} divisions={divisions} />
+          <div className="grid grid-cols-2 gap-4">
+            <StockStatusPieChart lang={lang} breakdown={divisions[0].stock_status} title={t(lang, divisions[0].division_name_en, divisions[0].division_name_si)} />
+            <StockStatusPieChart lang={lang} breakdown={divisions[1].stock_status} title={t(lang, divisions[1].division_name_en, divisions[1].division_name_si)} />
           </div>
+
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -142,7 +139,7 @@ export function DashboardOverview({ lang }: { lang: Lang }) {
         ) : (
           <div className="divide-y divide-gray-50">
             {combinedLowStock.map((item) => {
-              const critical = item.quantity_on_hand === 0;
+              const critical = item.quantity_on_hand == 0;
               return (
                 <div key={`${item.id}-${item.divisionName}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition-colors">
                   <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${critical ? "text-red-500" : "text-amber-500"}`} />
