@@ -8,7 +8,7 @@ import { RecentActivityTable } from "./RecentActivityTable";
 import type { Lang, Role } from "../../types";
 import type { MyViewSummary } from "../../types/dashboard";
 
-export function DashboardMyView({ lang, role }: { lang: Lang; role: Role }) {
+export function DashboardMyView({ lang, role, onNavigate }: { lang: Lang; role: Role; onNavigate: (navId: string) => void }) {
   const [summary, setSummary] = useState<MyViewSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,7 +68,7 @@ export function DashboardMyView({ lang, role }: { lang: Lang; role: Role }) {
         />
       </div>
 
-      <PendingRequestTable lang={lang} items={summary.action_required_items} />
+      <PendingRequestTable lang={lang} items={summary.action_required_items} onNavigate={onNavigate} />
       <RecentActivityTable lang={lang} movements={summary.recent_movements} />
     </div>
   );

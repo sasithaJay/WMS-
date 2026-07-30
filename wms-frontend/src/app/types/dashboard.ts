@@ -44,7 +44,7 @@ export interface ActionRequiredItem {
   request_number: string;
   requester_name: string;
   request_context: string;
-  stage: "RECOMMENDATION" | "APPROVAL" | "ISSUANCE";
+  stage: "RECOMMENDATION" | "APPROVAL" | "ISSUANCE" | "ITEM_UPDATE";
   submitted_at: string | null;
   item_summary: string;
 }

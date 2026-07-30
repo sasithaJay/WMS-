@@ -23,7 +23,7 @@ export function AssistantDirectorDashboard({ lang, setLang, onLogout }: { lang: 
       {activeNav === "dashboard" && (
               dashTab === "summary"
                 ? <DashboardOverview lang={lang} />
-                : <DashboardMyView lang={lang} role={role} />
+                : <DashboardMyView lang={lang} role={role} onNavigate={setActiveNav} />
       )}
       {activeNav === "requests" && !showNewRequest && <MyRequestsTable lang={lang} role={role} onNewRequest={() => setShowNewRequest(true)} refreshSignal={requestsRefreshSignal} />}
       {activeNav === "requests" && showNewRequest && <RequestForm lang={lang} role={role} onCancel={() => setShowNewRequest(false)} 

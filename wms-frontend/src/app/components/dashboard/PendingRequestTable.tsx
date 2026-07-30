@@ -7,13 +7,21 @@ const STAGE_LABELS: Record<ActionRequiredItem["stage"], { en: string; si: string
   RECOMMENDATION: { en: "Recommend", si: "නිර්දේශ", style: "bg-amber-100 text-amber-700" },
   APPROVAL: { en: "Approve", si: "අනුමත", style: "bg-purple-100 text-purple-700" },
   ISSUANCE: { en: "Issue", si: "නිකුත් කරන්න", style: "bg-blue-100 text-blue-700" },
+  ITEM_UPDATE: { en: "Review Update", si: "යාවත්කාලීන සමාලෝචනය", style: "bg-teal-100 text-teal-700" },
+};
+
+const STAGE_TO_NAV: Record<ActionRequiredItem["stage"], string> = {
+  RECOMMENDATION: "recommend",
+  APPROVAL: "approve",
+  ISSUANCE: "issue",
+  ITEM_UPDATE: "item-updates", 
 };
 
 function formatDate(value: string | null): string {
   return value ? new Date(value).toLocaleDateString() : "-";
 }
 
-export function PendingRequestTable({ lang, items }: { lang: Lang; items: ActionRequiredItem[] }) {
+export function PendingRequestTable({ lang, items, onNavigate }: { lang: Lang; items: ActionRequiredItem[]; onNavigate: (navId: string) => void }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -41,20 +49,26 @@ export function PendingRequestTable({ lang, items }: { lang: Lang; items: Action
                 <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${stage.style}`}>
                   {t(lang, stage.en, stage.si)}
                 </span>
-                <ChevronRight className="w-4 h-4 text-[#4295D9] flex-shrink-0" />
+                <button
+                  onClick={() => onNavigate(STAGE_TO_NAV[p.stage])}
+                  className="text-[#4295D9] hover:text-[#3280C4] transition-colors flex-shrink-0 cursor-pointer"
+                  title={t(lang, "Go to queue", "පෝලිමට යන්න")}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             );
           })}
         </div>
       )}
 
-      {items.length > 0 && (
+      {/* {items.length > 0 && (
         <div className="px-5 py-3 border-t border-gray-100">
           <span className="text-xs text-[#4295D9] font-medium flex items-center gap-1">
             {t(lang, "Go to the relevant queue tab to see all pending items", "සියලු අපේක්ෂිත අයිතම බැලීමට අදාළ පෝලිම් ටැබයට යන්න")} <ArrowRight className="w-3 h-3" />
           </span>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

@@ -8,6 +8,7 @@ use App\Models\Item;
 use App\Models\StockMovement;
 use App\Models\StockRequest;
 use App\Models\StockReceipt;
+use App\Models\ItemUpdateRequest;
 use App\Services\RequestWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -82,6 +83,32 @@ class DashboardController extends Controller
             $approvalQuery->where('division_id', $divisionId);
         }
 
+
+        $itemUpdateCount = 0;
+        $itemUpdateList = collect();
+
+        if ($divisionId) {
+            $itemUpdateQuery = ItemUpdateRequest::with(['item', 'requester.staffProfile'])
+                ->where('status', 'PENDING')
+                ->whereHas('item', function ($q) use ($divisionId) {
+                    $q->where('division_id', $divisionId);
+                })
+                ->latest();
+
+            $itemUpdateCount = (clone $itemUpdateQuery)->count();
+
+            $itemUpdateList = $itemUpdateQuery->limit(5)->get()->map(fn ($r) => [
+                'id' => $r->id,
+                'request_number' => 'ITM-' . $r->id, // no dedicated number column on this model
+                'requester_name' => $r->requester->staffProfile?->full_name ?? $r->requester->username,
+                'request_context' => 'ITEM_UPDATE',
+                'stage' => 'ITEM_UPDATE',
+                'submitted_at' => $r->created_at,
+                'item_summary' => $r->item->item_code . ' — ' . $r->item->name_en,
+            ]);
+        }
+
+
         $approveCount = 0;
         $approveList = collect();
 
@@ -115,7 +142,7 @@ class DashboardController extends Controller
                 ->map(fn ($r) => $this->toActionItem($r, 'ISSUANCE'));
         }
 
-        $actionItems = $recommendList->concat($approveList)->concat($issueList)
+        $actionItems = $recommendList->concat($approveList)->concat($issueList)->concat($itemUpdateList)
             ->sortByDesc('submitted_at')
             ->take(5)
             ->values();
@@ -137,7 +164,7 @@ class DashboardController extends Controller
                 'my_requests_this_month_count' => $myRequestsThisMonth,
                 'my_pending_issuance_count' => $myPendingIssuance,
                 'my_issued_this_month_count' => $myIssuedThisMonth,
-                'action_required_count' => $recommendCount + $approveCount + $issueCount,
+                'action_required_count' => $recommendCount + $approveCount + $issueCount + $itemUpdateCount,
                 'action_required_items' => $actionItems,
                 'recent_movements' => $recentMovements,
             ],
