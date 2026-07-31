@@ -122,7 +122,7 @@ export function DashboardLayout({
           onLogout={onLogout}
           badges={badges}
         />
-        <div className="flex-1 flex flex-col min-w-0 ">
+        <div className="flex-1 flex flex-col min-w-0">
           <Topbar lang={lang} setLang={setLang} title={title} />
           <main className="flex-1 p-6 space-y-6 ">
             {activeNav === "dashboard" && (

@@ -83,6 +83,7 @@ export function DashboardOverview({ lang }: { lang: Lang }) {
           value={String(totalItems)}
           sub={isMultiDivision ? t(lang, "Both stores combined", "ගබඩා දෙකම") : undefined}
           color="blue"
+          bgColor="bgBlue"
           icon={<TrendingUp className="w-5 h-5" />}
         />
         <StatCard
@@ -90,6 +91,7 @@ export function DashboardOverview({ lang }: { lang: Lang }) {
           value={String(lowStockCount)}
           sub={t(lang, "At or below threshold", "සීමාවේ හෝ ඊට පහළ")}
           color="red"
+          bgColor="bgRed"
           icon={<AlertTriangle className="w-5 h-5" />}
         />
         <StatCard
@@ -97,6 +99,7 @@ export function DashboardOverview({ lang }: { lang: Lang }) {
           value={String(pendingTotal)}
           sub={t(lang, "Awaiting action", "ක්‍රියාව අපේක්ෂිත")}
           color="amber"
+          bgColor="bgAmber"
           icon={<Clock className="w-5 h-5" />}
         />
         <StatCard
@@ -104,6 +107,7 @@ export function DashboardOverview({ lang }: { lang: Lang }) {
           value={String(issuedThisMonth)}
           sub={t(lang, "Fulfilled requests", "සම්පූර්ණ ඉල්ලීම්")}
           color="green"
+          bgColor="bgGreen"
           icon={<CheckCircle className="w-5 h-5" />}
         />
       </div>

@@ -45,24 +45,28 @@ export function AdminDashboard({
               label={t(lang, "Total Users", "මුළු පරිශීලකයන්")}
               value={stats ? String(stats.total_users) : "-"}
               color="blue"
+              bgColor="bgBlue"
               icon={<Users className="w-5 h-5" />}
             />
             <StatCard
               label={t(lang, "Pending Users", "අපේක්ෂිත පරිශීලකයන්")}
               value={stats ? String(stats.pending_users) : "-"}
               color="amber"
+              bgColor="bgAmber"
               icon={<UserCheck className="w-5 h-5" />}
             />
             <StatCard
               label={t(lang, "Active Roles", "සක්‍රීය භූමිකා")}
               value={stats ? String(stats.active_roles) : "-"}
               color="green"
+              bgColor="bgGreen"
               icon={<ShieldCheck className="w-5 h-5" />}
             />
             <StatCard
               label={t(lang, "Suspended Users", "අත්හිටුවා ඇති පරිශීලකයන්")}
               value={stats ? String(stats.suspended_users) : "-"}
               color="red"
+              bgColor="bgRed"
               icon={<AlertTriangle className="w-5 h-5" />}
             />
           </div>

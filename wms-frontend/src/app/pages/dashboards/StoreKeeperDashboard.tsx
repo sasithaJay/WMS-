@@ -109,10 +109,10 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
             ) : (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <StatCard label={t(lang, "Items to Issue", "ගිලිහිය යුතු")} value={String(division.pending_issuance_count)} color="amber" icon={<Package className="w-5 h-5" />} />
-                  <StatCard label={t(lang, "Low Stock Alerts", "අඩු තොග")} value={String(division.low_stock_count)} color="red" icon={<AlertTriangle className="w-5 h-5" />} />
-                  <StatCard label={t(lang, "Month Receipts", "මාසේ රිසිට්")} value={String(division.receipts_this_month_count)} color="green" icon={<ArrowDownToLine className="w-5 h-5" />} />
-                  <StatCard label={t(lang, "Total SKUs", "මුළු SKU")} value={String(division.total_items)} color="blue" icon={<Warehouse className="w-5 h-5" />} />
+                  <StatCard label={t(lang, "Items to Issue", "ගිලිහිය යුතු")} value={String(division.pending_issuance_count)} color="amber" bgColor="bgAmber" icon={<Package className="w-5 h-5" />} />
+                  <StatCard label={t(lang, "Low Stock Alerts", "අඩු තොග")} value={String(division.low_stock_count)} color="red" bgColor="bgRed" icon={<AlertTriangle className="w-5 h-5" />} />
+                  <StatCard label={t(lang, "Month Receipts", "මාසේ රිසිට්")} value={String(division.receipts_this_month_count)} color="green" bgColor="bgGreen" icon={<ArrowDownToLine className="w-5 h-5" />} />
+                  <StatCard label={t(lang, "Total SKUs", "මුළු SKU")} value={String(division.total_items)} color="blue" bgColor="bgBlue" icon={<Warehouse className="w-5 h-5" />} />
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                   <div className="lg:col-span-3"><DashboardChart lang={lang} data={division.monthly_chart} /></div>

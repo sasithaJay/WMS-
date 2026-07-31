@@ -1,11 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
 import { Search, X, Save, UserPen } from "lucide-react";
+import api from "../../../api/axios";
 import { getActiveUsers, updateUser } from "../../../services/userManagementService";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import type { AdminUser } from "../../types/userManagement";
 
-type UserType = "all" | "staff" | "institution";
+type UserType = "all" | "staff" | "institution" | "ds_office";
+
+interface OptionItem {
+  id: number;
+  code?: string;
+  name_en: string;
+  name_si: string;
+}
 
 interface EditForm {
   full_name: string;
@@ -23,6 +31,11 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
 
+  const [roles, setRoles] = useState<OptionItem[]>([]);
+  const [divisions, setDivisions] = useState<OptionItem[]>([]);
+  const [sections, setSections] = useState<OptionItem[]>([]);
+  const [loadingSections, setLoadingSections] = useState(false);
+
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({
     full_name: "",
@@ -32,6 +45,31 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     account_status: "ACTIVE",
   });
   const [editError, setEditError] = useState("");
+
+  const editingRoleCode = editingUser?.staff_profile?.role?.code ?? null;
+  const isAdminUser = editingRoleCode === "ADMIN";
+  const isCommissionerUser = editingRoleCode === "COMMISSIONER";
+  const isRegularStaff = editingUser?.account_type === "STAFF" && !isAdminUser && !isCommissionerUser;
+
+  useEffect(() => {
+    api.get("/registration-options").then((res) => {
+      setRoles(res.data.roles);
+      setDivisions(res.data.divisions);
+    }).catch((err) => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    if (!editingUser || !isRegularStaff || !editForm.division_id) {
+      setSections([]);
+      return;
+    }
+
+    setLoadingSections(true);
+    api.get("/registration-options/sections", { params: { division_id: editForm.division_id } })
+      .then((res) => setSections(res.data.sections))
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingSections(false));
+  }, [editForm.division_id, editingUser, isRegularStaff]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -53,7 +91,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
   }, [filter, search, lang]);
 
   useEffect(() => {
-    const timeout = setTimeout(loadUsers, 300); // debounce search typing
+    const timeout = setTimeout(loadUsers, 300);
     return () => clearTimeout(timeout);
   }, [loadUsers]);
 
@@ -61,7 +99,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     all: t(lang, "All Types", "සියලු"),
     staff: t(lang, "Staff", "කාර්ය මණ්ඩලය"),
     institution: t(lang, "Institution", "ආයතනය"),
-    // ds_office: t(lang, "DS Office", "DS කාර්යාලය"),
+    ds_office: t(lang, "DS Office", "DS කාර්යාලය"),
   };
 
   function displayName(u: AdminUser): string {
@@ -105,6 +143,10 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     setEditingUser(null);
   }
 
+  function handleDivisionChange(newDivisionId: string) {
+    setEditForm((f) => ({ ...f, division_id: newDivisionId, section_id: "" }));
+  }
+
   async function handleSaveUser() {
     if (!editingUser) return;
 
@@ -113,25 +155,48 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
       return;
     }
 
+    if (isRegularStaff) {
+      if (!editForm.role_id) {
+        setEditError(t(lang, "Please select a role.", "කරුණාකර භූමිකාවක් තෝරන්න."));
+        return;
+      }
+      if (!editForm.division_id) {
+        setEditError(t(lang, "Please select a division.", "කරුණාකර කොට්ඨාශයක් තෝරන්න."));
+        return;
+      }
+    }
+
     try {
       setBusyId(editingUser.id);
       setEditError("");
 
-      const isStaff = editingUser.account_type === "STAFF";
-
-      await updateUser(editingUser.id, {
-        full_name: editForm.full_name.trim(),
-        account_status: editForm.account_status,
-        ...(isStaff
-          ? {
-              role_id: editForm.role_id ? Number(editForm.role_id) : undefined,
-              division_id: editForm.division_id ? Number(editForm.division_id) : undefined,
-              section_id: editForm.section_id ? Number(editForm.section_id) : null,
-            }
-          : {
-              division_id: editForm.division_id ? Number(editForm.division_id) : undefined,
-            }),
-      });
+      if (isAdminUser) {
+        // Admin: name only, nothing else is editable through this screen.
+        await updateUser(editingUser.id, {
+          full_name: editForm.full_name.trim(),
+        });
+      } else if (isCommissionerUser) {
+        // Commissioner: name + status only, no role/division/section.
+        await updateUser(editingUser.id, {
+          full_name: editForm.full_name.trim(),
+          account_status: editForm.account_status,
+        });
+      } else if (isRegularStaff) {
+        await updateUser(editingUser.id, {
+          full_name: editForm.full_name.trim(),
+          account_status: editForm.account_status,
+          role_id: Number(editForm.role_id),
+          division_id: Number(editForm.division_id),
+          section_id: editForm.section_id ? Number(editForm.section_id) : null,
+        });
+      } else {
+        // Institution / DS Office
+        await updateUser(editingUser.id, {
+          full_name: editForm.full_name.trim(),
+          account_status: editForm.account_status,
+          division_id: editForm.division_id ? Number(editForm.division_id) : undefined,
+        });
+      }
 
       setEditingUser(null);
       loadUsers();
@@ -144,6 +209,9 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
   }
 
   async function handleToggleStatus(user: AdminUser) {
+    const roleCode = user.staff_profile?.role?.code;
+    if (roleCode === "ADMIN") return; // admins never toggled from this table
+
     try {
       setBusyId(user.id);
       const nextStatus = user.account_status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
@@ -170,7 +238,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
           />
         </div>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
-          {(["all", "staff", "institution"] as UserType[]).map((f) => (
+          {(["all", "staff", "institution", "ds_office"] as UserType[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -228,49 +296,56 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
             )}
 
             {!loading &&
-              users.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-gray-900">{displayName(u)}</td>
-                  <td className="px-5 py-3.5 text-gray-600 text-xs">{displayRole(u)}</td>
-                  <td className="px-5 py-3.5">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                      {displayDivision(u)}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-500 text-xs">{displaySection(u)}</td>
-                  <td className="px-5 py-3.5">
-                    <span
-                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                        u.account_status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {u.account_status === "ACTIVE" ? t(lang, "Active", "සක්‍රිය") : t(lang, "Suspended", "අත්හිටුවා ඇත")}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <button
-                      onClick={() => openEditModal(u)}
-                      disabled={busyId === u.id}
-                      className="text-xs text-[#4295D9] font-medium hover:underline disabled:opacity-50"
-                    >
-                      {t(lang, "Edit", "සංස්කරණය")}
-                    </button>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <button
-                      onClick={() => handleToggleStatus(u)}
-                      disabled={busyId === u.id || u.staff_profile?.role?.code === "ADMIN"}
-                      className={`text-xs font-medium hover:underline disabled:opacity-50 ${
-                        u.account_status === "ACTIVE" ? "text-red-600" : "text-green-600"
-                      }`}
-                    >
-                      {u.account_status === "ACTIVE"
-                        ? t(lang, "Deactivate", "අක්‍රිය කරන්න")
-                        : t(lang, "Activate", "සක්‍රිය කරන්න")}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              users.map((u) => {
+                const roleCode = u.staff_profile?.role?.code;
+                const isAdminRow = roleCode === "ADMIN";
+
+                return (
+                  <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3.5 font-medium text-gray-900">{displayName(u)}</td>
+                    <td className="px-5 py-3.5 text-gray-600 text-xs">{displayRole(u)}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                        {displayDivision(u)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-500 text-xs">{displaySection(u)}</td>
+                    <td className="px-5 py-3.5">
+                      <span
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                          u.account_status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {u.account_status === "ACTIVE" ? t(lang, "Active", "සක්‍රිය") : t(lang, "Suspended", "අත්හිටුවා ඇත")}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <button
+                        onClick={() => openEditModal(u)}
+                        disabled={busyId === u.id}
+                        className="text-xs text-[#4295D9] font-medium hover:underline disabled:opacity-50"
+                      >
+                        {t(lang, "Edit", "සංස්කරණය")}
+                      </button>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {!isAdminRow && (
+                        <button
+                          onClick={() => handleToggleStatus(u)}
+                          disabled={busyId === u.id}
+                          className={`text-xs font-medium hover:underline disabled:opacity-50 ${
+                            u.account_status === "ACTIVE" ? "text-amber-600" : "text-green-600"
+                          }`}
+                        >
+                          {u.account_status === "ACTIVE"
+                            ? t(lang, "Deactivate", "අක්‍රිය කරන්න")
+                            : t(lang, "Activate", "සක්‍රිය කරන්න")}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
@@ -288,7 +363,11 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                     {t(lang, "Edit User Details", "පරිශීලක තොරතුරු සංස්කරණය")}
                   </h3>
                   <p className="text-xs text-gray-400">
-                    {t(lang, "Update details and account status.", "විස්තර සහ ගිණුම් තත්ත්වය යාවත්කාලීන කරන්න.")}
+                    {isAdminUser
+                      ? t(lang, "Only the name can be updated for this account.", "මෙම ගිණුම සඳහා නම පමණක් යාවත්කාලීන කළ හැක.")
+                      : isCommissionerUser
+                        ? t(lang, "Only name and account status can be updated.", "නම සහ ගිණුම් තත්ත්වය පමණක් යාවත්කාලීන කළ හැක.")
+                        : t(lang, "Update details and account status.", "විස්තර සහ ගිණුම් තත්ත්වය යාවත්කාලීන කරන්න.")}
                   </p>
                 </div>
               </div>
@@ -308,7 +387,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-gray-900">@{editingUser.username}</div>
-                  <div className="text-xs text-gray-400">{editingUser.account_type}</div>
+                  <div className="text-xs text-gray-400">{displayRole(editingUser)}</div>
                 </div>
               </div>
 
@@ -324,70 +403,115 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                   />
                 </div>
 
-                {editingUser.account_type === "STAFF" && (
+                {isRegularStaff && (
                   <>
-                    {/* NOTE: role_id / division_id / section_id currently editable as free-text
-                        numeric IDs — see message below re: lookup endpoints needed for proper
-                        dropdowns. Replace these inputs with <select> once that's confirmed. */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                        {t(lang, "Role ID", "භූමිකා අංකය")}
+                        {t(lang, "Role", "කාර්යභාරය")}
                       </label>
-                      <input
-                        type="number"
+                      <select
                         value={editForm.role_id}
                         onChange={(e) => setEditForm((f) => ({ ...f, role_id: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
-                      />
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+                      >
+                        <option value="">{t(lang, "Select role…", "භූමිකාව තෝරන්න…")}</option>
+                        {roles.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {t(lang, r.name_en, r.name_si)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                        {t(lang, "Section ID", "අංශ අංකය")}
+                        {t(lang, "Division", "කොට්ඨාශය")}
                       </label>
-                      <input
-                        type="number"
+                      <select
+                        value={editForm.division_id}
+                        onChange={(e) => handleDivisionChange(e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+                      >
+                        <option value="">{t(lang, "Select division…", "කොට්ඨාශය තෝරන්න…")}</option>
+                        {divisions.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {t(lang, d.name_en, d.name_si)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                        {t(lang, "Section", "අංශය")}
+                      </label>
+                      <select
                         value={editForm.section_id}
                         onChange={(e) => setEditForm((f) => ({ ...f, section_id: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
-                      />
+                        disabled={!editForm.division_id || loadingSections}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white disabled:opacity-50"
+                      >
+                        <option value="">
+                          {loadingSections
+                            ? t(lang, "Loading…", "පූරණය වෙමින්…")
+                            : t(lang, "None / not applicable", "නැත")}
+                        </option>
+                        {sections.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {t(lang, s.name_en, s.name_si)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </>
                 )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                    {t(lang, "Division ID", "කොට්ඨාශ අංකය")}
-                  </label>
-                  <input
-                    type="number"
-                    value={editForm.division_id}
-                    onChange={(e) => setEditForm((f) => ({ ...f, division_id: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
-                  />
-                </div>
+                {!isRegularStaff && !isAdminUser && editingUser.account_type !== "STAFF" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                      {t(lang, "Division", "කොට්ඨාශය")}
+                    </label>
+                    <select
+                      value={editForm.division_id}
+                      onChange={(e) => handleDivisionChange(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+                    >
+                      <option value="">{t(lang, "Select division…", "කොට්ඨාශය තෝරන්න…")}</option>
+                      {divisions.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {t(lang, d.name_en, d.name_si)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                    {t(lang, "Account Status", "ගිණුම් තත්ත්වය")}
-                  </label>
-                  <select
-                    value={editForm.account_status}
-                    onChange={(e) => setEditForm((f) => ({ ...f, account_status: e.target.value as "ACTIVE" | "SUSPENDED" }))}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
-                  >
-                    <option value="ACTIVE">{t(lang, "Active", "සක්‍රිය")}</option>
-                    <option value="SUSPENDED">{t(lang, "Suspended", "අත්හිටුවා ඇත")}</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700">
-                {t(
-                  lang,
-                  "Changing a user's role or division can affect what they can access in the system.",
-                  "පරිශීලකයාගේ කාර්යභාරය හෝ කොට්ඨාශය වෙනස් කිරීමෙන් ඔහුට පද්ධතියේ ප්‍රවේශ විය හැකි කොටස් වෙනස් විය හැකිය.",
+                {!isAdminUser && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                      {t(lang, "Account Status", "ගිණුම් තත්ත්වය")}
+                    </label>
+                    <select
+                      value={editForm.account_status}
+                      onChange={(e) => setEditForm((f) => ({ ...f, account_status: e.target.value as "ACTIVE" | "SUSPENDED" }))}
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+                    >
+                      <option value="ACTIVE">{t(lang, "Active", "සක්‍රිය")}</option>
+                      <option value="SUSPENDED">{t(lang, "Suspended", "අත්හිටුවා ඇත")}</option>
+                    </select>
+                  </div>
                 )}
               </div>
+
+              {isRegularStaff && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700">
+                  {t(
+                    lang,
+                    "Changing a user's role or division can affect what they can access in the system.",
+                    "පරිශීලකයාගේ කාර්යභාරය හෝ කොට්ඨාශය වෙනස් කිරීමෙන් ඔහුට පද්ධතියේ ප්‍රවේශ විය හැකි කොටස් වෙනස් විය හැකිය.",
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
