@@ -4,25 +4,24 @@ import { MonthlyRequestStatus } from "../../components/requests/MonthlyRequestSt
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
 import { RequestForm } from "../../components/requests/RequestForm";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
-import { t } from "../../constants/translations";
-import { ShieldCheck } from "lucide-react";
 import type { Lang } from "../../types";
 
-export function InstitutionDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
+export function InstitutionOfficerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
-  const role = "INSTITUTION" as const;
+  const role = "DEVELOPMENT_OFFICER" as const;
 
   return (
-    <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav} setActiveNav={setActiveNav} onLogout={onLogout}>
+    <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav}
+      setActiveNav={(id) => setActiveNav(id)}
+      onLogout={onLogout}>
       {activeNav === "dashboard" && (
-        <div className="space-y-5">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 flex-shrink-0" />
-            {t(lang, "Your requests must be recommended by the Administrative Officer before approval.", "ඔබගේ ඉල්ලීම් අනුමත කිරීමට පෙර ව්‍යවස්ථාපිත නිලධාරී (AO) විසින් නිර්දේශ කළ යුතුය.")}
-          </div>
-          <MonthlyRequestStatus lang={lang} onNewRequest={() => setActiveNav("new")} />
-        </div>
+        <MonthlyRequestStatus
+          lang={lang}
+          role={role}
+          onNewRequest={() => setActiveNav("new")}
+          onViewAll={() => setActiveNav("requests")}
+        />
       )}
       {activeNav === "requests" && <MyRequestsTable lang={lang} role={role} refreshSignal={requestsRefreshSignal} />}
       {activeNav === "new" && <RequestForm lang={lang} role={role} onCancel={() => setActiveNav("requests")} 

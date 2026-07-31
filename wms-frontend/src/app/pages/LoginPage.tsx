@@ -165,18 +165,18 @@ export function LoginPage({
           <h1 className="text-4xl font-bold leading-tight mb-2">
             {t(
               lang,
-              "Department of Social Services",
-              "සමාජ සේවා දෙපාර්තමේන්තුව",
+              "Department of Social Welfare,",
+              "සමාජ සුබසාධන,",
             )}
           </h1>
 
-          <h2 className="text-2xl font-semibold text-blue-100 mb-1">
+          <h1 className="text-4xl font-bold leading-tight mb-2">
             {t(
               lang,
               "Probation & Child Care Services",
-              "ස්ථාවරත්ව හා ළමා රැකවරණ සේවා",
+              "පරිවාස හා ළමාරක්ෂක සේවා දෙපාර්තමේන්තුව",
             )}
-          </h2>
+          </h1>
 
           <div className="mt-6 h-px bg-white/20 w-32 mx-auto" />
 
@@ -211,7 +211,7 @@ export function LoginPage({
                 label: t(
                   lang,
                   "DS Offices",
-                  "ද.ලේ. කාර්යාල",
+                  "ප්‍රා.ලේ. කාර්යාල",
                 ),
               },
             ].map((s) => (

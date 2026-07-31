@@ -19,7 +19,7 @@ export function Topbar({
       <div>
         <h1 className="text-lg font-bold text-gray-900">{title}</h1>
         <p className="text-xs text-gray-400">
-          {subtitle ?? `${t(lang, "Department of Social Services", "සමාජ සේවා දෙපාර්තමේන්තුව")} · WMS`}
+          {subtitle ?? `${t(lang, "Social Welfare, Probation & Child Care Services", "සමාජ සුබසාධන, පරිවාස හා ළමාරක්ෂක සේවා")} · WMS`}
         </p>
       </div>
       <div className="flex items-center gap-3">

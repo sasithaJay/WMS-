@@ -113,6 +113,7 @@ export function DashboardLayout({
       <div className="flex min-h-screen bg-[#F8FAFC]">
         <Sidebar
           lang={lang}
+          setLang={setLang}
           role={role}
           active={activeNav}
           setActive={setActiveNav}
