@@ -6,10 +6,10 @@ import { RequestForm } from "../../components/requests/RequestForm";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang } from "../../types";
 
-export function InstitutionOfficerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
+export function InstitutionDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
-  const role = "DEVELOPMENT_OFFICER" as const;
+  const role = "INSTITUTION" as const;
 
   return (
     <DashboardLayout lang={lang} setLang={setLang} role={role} activeNav={activeNav}

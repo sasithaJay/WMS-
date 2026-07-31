@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\DsOfficeController;
 use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\Admin\UserManagementController;
+use App\Http\Controllers\Api\Admin\AdminStatsController;
 
 //Public Routes
 
@@ -63,6 +65,12 @@ Route::middleware('auth:sanctum')->group(function () {
             'staffProfile.section',
             'organization.division',
         ]);
+    });
+
+    Route::middleware('permission:users.manage')->group(function () {
+        Route::get('/admin/stats', [AdminStatsController::class, 'index']);
+        Route::get('/admin/users', [UserManagementController::class, 'index']);
+        Route::patch('/admin/users/{user}', [UserManagementController::class, 'update']);
     });
 
     Route::put('/user/password', [PasswordController::class, 'update']);
