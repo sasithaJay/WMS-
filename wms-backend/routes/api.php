@@ -17,6 +17,11 @@ use App\Http\Controllers\Api\StockRequestController;
 use App\Http\Controllers\Api\InventoryBalanceController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\DsOfficeController;
+use App\Http\Controllers\Api\PasswordController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\Admin\UserManagementController;
+use App\Http\Controllers\Api\Admin\AdminStatsController;
+use App\Http\Controllers\Api\ReportController;
 
 //Public Routes
 
@@ -59,8 +64,21 @@ Route::middleware('auth:sanctum')->group(function () {
             'staffProfile.role',
             'staffProfile.division',
             'staffProfile.section',
+            'organization.division',
         ]);
     });
+
+    Route::middleware('permission:users.manage')->group(function () {
+        Route::get('/admin/stats', [AdminStatsController::class, 'index']);
+        Route::get('/admin/users', [UserManagementController::class, 'index']);
+        Route::patch('/admin/users/{user}', [UserManagementController::class, 'update']);
+    });
+
+    Route::put('/user/password', [PasswordController::class, 'update']);
+
+    // routes/api.php — inside auth:sanctum group
+    Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+    Route::get('/dashboard/my-view', [DashboardController::class, 'myView']);
 
     /*
     |--------------------------------------------------------------------------
@@ -293,5 +311,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/organizations', [OrganizationController::class, 'index']);
     Route::get('/ds-offices', [DsOfficeController::class, 'index']);
 
+    //Reports Routes
+
+    Route::middleware('permission:reports.view')->prefix('reports')->group(function () {
+        Route::get('/stock', [ReportController::class, 'stock']);
+        Route::get('/stock/pdf', [ReportController::class, 'stockPdf']);
+
+        Route::get('/issue', [ReportController::class, 'issue']);
+        Route::get('/issue/pdf', [ReportController::class, 'issuePdf']);
+
+        Route::get('/receipt', [ReportController::class, 'receipt']);
+        Route::get('/receipt/pdf', [ReportController::class, 'receiptPdf']);
+
+        Route::get('/monthly', [ReportController::class, 'monthly']);
+        Route::get('/monthly/pdf', [ReportController::class, 'monthlyPdf']);
+
+        Route::get('/annual', [ReportController::class, 'annual']);
+        Route::get('/annual/pdf', [ReportController::class, 'annualPdf']);
+
+        Route::get('/officer-requests', [ReportController::class, 'officerRequests']);
+        Route::get('/officer-requests/pdf', [ReportController::class, 'officerRequestsPdf']);
+    });
 
 });

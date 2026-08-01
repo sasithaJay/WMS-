@@ -62,3 +62,15 @@ export async function getCurrentUser(): Promise<User> {
 
   return response.data;
 }
+
+export async function updatePassword(
+  currentPassword: string,
+  newPassword: string,
+  newPasswordConfirmation: string,
+): Promise<void> {
+  await api.put("/user/password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+    new_password_confirmation: newPasswordConfirmation,
+  });
+}

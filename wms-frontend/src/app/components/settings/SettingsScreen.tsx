@@ -1,27 +1,108 @@
-import { useState } from "react";
-import { User, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
-import { ROLE_LABELS } from "../../constants/roles";
+import { useEffect, useState } from "react";
+import { User2Icon, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { AxiosError } from "axios";
+import { getCurrentUser, updatePassword } from "../../../services/authService";
+import type { User } from "../../types/auth";
 import { t } from "../../constants/translations";
-import { getRoleUserName } from "../../utils/roleHelpers";
 import type { Lang, Role } from "../../types";
 
+interface LaravelValidationErrorBody {
+  message?: string;
+  errors?: Record<string, string[]>;
+}
+
 export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNext, setShowNext] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const userName = getRoleUserName(role);
-  const roleLabel = ROLE_LABELS[role] ?? { en: role, si: role };
+  useEffect(() => {
+    loadUser();
+  }, []);
 
-  const accountFields = [
-    { label: t(lang, "Full Name", "සම්පූර්ණ නම"), value: userName },
-    { label: t(lang, "Username", "පරිශීලක නාමය"), value: `@${userName.toLowerCase().replace(/\s+/g, ".")}` },
-    { label: t(lang, "Role", "කාර්යභාරය"), value: t(lang, roleLabel.en, roleLabel.si) },
-    { label: t(lang, "Division", "කොට්ඨාශය"), value: t(lang, "Social Services", "සමාජ සේවා") },
-    { label: t(lang, "Section", "අංශය"), value: "Development" },
-    { label: t(lang, "NIC", "ජාතික හැඳුනුම්පත"), value: "198745678901" },
-  ];
+  async function loadUser() {
+    try {
+      setLoadingUser(true);
+      const data = await getCurrentUser();
+      setUser(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingUser(false);
+    }
+  }
+
+  const profile = user?.staff_profile;
+  const organization = user?.organization;
+
+  const accountFields = profile ? [
+    { label: t(lang, "Full Name", "සම්පූර්ණ නම"), value: profile?.full_name ?? "-" },
+    { label: t(lang, "Username", "පරිශීලක නාමය"), value: user ? `@${user.username}` : "-" },
+    {
+      label: t(lang, "Role", "කාර්යභාරය"),
+      value: profile?.role ? t(lang, profile.role.name_en, profile.role.name_si) : "-",
+    },
+    {
+      label: t(lang, "Division", "කොට්ඨාශය"),
+      value: profile?.division ? t(lang, profile.division.name_en, profile.division.name_si) : "-",
+    },
+    {
+      label: t(lang, "Section", "අංශය"),
+      value: profile?.section ? t(lang, profile.section.name_en, profile.section.name_si) : "-",
+    },
+    { label: t(lang, "NIC", "ජාතික හැඳුනුම්පත"), value: profile?.nic_number ?? "-" },
+  ]
+  : organization
+    ? [
+        { label: t(lang, "Organization Name", "ආයතන නාමය"), value: organization.name },
+        { label: t(lang, "Username", "පරිශීලක නාමය"), value: user ? `@${user.username}` : "-" },
+        {
+          label: t(lang, "Type", "වර්ගය"),
+          value:
+            organization.organization_kind === "INSTITUTION"
+              ? t(lang, "Institution", "ආයතනය")
+              : t(lang, "DS Office", "ප්‍රාදේශීය ලේකම් කාර්යාලය"),
+        },
+        {
+          label: t(lang, "Division", "කොට්ඨාශය"),
+          value: organization.division ? t(lang, organization.division.name_en, organization.division.name_si) : "-",
+        },
+        { label: t(lang, "Address", "ලිපිනය"), value: organization.address ?? "-" },
+        { label: t(lang, "Contact Number", "සම්බන්ධතා අංකය"), value: organization.contact_number ?? "-" },
+      ]
+    : [];
+
+  async function handleUpdatePassword() {
+    if (pwForm.next !== pwForm.confirm) return;
+
+    try {
+      setSubmitting(true);
+      setPwError("");
+      await updatePassword(pwForm.current, pwForm.next, pwForm.confirm);
+
+      setSaved(true);
+      setPwForm({ current: "", next: "", confirm: "" });
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      const axiosErr = err as AxiosError<LaravelValidationErrorBody>;
+
+      if (axiosErr.response?.status === 422 && axiosErr.response.data.errors) {
+        const firstError = Object.values(axiosErr.response.data.errors)[0]?.[0];
+        setPwError(firstError ?? t(lang, "Unable to update password.", "මුරපදය යාවත්කාලීන කළ නොහැක."));
+      } else {
+        console.error(err);
+        setPwError(t(lang, "Unable to update password. Please try again.", "මුරපදය යාවත්කාලීන කළ නොහැක. නැවත උත්සාහ කරන්න."));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="max-w-6xl grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
@@ -29,7 +110,7 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden h-full min-h-[400px] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#EBF4FD] flex items-center justify-center">
-            <User className="w-5 h-5 text-[#4295D9]" />
+            <User2Icon className="w-5 h-5 text-[#4295D9]" />
           </div>
 
           <h3 className="font-semibold text-gray-900">
@@ -37,31 +118,37 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
           </h3>
         </div>
 
-  <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-    {accountFields.map((f) => (
-      <div key={f.label}>
-        <div className="text-xs font-medium text-gray-400 mb-0.5">
-          {f.label}
-        </div>
-        <div className="text-sm font-semibold text-gray-900">
-          {f.value}
+        {loadingUser ? (
+          <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+            {t(lang, "Loading…", "පූරණය වෙමින්…")}
+          </div>
+        ) : (
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+            {accountFields.map((f) => (
+              <div key={f.label}>
+                <div className="text-xs font-medium text-gray-400 mb-0.5">
+                  {f.label}
+                </div>
+                <div className="text-sm font-semibold text-gray-900">
+                  {f.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="px-6 pb-5 mt-auto">
+          <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-600 flex items-center gap-2">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+
+            {t(
+              lang,
+              "To update account details, contact your divisional administrator.",
+              "ගිණුම් තොරතුරු යාවත්කාලීන කිරීමට ඔබගේ දිව්‍යංශ පරිපාලක සම්බන්ධ කරගන්න."
+            )}
+          </div>
         </div>
       </div>
-    ))}
-  </div>
-
-  <div className="px-6 pb-5 mt-auto">
-    <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-600 flex items-center gap-2">
-      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-
-      {t(
-        lang,
-        "To update account details, contact your divisional administrator.",
-        "ගිණුම් තොරතුරු යාවත්කාලීන කිරීමට ඔබගේ දිව්‍යංශ පරිපාලක සම්බන්ධ කරගන්න."
-      )}
-    </div>
-  </div>
-</div>
 
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden h-full">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
@@ -77,6 +164,14 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
               {t(lang, "Password updated successfully.", "මුරපදය සාර්ථකව යාවත්කාලීන කරන ලදි.")}
             </div>
           )}
+
+          {pwError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-sm text-red-600 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {pwError}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">{t(lang, "Current Password", "වත්මන් මුරපදය")}</label>
             <div className="relative">
@@ -98,6 +193,9 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
                 {showNext ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            <p className="mt-1 text-xs text-gray-400">
+              {t(lang, "Minimum 8 characters.", "අවම අකුරු 8 ක්.")}
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">{t(lang, "Confirm New Password", "නව මුරපදය තහවුරු කරන්න")}</label>
@@ -113,11 +211,13 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
           )}
           <div className="pt-1">
             <button
-              onClick={() => { setSaved(true); setPwForm({ current: "", next: "", confirm: "" }); setTimeout(() => setSaved(false), 3000); }}
-              disabled={!pwForm.current || !pwForm.next || pwForm.next !== pwForm.confirm}
+              onClick={handleUpdatePassword}
+              disabled={submitting || !pwForm.current || !pwForm.next || pwForm.next !== pwForm.confirm}
               className="px-6 py-2.5 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
-              {t(lang, "Update Password", "මුරපදය යාවත්කාලීන කරන්න")}
+              {submitting
+                ? t(lang, "Updating…", "යාවත්කාලීන කරමින්…")
+                : t(lang, "Update Password", "මුරපදය යාවත්කාලීන කරන්න")}
             </button>
           </div>
         </div>
