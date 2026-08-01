@@ -6,7 +6,7 @@ import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import type { AdminUser } from "../../types/userManagement";
 
-type UserType = "all" | "staff" | "institution" | "ds_office";
+type UserType = "all" | "staff" | "institution";
 
 interface OptionItem {
   id: number;
@@ -99,7 +99,6 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     all: t(lang, "All Types", "සියලු"),
     staff: t(lang, "Staff", "කාර්ය මණ්ඩලය"),
     institution: t(lang, "Institution", "ආයතනය"),
-    ds_office: t(lang, "DS Office", "DS කාර්යාලය"),
   };
 
   function displayName(u: AdminUser): string {
@@ -238,7 +237,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
           />
         </div>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
-          {(["all", "staff", "institution", "ds_office"] as UserType[]).map((f) => (
+          {(["all", "staff", "institution"] as UserType[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
