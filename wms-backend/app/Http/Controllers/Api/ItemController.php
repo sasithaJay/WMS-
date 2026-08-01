@@ -78,6 +78,7 @@ class ItemController extends Controller
             ]);
 
             $item->balance()->create([
+                'division_id' => $item->division_id,
                 'quantity_on_hand' => 0,
                 'reserved_quantity' => 0,
             ]);

@@ -1,12 +1,32 @@
 import { Menu, X, Warehouse, LogOut } from "lucide-react";
 import { NAV_ITEMS } from "../../constants/menuItems";
-import { ROLE_LABELS } from "../../constants/roles";
 import { t } from "../../constants/translations";
-import { getRoleUserName } from "../../utils/roleHelpers";
 import type { Lang, Role } from "../../types";
+import { User } from "../../types/auth";
+import { useEffect, useState } from "react";
+import { getCurrentUser } from "../../../services/authService";
+
+function getDisplayName(user: User | null): string {
+  if (!user) return "";
+  return user.staff_profile?.full_name ?? user.organization?.name ?? user.username;
+}
+
+function getDisplayRole(user: User | null, lang: Lang): string {
+  if (!user) return "";
+  if (user.staff_profile?.role) {
+    return t(lang, user.staff_profile.role.name_en, user.staff_profile.role.name_si);
+  }
+  if (user.organization) {
+    return user.organization.organization_kind === "INSTITUTION"
+      ? t(lang, "Institution", "ආයතනය")
+      : t(lang, "DS Office", "ප්‍රාදේශීය ලේකම් කාර්යාලය");
+  }
+  return user.account_type;
+}
 
 export function Sidebar({
   lang,
+  setLang,
   role,
   active,
   setActive,
@@ -17,6 +37,7 @@ export function Sidebar({
 }: {
   lang: Lang;
   role: Role;
+  setLang: (l: Lang) => void;
   active: string;
   setActive: (id: string) => void;
   collapsed: boolean;
@@ -25,8 +46,14 @@ export function Sidebar({
   badges?: Record<string, number>;
 }) {
   const nav = NAV_ITEMS[role] ?? [];
-  const roleLabel = ROLE_LABELS[role] ?? { en: role, si: role };
-  const userName = getRoleUserName(role);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  const userName = getDisplayName(currentUser);
+  const roleLabel = getDisplayRole(currentUser, lang);
+
+  useEffect(() => {
+      getCurrentUser().then(setCurrentUser).catch((err) => console.error(err));
+    }, []);
 
   return (
     <aside
@@ -109,12 +136,12 @@ export function Sidebar({
       <div className="border-t border-gray-100 p-3" >
         <div className={`flex items-center gap-3 rounded-xl p-2 ${collapsed ? "justify-center" : ""}`}>
           <div className="w-8 h-8 rounded-lg bg-[#4295D9] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
-            {userName[0]}
+            {getDisplayName(currentUser)?.[0]}
           </div>
           {!collapsed && (
             <div className="flex-1 overflow-hidden">
-              <div className="text-xs font-semibold text-gray-900 truncate">{userName}</div>
-              <div className="text-[10px] text-gray-500 truncate">{t(lang, roleLabel.en, roleLabel.si)}</div>
+              <div className="text-xs font-semibold text-gray-900 truncate">{userName || "\u00A0"}</div>
+              <div className="text-[10px] text-gray-500 truncate">{roleLabel}</div>
             </div>
           )}
           {!collapsed && (

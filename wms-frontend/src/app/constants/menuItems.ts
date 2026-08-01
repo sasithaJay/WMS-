@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Package, ClipboardList, PlusCircle, BookOpen,
   BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle, FileText,
+  ClipboardCheck,
 } from "lucide-react";
 import type { Role } from "../types";
 
@@ -74,6 +75,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: BookOpen, label: "Recommend", labelSi: "නිර්දේශ", id: "recommend"},
+    { icon: ClipboardCheck, label: "Item Updates", labelSi: "භාණ්ඩ යාවත්කාලීන", id: "item-updates" },
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],

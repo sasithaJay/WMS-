@@ -1,13 +1,10 @@
+
+
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
+import type { AnnualReportRow } from "../../types/reports";
 
-const ANNUAL_DATA = [
-  { year: "2024", totalReceived: 269, totalIssued: 209, totalRequests: 87, fulfilled: 76 },
-  { year: "2023", totalReceived: 312, totalIssued: 278, totalRequests: 102, fulfilled: 95 },
-  { year: "2022", totalReceived: 256, totalIssued: 231, totalRequests: 89, fulfilled: 82 },
-];
-
-export function AnnualReportTable({ lang }: { lang: Lang }) {
+export function AnnualReportTable({ lang, rows }: { lang: Lang; rows: AnnualReportRow[] }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100">
@@ -23,12 +20,12 @@ export function AnnualReportTable({ lang }: { lang: Lang }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {ANNUAL_DATA.map((r) => (
+            {rows.map((r) => (
               <tr key={r.year} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-5 py-3.5 font-bold text-gray-900">{r.year}</td>
-                <td className="px-5 py-3.5 text-green-600 font-semibold">{r.totalReceived}</td>
-                <td className="px-5 py-3.5 text-[#4295D9] font-semibold">{r.totalIssued}</td>
-                <td className="px-5 py-3.5 text-gray-700 font-semibold">{r.totalRequests}</td>
+                <td className="px-5 py-3.5 text-green-600 font-semibold">{r.total_received}</td>
+                <td className="px-5 py-3.5 text-[#4295D9] font-semibold">{r.total_issued}</td>
+                <td className="px-5 py-3.5 text-gray-700 font-semibold">{r.total_requests}</td>
                 <td className="px-5 py-3.5 text-gray-700 font-semibold">{r.fulfilled}</td>
               </tr>
             ))}

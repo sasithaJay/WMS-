@@ -15,6 +15,21 @@ export interface User {
   account_type: AccountType;
   account_status: AccountStatus;
   role: string | null;
+  staff_profile?: {
+    full_name: string;
+    nic_number: string;
+    role?: { name_en: string; name_si: string };
+    division?: { name_en: string; name_si: string };
+    section?: { name_en: string; name_si: string };
+  };
+  organization?: {
+    name: string;
+    organization_kind: "INSTITUTION" | "DS_OFFICE";
+    division?: { name_en: string; name_si: string };
+    address?: string;
+    contact_number?: string;
+    licence_number?: string;
+  };
 }
 
 export interface LoginResponse {

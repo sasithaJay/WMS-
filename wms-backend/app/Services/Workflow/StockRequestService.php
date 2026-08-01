@@ -7,11 +7,13 @@ namespace App\Services\Workflow;
 use App\Models\InventoryBalance;
 use App\Models\Organization;
 use App\Models\StockRequest;
+use App\Models\StockMovement;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\RequestWorkflowService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+
 
 class StockRequestService
 {
@@ -357,5 +359,103 @@ class StockRequestService
         if (! $roleId || ! $eligibleRoleIds->contains($roleId)) {
             abort(403, 'You are not eligible to approve this request.');
         }
+    }
+
+    public function issue(StockRequest $request, array $data): StockRequest
+    {
+        return DB::transaction(function () use ($request, $data) {
+
+            $this->assertStage($request, 'ISSUANCE');
+            $this->assertEligibleIssuer($request);
+
+            $overridesByItemId = collect($data['items'] ?? [])->keyBy('item_id');
+            $allFullyIssued = true;
+
+            foreach ($request->items as $requestItem) {
+                $alreadyIssued = (float) ($requestItem->quantity_issued ?? 0);
+                $remainingApproved = (float) $requestItem->quantity_approved - $alreadyIssued;
+
+                if ($remainingApproved <= 0) {
+                    continue; // this item is already fully issued
+                }
+
+                $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
+                    ['item_id' => $requestItem->item_id, 'division_id' => $request->division_id],
+                    ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
+                );
+
+                $override = $overridesByItemId->get($requestItem->item_id);
+                $requestedIssueQty = $override['quantity'] ?? $remainingApproved;
+
+                // Cap by what's actually left to fulfil AND what's physically on hand.
+                $issueQty = min($requestedIssueQty, $remainingApproved, (float) $balance->quantity_on_hand);
+
+                if ($issueQty <= 0) {
+                    $allFullyIssued = false;
+                    continue; // nothing available for this item right now — stays back-ordered
+                }
+
+                $before = (float) $balance->quantity_on_hand;
+                $after = $before - $issueQty;
+
+                $balance->update([
+                    'quantity_on_hand' => $after,
+                    'reserved_quantity' => max(0, (float) $balance->reserved_quantity - $issueQty),
+                ]);
+
+                StockMovement::create([
+                    'division_id'      => $request->division_id,
+                    'item_id'          => $requestItem->item_id,
+                    'movement_type'    => 'ISSUE',
+                    'quantity'         => $issueQty,
+                    'balance_before'   => $before,
+                    'balance_after'    => $after,
+                    'reference_type'   => 'STOCK_REQUEST',
+                    'reference_id'     => $request->id,
+                    'reference_number' => $request->request_number,
+                    'performed_by'     => auth()->id(),
+                    'remarks'          => $requestItem->remarks,
+                ]);
+
+                $requestItem->update([
+                    'quantity_issued' => $alreadyIssued + $issueQty,
+                ]);
+
+                if (($alreadyIssued + $issueQty) < (float) $requestItem->quantity_approved) {
+                    $allFullyIssued = false;
+                }
+            }
+
+            $request->actions()->create([
+                'stage'    => 'ISSUANCE',
+                'actor_id' => auth()->id(),
+                'action'   => $allFullyIssued ? 'ISSUED' : 'PARTIALLY_ISSUED',
+                'remarks'  => $data['remarks'] ?? null,
+                'acted_at' => now(),
+            ]);
+
+            $request->update([
+                'status'        => $allFullyIssued ? 'ISSUED' : 'APPROVED',
+                'current_stage' => $allFullyIssued ? null : 'ISSUANCE',
+            ]);
+
+            return $request->fresh([
+                'requester.staffProfile',
+                'requester.organization',
+                'items.item', 
+                'actions',
+            ]);
+        });
+    }
+
+    private function assertEligibleIssuer(StockRequest $request): void
+    {
+        $profile = auth()->user()->staffProfile;
+
+        $isEligible = $profile
+            && $profile->role?->code === 'STORE_KEEPER'
+            && $profile->division_id === $request->division_id;
+
+        abort_unless($isEligible, 403, 'You are not eligible to issue this request.');
     }
 }

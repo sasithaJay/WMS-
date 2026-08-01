@@ -10,6 +10,7 @@ class InventoryBalance extends Model
 {
     protected $fillable = [
         'item_id',
+        'division_id',
         'quantity_on_hand',
         'reserved_quantity',
     ];
