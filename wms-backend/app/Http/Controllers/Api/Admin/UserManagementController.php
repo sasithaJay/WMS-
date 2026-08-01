@@ -54,6 +54,10 @@ class UserManagementController extends Controller
     {
         $data = $request->validated();
 
+        if (array_key_exists('email', $data)) {
+            $user->update(['email' => $data['email']]);
+        }
+
         if (array_key_exists('account_status', $data)) {
             $user->update(['account_status' => $data['account_status']]);
         }
@@ -61,6 +65,7 @@ class UserManagementController extends Controller
         if ($user->account_type === 'STAFF' && $user->staffProfile) {
             $user->staffProfile->update(array_filter([
                 'full_name' => $data['full_name'] ?? null,
+                 'phone' => array_key_exists('phone', $data) ? $data['phone'] : null,
                 'role_id' => $data['role_id'] ?? null,
                 'division_id' => $data['division_id'] ?? null,
                 'section_id' => array_key_exists('section_id', $data) ? $data['section_id'] : null,
@@ -68,6 +73,7 @@ class UserManagementController extends Controller
         } elseif (in_array($user->account_type, ['INSTITUTION', 'DS_OFFICE']) && $user->organization) {
             $user->organization->update(array_filter([
                 'name' => $data['full_name'] ?? null,
+                'contact_number' => array_key_exists('phone', $data) ? $data['phone'] : null,
                 'division_id' => $data['division_id'] ?? null,
             ], fn ($v) => $v !== null));
         }

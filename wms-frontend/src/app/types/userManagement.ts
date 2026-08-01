@@ -22,10 +22,12 @@ export interface AdminUserSection {
 export interface AdminUser {
   id: number;
   username: string;
+  email: string | null;
   account_type: "STAFF" | "INSTITUTION" | "DS_OFFICE";
   account_status: "ACTIVE" | "SUSPENDED";
   staff_profile?: {
     full_name: string;
+    phone?: string | null;
     role?: AdminUserRole;
     division?: AdminUserDivision;
     section?: AdminUserSection;
@@ -34,6 +36,7 @@ export interface AdminUser {
     name: string;
     organization_kind: "INSTITUTION" | "DS_OFFICE";
     division?: AdminUserDivision;
+    contact_number?: string | null;
   };
 }
 
@@ -53,6 +56,8 @@ export interface AdminStats {
 
 export interface UpdateUserPayload {
   full_name?: string;
+  email?: string | null;
+  phone?: string | null;
   role_id?: number;
   division_id?: number;
   section_id?: number | null;

@@ -17,6 +17,8 @@ interface OptionItem {
 
 interface EditForm {
   full_name: string;
+  email: string;
+  phone: string;
   role_id: string;
   division_id: string;
   section_id: string;
@@ -42,6 +44,8 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     role_id: "",
     division_id: "",
     section_id: "",
+    email: "",
+    phone: "",
     account_status: "ACTIVE",
   });
   const [editError, setEditError] = useState("");
@@ -129,6 +133,8 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     setEditError("");
     setEditForm({
       full_name: displayName(user),
+      email: user.email ?? "",
+      phone: user.staff_profile?.phone ?? user.organization?.contact_number ?? "",
       role_id: user.staff_profile?.role ? String(user.staff_profile.role.id) : "",
       division_id: (user.staff_profile?.division ?? user.organization?.division)
         ? String((user.staff_profile?.division ?? user.organization?.division)!.id)
@@ -147,65 +153,69 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
   }
 
   async function handleSaveUser() {
-    if (!editingUser) return;
+  if (!editingUser) return;
 
-    if (!editForm.full_name.trim()) {
-      setEditError(t(lang, "Name is required.", "නම අවශ්‍යයි."));
+  if (!editForm.full_name.trim()) {
+    setEditError(t(lang, "Name is required.", "නම අවශ්‍යයි."));
+    return;
+  }
+
+  if (isRegularStaff) {
+    if (!editForm.role_id) {
+      setEditError(t(lang, "Please select a role.", "කරුණාකර භූමිකාවක් තෝරන්න."));
       return;
     }
-
-    if (isRegularStaff) {
-      if (!editForm.role_id) {
-        setEditError(t(lang, "Please select a role.", "කරුණාකර භූමිකාවක් තෝරන්න."));
-        return;
-      }
-      if (!editForm.division_id) {
-        setEditError(t(lang, "Please select a division.", "කරුණාකර කොට්ඨාශයක් තෝරන්න."));
-        return;
-      }
-    }
-
-    try {
-      setBusyId(editingUser.id);
-      setEditError("");
-
-      if (isAdminUser) {
-        // Admin: name only, nothing else is editable through this screen.
-        await updateUser(editingUser.id, {
-          full_name: editForm.full_name.trim(),
-        });
-      } else if (isCommissionerUser) {
-        // Commissioner: name + status only, no role/division/section.
-        await updateUser(editingUser.id, {
-          full_name: editForm.full_name.trim(),
-          account_status: editForm.account_status,
-        });
-      } else if (isRegularStaff) {
-        await updateUser(editingUser.id, {
-          full_name: editForm.full_name.trim(),
-          account_status: editForm.account_status,
-          role_id: Number(editForm.role_id),
-          division_id: Number(editForm.division_id),
-          section_id: editForm.section_id ? Number(editForm.section_id) : null,
-        });
-      } else {
-        // Institution / DS Office
-        await updateUser(editingUser.id, {
-          full_name: editForm.full_name.trim(),
-          account_status: editForm.account_status,
-          division_id: editForm.division_id ? Number(editForm.division_id) : undefined,
-        });
-      }
-
-      setEditingUser(null);
-      loadUsers();
-    } catch (err) {
-      console.error(err);
-      setEditError(t(lang, "Unable to save changes. Please try again.", "වෙනස්කම් සුරැකිය නොහැක. නැවත උත්සාහ කරන්න."));
-    } finally {
-      setBusyId(null);
+    if (!editForm.division_id) {
+      setEditError(t(lang, "Please select a division.", "කරුණාකර කොට්ඨාශයක් තෝරන්න."));
+      return;
     }
   }
+
+  try {
+    setBusyId(editingUser.id);
+    setEditError("");
+
+    const basePayload = {
+      full_name: editForm.full_name.trim(),
+      email: editForm.email.trim() || null,
+      phone: editForm.phone.trim() || null,
+    };
+
+    if (isAdminUser) {
+      // Admin: name + email + phone only, no status/role/division.
+      await updateUser(editingUser.id, basePayload);
+    } else if (isCommissionerUser) {
+      // Commissioner: name + email + phone + status, no role/division/section.
+      await updateUser(editingUser.id, {
+        ...basePayload,
+        account_status: editForm.account_status,
+      });
+    } else if (isRegularStaff) {
+      await updateUser(editingUser.id, {
+        ...basePayload,
+        account_status: editForm.account_status,
+        role_id: Number(editForm.role_id),
+        division_id: Number(editForm.division_id),
+        section_id: editForm.section_id ? Number(editForm.section_id) : null,
+      });
+    } else {
+      // Institution / DS Office
+      await updateUser(editingUser.id, {
+        ...basePayload,
+        account_status: editForm.account_status,
+        division_id: editForm.division_id ? Number(editForm.division_id) : undefined,
+      });
+    }
+
+    setEditingUser(null);
+    loadUsers();
+  } catch (err) {
+    console.error(err);
+    setEditError(t(lang, "Unable to save changes. Please try again.", "වෙනස්කම් සුරැකිය නොහැක. නැවත උත්සාහ කරන්න."));
+  } finally {
+    setBusyId(null);
+  }
+}
 
   async function handleToggleStatus(user: AdminUser) {
     const roleCode = user.staff_profile?.role?.code;
@@ -390,14 +400,43 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
+                
                 <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-gray-500 mb-1.5">
                     {t(lang, "Full Name", "සම්පූර්ණ නම")}
                   </label>
                   <input
                     value={editForm.full_name}
-                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, full_name: e.target.value }))
+                    }
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                    {t(lang, "Email", "විද්‍යුත් තැපෑල")}
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                    placeholder={t(lang, "Optional", "අවශ්‍ය නම්")}
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                    {t(lang, "Phone Number", "දුරකථන අංකය")}
+                  </label>
+                  <input
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder={t(lang, "Optional", "අවශ්‍ය නම්")}
                     className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
                   />
                 </div>
