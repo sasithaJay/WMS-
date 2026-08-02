@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\Admin\UserManagementController;
 use App\Http\Controllers\Api\Admin\AdminStatsController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\NotificationController;
 
 //Public Routes
 
@@ -79,6 +80,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // routes/api.php — inside auth:sanctum group
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
     Route::get('/dashboard/my-view', [DashboardController::class, 'myView']);
+
+    //Notifications Routes
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
     /*
     |--------------------------------------------------------------------------

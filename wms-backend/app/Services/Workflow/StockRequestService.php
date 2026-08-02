@@ -96,6 +96,17 @@ class StockRequestService
                 'status'        => 'PENDING_APPROVAL',
             ]);
 
+            $request->requester->notify(new \App\Notifications\RequestStatusChanged($request, 'RECOMMENDED'));
+
+            // Also notify whoever is now eligible to approve it:
+            $eligibleRoleIds = $this->workflow->resolveApprovalRoleIds($request);
+            $approvers = \App\Models\User::whereHas('staffProfile', fn ($q) =>
+                $q->whereIn('role_id', $eligibleRoleIds)->where('division_id', $request->division_id)
+            )->get();
+            foreach ($approvers as $approver) {
+                $approver->notify(new \App\Notifications\RequestNeedsAction($request, 'APPROVAL'));
+            }
+
             return $request->fresh(['items.item', 'actions']);
         });
     }

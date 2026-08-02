@@ -2,6 +2,7 @@ import { Bell } from "lucide-react";
 import { LanguageToggle } from "../common/LanguageToggle";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
+import { NotificationBell } from "./NotificationBell";
 
 export function Topbar({
   lang,
@@ -23,10 +24,7 @@ export function Topbar({
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <button className="relative w-9 h-9 rounded-xl border border-gray-100 bg-white flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">
-          <Bell className="w-4 h-4" />
-          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[9px] text-white font-bold flex items-center justify-center">3</span>
-        </button>
+        <NotificationBell lang={lang} />
         <LanguageToggle lang={lang} setLang={setLang} />
       </div>
     </header>

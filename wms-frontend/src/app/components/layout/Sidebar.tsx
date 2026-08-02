@@ -105,7 +105,7 @@ export function Sidebar({
             <button
               key={item.id}
               onClick={() => setActive(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative mb-2 ${
                 isActive
                   ? "bg-[#EBF4FD] text-[#116bb4]"
                   : "text-white/90 bg-white/20 hover:bg-gray-50 hover:text-gray-800"
