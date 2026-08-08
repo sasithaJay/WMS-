@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Notifications\AccountStatusChanged;
 
 class AccountApprovalController extends Controller
 {
@@ -66,6 +67,8 @@ class AccountApprovalController extends Controller
                     null,
             ]);
         });
+
+        $user->notify(new AccountStatusChanged('ACTIVE'));
 
         return response()->json([
             'message' =>
@@ -137,6 +140,8 @@ class AccountApprovalController extends Controller
                     $validated['rejection_reason'],
             ]);
         });
+
+        $user->notify(new AccountStatusChanged('REJECTED', $validated['rejection_reason']));
 
         return response()->json([
             'message' =>
