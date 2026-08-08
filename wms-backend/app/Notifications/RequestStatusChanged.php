@@ -65,6 +65,7 @@ class RequestStatusChanged extends Notification
             'REJECTED' => 'rejected',
             'RETURNED' => 'returned for correction',
             'ISSUED' => 'issued',
+            'PARTIALLY_ISSUED' => 'partially issued',
             default => strtolower($this->action),
         };
     }
