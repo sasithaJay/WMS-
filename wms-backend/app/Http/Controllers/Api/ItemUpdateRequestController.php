@@ -217,7 +217,7 @@ class ItemUpdateRequestController extends Controller
         });
 
         $itemUpdateRequest->requester?->notify(
-            new ItemUpdateRequestStatusChanged($itemUpdateRequest->fresh(), 'APPROVED')
+            new ItemUpdateRequestStatusChanged($itemUpdateRequest->fresh(), 'APPROVED', $request->user())
         );
 
         return response()->json([
@@ -260,7 +260,7 @@ class ItemUpdateRequestController extends Controller
         ]);
 
         $itemUpdateRequest->requester?->notify(
-            new ItemUpdateRequestStatusChanged($itemUpdateRequest, 'REJECTED')
+            new ItemUpdateRequestStatusChanged($itemUpdateRequest, 'REJECTED', $request->user())
         );
 
         return response()->json([

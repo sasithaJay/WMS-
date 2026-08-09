@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\StockRequest;
+use App\Models\User;
 use App\Notifications\Channels\SmsChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -14,8 +15,9 @@ class RequestStatusChanged extends Notification
 
     public function __construct(
         protected StockRequest $request,
-        protected string $action, // RECOMMENDED, APPROVED, REJECTED, RETURNED, ISSUED
+        protected string $action,
         protected ?string $remarks = null,
+        protected ?User $actor = null,
     ) {
     }
 
@@ -26,12 +28,22 @@ class RequestStatusChanged extends Notification
 
     public function toArray($notifiable): array
     {
+        $actorName = $this->actor?->staffProfile?->full_name
+            ?? $this->actor?->organization?->name
+            ?? $this->actor?->username;
+
+        $actorRole = $this->actor?->staffProfile?->role?->name_en;
+
         return [
             'type' => 'request_status_changed',
             'request_id' => $this->request->id,
             'request_number' => $this->request->request_number,
             'action' => $this->action,
             'remarks' => $this->remarks,
+            'request_context' => $this->request->request_context,
+            'item_count' => $this->request->items?->count(),
+            'actor_name' => $actorName,
+            'actor_role' => $actorRole,
         ];
     }
 

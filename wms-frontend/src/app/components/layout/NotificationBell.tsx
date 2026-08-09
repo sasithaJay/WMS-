@@ -7,6 +7,7 @@ import {
 } from "../../../services/notificationService";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
+import { NotificationDetailModal } from "./NotificationDetailModal";
 
 function describeNotification(n: AppNotification, lang: Lang): string {
   const d = n.data;
@@ -32,6 +33,15 @@ export function NotificationBell({ lang }: { lang: Lang }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const [viewingNotification, setViewingNotification] = useState<AppNotification | null>(null);
+
+async function handleNotificationClick(n: AppNotification) {
+  if (!n.read_at) {
+    await handleMarkRead(n.id);
+  }
+  setViewingNotification(n);
+  setOpen(false); // close the dropdown, modal takes over
+}
 
   useEffect(() => {
     refreshCount();
@@ -124,7 +134,7 @@ export function NotificationBell({ lang }: { lang: Lang }) {
               {notifications.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => handleMarkRead(n.id)}
+                  onClick={() => handleNotificationClick(n)}
                   className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${!n.read_at ? "bg-blue-50/50" : ""}`}
                 >
                   <p className="text-xs text-gray-800">{describeNotification(n, lang)}</p>
@@ -134,6 +144,14 @@ export function NotificationBell({ lang }: { lang: Lang }) {
             </div>
           )}
         </div>
+      )}
+
+      {viewingNotification && (
+        <NotificationDetailModal
+          lang={lang}
+          notification={viewingNotification}
+          onClose={() => setViewingNotification(null)}
+        />
       )}
     </div>
   );

@@ -68,7 +68,7 @@ class AccountApprovalController extends Controller
             ]);
         });
 
-        $user->notify(new AccountStatusChanged('ACTIVE'));
+        $user->notify(new AccountStatusChanged('ACTIVE', null, $request->user()));
 
         return response()->json([
             'message' =>
@@ -141,7 +141,7 @@ class AccountApprovalController extends Controller
             ]);
         });
 
-        $user->notify(new AccountStatusChanged('REJECTED', $validated['rejection_reason']));
+        $user->notify(new AccountStatusChanged('REJECTED', $validated['rejection_reason'], $request->user()));
 
         return response()->json([
             'message' =>

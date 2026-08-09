@@ -30,6 +30,11 @@ class RequestNeedsAction extends Notification
             'request_id' => $this->request->id,
             'request_number' => $this->request->request_number,
             'stage' => $this->stage,
+            'request_context' => $this->request->request_context,
+            'requester_name' => $this->request->requester?->staffProfile?->full_name
+                ?? $this->request->requester?->organization?->name
+                ?? $this->request->requester?->username,
+            'item_count' => $this->request->items?->count(),
         ];
     }
 

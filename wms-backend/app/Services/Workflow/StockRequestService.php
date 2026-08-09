@@ -99,7 +99,7 @@ class StockRequestService
         });
 
         // Notify requester their request was recommended
-        $updated->requester?->notify(new RequestStatusChanged($updated, 'RECOMMENDED', $data['remarks'] ?? null));
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'RECOMMENDED', $data['remarks'] ?? null, auth()->user()));
 
         // Notify everyone now eligible to approve
         $this->notifyEligibleApprovers($updated);
@@ -149,7 +149,7 @@ class StockRequestService
         });
 
         // Notify requester their request was approved
-        $updated->requester?->notify(new RequestStatusChanged($updated, 'APPROVED', $data['remarks'] ?? null));
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'APPROVED', $data['remarks'] ?? null, auth()->user()));
 
         // Notify Store Keeper(s) in this division that a request is ready to issue
         $this->notifyStoreKeepers($updated);
@@ -190,7 +190,7 @@ class StockRequestService
             return $request->fresh(['requester.staffProfile', 'requester.organization', 'actions']);
         });
 
-        $updated->requester?->notify(new RequestStatusChanged($updated, 'REJECTED', $reason));
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'REJECTED', $reason, auth()->user()));
 
         return $updated;
     }
@@ -228,7 +228,7 @@ class StockRequestService
             return $request->fresh(['requester.staffProfile', 'requester.organization', 'actions']);
         });
 
-        $updated->requester?->notify(new RequestStatusChanged($updated, 'RETURNED', $reason));
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'RETURNED', $reason, auth()->user()));
 
         return $updated;
     }
@@ -319,7 +319,7 @@ class StockRequestService
         });
 
         $action = $updated->status === 'ISSUED' ? 'ISSUED' : 'PARTIALLY_ISSUED';
-        $updated->requester?->notify(new RequestStatusChanged($updated, $action, $data['remarks'] ?? null));
+        $updated->requester?->notify(new RequestStatusChanged($updated, $action, $data['remarks'] ?? null, auth()->user()));
 
         return $updated;
     }
@@ -476,9 +476,15 @@ class StockRequestService
             return;
         }
 
-        $approvers = User::whereHas('staffProfile', fn ($q) =>
-            $q->whereIn('role_id', $eligibleRoleIds)->where('division_id', $request->division_id)
-        )->get();
+        $commissionerRoleId = \App\Models\Role::where('code', 'COMMISSIONER')->value('id');
+
+        $approvers = User::whereHas('staffProfile', function ($q) use ($eligibleRoleIds, $request, $commissionerRoleId) {
+            $q->whereIn('role_id', $eligibleRoleIds)
+                ->where(function ($q2) use ($request, $commissionerRoleId) {
+                    $q2->where('division_id', $request->division_id)
+                        ->orWhere('role_id', $commissionerRoleId); // Commissioner eligible regardless of her own division
+                });
+        })->get();
 
         foreach ($approvers as $approver) {
             $approver->notify(new RequestNeedsAction($request, 'APPROVAL'));

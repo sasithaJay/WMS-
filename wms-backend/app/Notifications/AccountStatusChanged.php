@@ -14,6 +14,7 @@ class AccountStatusChanged extends Notification
     public function __construct(
         protected string $status, // ACTIVE or REJECTED
         protected ?string $reason = null,
+        protected ?User $actor = null,
     ) {
     }
 
@@ -24,10 +25,14 @@ class AccountStatusChanged extends Notification
 
     public function toArray($notifiable): array
     {
+        $actorName = $this->actor?->staffProfile?->full_name
+        ?? $this->actor?->username;
+
         return [
             'type' => 'account_status_changed',
             'status' => $this->status,
             'reason' => $this->reason,
+            'actor_name' => $actorName,
         ];
     }
 

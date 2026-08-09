@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\ItemUpdateRequest;
+use App\Models\User;
 use App\Notifications\Channels\SmsChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -14,7 +15,8 @@ class ItemUpdateRequestStatusChanged extends Notification
 
     public function __construct(
         protected ItemUpdateRequest $updateRequest,
-        protected string $action, // SUBMITTED, APPROVED, REJECTED
+        protected string $action,
+        protected ?User $actor = null,
     ) {
     }
 
@@ -25,11 +27,25 @@ class ItemUpdateRequestStatusChanged extends Notification
 
     public function toArray($notifiable): array
     {
+        $actorName = $this->actor?->staffProfile?->full_name
+            ?? $this->actor?->organization?->name
+            ?? $this->actor?->username;
+
+        $actorRole = $this->actor?->staffProfile?->role?->name_en;
+
         return [
             'type' => 'item_update_status_changed',
             'update_request_id' => $this->updateRequest->id,
             'item_id' => $this->updateRequest->item_id,
+            'item_code' => $this->updateRequest->item?->item_code,
+            'item_name' => $this->updateRequest->item?->name_en,
             'action' => $this->action,
+            'reason' => $this->updateRequest->reason,
+            'review_comment' => $this->updateRequest->review_comment,
+            'old_values' => $this->updateRequest->old_values,
+            'new_values' => $this->updateRequest->new_values,
+            'actor_name' => $actorName,
+            'actor_role' => $actorRole,
         ];
     }
 
