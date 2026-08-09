@@ -14,9 +14,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use App\Notifications\NewAccountPendingApproval;
 
 class RegisterController extends Controller
 {
+
+    private function notifyApprovers(User $newUser): void
+    {
+        $approverRoleIds = Role::whereIn('code', ['COMMISSIONER', 'ADMIN'])->pluck('id');
+
+        $approvers = User::whereHas('staffProfile', fn ($q) =>
+            $q->whereIn('role_id', $approverRoleIds)
+        )->get();
+
+        foreach ($approvers as $approver) {
+            $approver->notify(new NewAccountPendingApproval($newUser));
+        }
+    }
+
     public function register(Request $request): JsonResponse
     {
         $request->validate([
@@ -64,6 +79,7 @@ class RegisterController extends Controller
                 'DS_OFFICE'
             ),
         };
+
     }
 
 
@@ -74,6 +90,7 @@ class RegisterController extends Controller
         | Validate Common Staff Fields
         |--------------------------------------------------------------------------
         */
+        
 
         $validated = $request->validate([
             'division_id' => [
@@ -265,6 +282,8 @@ class RegisterController extends Controller
             return $user;
         });
 
+        $this->notifyApprovers($user);
+
         return response()->json([
             'message' =>
                 'Staff registration successful. Your account is awaiting approval.',
@@ -429,6 +448,8 @@ class RegisterController extends Controller
 
                 return $user;
             });
+
+            $this->notifyApprovers($user);
 
             return response()->json([
                 'message' =>

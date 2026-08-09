@@ -73,7 +73,7 @@ export function NotificationDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-xl bg-white shadow-lg max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-gray-100 p-5">
+        <div className="flex items-center justify-between border-b border-gray-100 p-5 pb-0">
           <h3 className="text-base font-semibold text-gray-900">
             {t(lang, "Notification Details", "දැනුම්දීම් විස්තර")}
           </h3>
@@ -83,6 +83,26 @@ export function NotificationDetailModal({
         </div>
 
         <div className="space-y-4 p-5">
+          {d.type === "new_account_pending" && (
+            <>
+                <StatusBadge label={t(lang, "Pending Approval", "අනුමැතිය අපේක්ෂිතයි")} color="bg-amber-100 text-amber-700"/>
+
+                <div>
+                <p className="text-xs text-gray-500 mt-3">{t(lang, "Applicant", "අයදුම්කරු")}</p>
+                <p className="text-sm font-medium text-gray-900">
+                    {d.applicant_name}
+                    {d.applicant_role && <span className="text-gray-400 font-normal"> · {d.applicant_role}</span>}
+                </p>
+                </div>
+
+                <div>
+                <p className="text-xs text-gray-500">{t(lang, "Username", "පරිශීලක නාමය")}</p>
+                <p className="text-sm text-gray-800">@{d.username}</p>
+                </div>
+            </>
+            )}
+
+
           {/* Request-related notifications */}
           {(d.type === "request_status_changed" || d.type === "request_needs_action") && (
             <>
@@ -100,7 +120,8 @@ export function NotificationDetailModal({
               {d.requester_name && (
                 <div>
                   <p className="text-xs text-gray-500">{t(lang, "Requester", "ඉල්ලූ පුද්ගලයා")}</p>
-                  <p className="text-sm font-medium text-gray-900">{d.requester_name}</p>
+                  <p className="text-sm font-medium text-gray-900">{d.requester_name}
+                  </p>
                 </div>
               )}
 
@@ -243,7 +264,7 @@ export function NotificationDetailModal({
           )}
 
           <div className="pt-2 border-t border-gray-100">
-            <p className="text-xs text-gray-400">{new Date(notification.created_at).toLocaleString()}</p>
+            <p className="text-xs text-gray-500">{new Date(notification.created_at).toLocaleString()}</p>
           </div>
         </div>
       </div>

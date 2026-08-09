@@ -26,6 +26,10 @@ export interface AppNotification {
     new_values?: Record<string, any>;
     status?: string;
     item_codes?: string[];
+    applicant_name?: string;
+    applicant_role?: string;
+    username?: string;
+    account_type?: string;
   };
   read_at: string | null;
   created_at: string;

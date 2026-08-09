@@ -22,6 +22,8 @@ function describeNotification(n: AppNotification, lang: Lang): string {
       return t(lang, `Your account was ${d.status?.toLowerCase()}`, `ඔබගේ ගිණුම ${d.status}`);
     case "low_stock_alert":
       return t(lang, `${d.item_count} item(s) are low on stock`, `භාණ්ඩ ${d.item_count}ක් අඩු තොගයේ ඇත`);
+    case "new_account_pending":
+      return t(lang, `New registration: ${d.applicant_name}`, `නව ලියාපදිංචිය: ${d.applicant_name}`);
     default:
       return t(lang, "New notification", "නව දැනුම්දීම");
   }
