@@ -82,8 +82,8 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
   SECTION_HEAD: [
     { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
+    { icon: PlusCircle, label: "New Request", labelSi: "නව ඉල්ලීම", id: "new" },
     { icon: BookOpen, label: "Recommend", labelSi: "නිර්දේශ", id: "recommend"},
-    { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
   STORE_KEEPER: [

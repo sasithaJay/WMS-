@@ -119,7 +119,6 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
                   <div className="lg:col-span-2"><RecentActivityTable lang={lang} movements={division.recent_movements} /></div>
                 </div>
                 <ReorderLevelTable lang={lang} />
-                <BarcodeScannerPanel lang={lang} />
               </div>
             )
       )}
