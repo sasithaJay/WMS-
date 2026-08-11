@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Admin\UserManagementController;
 use App\Http\Controllers\Api\Admin\AdminStatsController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ItemLabelController;
 
 //Public Routes
 
@@ -140,6 +141,15 @@ Route::middleware('auth:sanctum')->group(function () {
             ItemCategoryController::class,
             'index',
         ]);
+
+        Route::get('/items/lookup', [
+            ItemController::class, 
+            'lookup'
+        ]);
+
+        Route::get('/items/{item}/qr-code', [ItemLabelController::class, 'qrCode']);
+
+        Route::get('/items/{item}/barcode', [ItemLabelController::class, 'barcode']);
 
         Route::get('/units', [
             UnitController::class,

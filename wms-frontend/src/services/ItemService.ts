@@ -108,3 +108,26 @@ export async function getUnits(): Promise<Unit[]> {
 
   return response.data.data;
 }
+
+export async function lookupItemByCode(code: string): Promise<InventoryItem> {
+  const response = await api.get("/items/lookup", { params: { code } });
+  return response.data.data;
+}
+
+export function getItemQrCodeUrl(itemId: number): string {
+  return `${api.defaults.baseURL}/items/${itemId}/qr-code`;
+}
+
+export function getItemBarcodeUrl(itemId: number): string {
+  return `${api.defaults.baseURL}/items/${itemId}/barcode`;
+}
+
+export async function fetchItemQrCodeBlob(itemId: number): Promise<string> {
+  const response = await api.get(`/items/${itemId}/qr-code`, { responseType: "blob" });
+  return URL.createObjectURL(response.data);
+}
+
+export async function fetchItemBarcodeBlob(itemId: number): Promise<string> {
+  const response = await api.get(`/items/${itemId}/barcode`, { responseType: "blob" });
+  return URL.createObjectURL(response.data);
+}

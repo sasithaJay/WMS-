@@ -1,0 +1,8 @@
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print\:static, .print\:static * {
+    visibility: visible;
+  }
+}

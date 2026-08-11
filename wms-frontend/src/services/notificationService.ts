@@ -15,6 +15,7 @@ export interface AppNotification {
     request_context?: string;
     item_count?: number;
     requester_name?: string;
+    requester_role?: string;
     actor_name?: string;
     actor_role?: string;
     update_request_id?: number;

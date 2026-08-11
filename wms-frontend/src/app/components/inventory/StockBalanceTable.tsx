@@ -13,6 +13,7 @@ import type { Lang } from "../../types";
 import type {
   InventoryItem,
 } from "../../types/inventory";
+import { BarcodeScannerInput } from "../ui/BarcodeScannerInput";
 
 interface StockBalanceTableProps {
   lang: Lang;
@@ -53,6 +54,8 @@ export function StockBalanceTable({
       const unitName =
         item.unit?.name_en ?? "";
 
+      const barcode = item.barcode ?? "";
+
       return (
         item.item_code
           .toLowerCase()
@@ -65,7 +68,8 @@ export function StockBalanceTable({
           .includes(searchValue) ||
         unitName
           .toLowerCase()
-          .includes(searchValue)
+          .includes(searchValue) ||
+        barcode.toLowerCase().includes(searchValue)
       );
     });
   }, [items, search]);
@@ -83,21 +87,36 @@ export function StockBalanceTable({
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-      <div className="flex items-center px-5 py-4 border-b border-gray-100 gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
 
-          <input
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
+      <div className="flex flex-col sm:flex-row gap-3 m-4">
+        {/* Search */}
+        <div className="w-full sm:max-w-xl">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={t(
+                lang,
+                "Search by name, code, or category...",
+                "නාමය, කේතය හෝ ප්‍රවර්ගය අනුව සොයන්න...",
+              )}
+              className="w-full pl-9 pr-3.5 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white"
+            />
+          </div>
+        </div>
+
+        {/* Barcode Scanner */}
+        <div className="w-full sm:w-64">
+          <BarcodeScannerInput
+            lang={lang}
+            onScan={(code) => setSearch(code)}
             placeholder={t(
               lang,
-              "Search by name, code, or category...",
-              "නාමය, කේතය හෝ ප්‍රවර්ගය අනුව සොයන්න...",
+              "Scan item barcode…",
+              "භාණ්ඩ බාර්කේතය ස්කෑන් කරන්න…",
             )}
-            className="w-full pl-9 pr-3.5 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white"
           />
         </div>
       </div>

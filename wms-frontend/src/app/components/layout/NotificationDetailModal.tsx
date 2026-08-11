@@ -121,6 +121,7 @@ export function NotificationDetailModal({
                 <div>
                   <p className="text-xs text-gray-500">{t(lang, "Requester", "ඉල්ලූ පුද්ගලයා")}</p>
                   <p className="text-sm font-medium text-gray-900">{d.requester_name}
+                  {d.requester_role && <span className="text-gray-400 font-normal"> · {d.requester_role}</span>}
                   </p>
                 </div>
               )}
