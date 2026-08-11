@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { AxiosError } from "axios";
 
-import { getItems } from "../../../services/ItemService";
+import { getItems, lookupItemByCode  } from "../../../services/ItemService";
 import { createStockReceipt, updateStockReceipt } from "../../../services/stockReceiptService";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
@@ -16,6 +16,7 @@ import type {
   CreateStockReceiptPayload,
   StockReceipt,
 } from "../../../app/types/stockReceipts";
+import { BarcodeScannerInput } from "../ui/BarcodeScannerInput";
 
 interface Item {
   id: number;
@@ -106,6 +107,45 @@ export function StockReceivingForm({
   const [submitting, setSubmitting] = useState(false);
   const [lastGrnNumber, setLastGrnNumber] = useState<string | null>(null);
   const [receiptCount, setReceiptCount] = useState(0);
+  const [scanError, setScanError] = useState("");
+  const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  async function handleScan(code: string) {
+    setScanError("");
+
+    try {
+      const item = await lookupItemByCode(code);
+
+      const existingRow = itemRows.find((row) => row.item_id === item.id);
+
+      if (existingRow) {
+        quantityInputRefs.current[existingRow.rowId]?.focus();
+        quantityInputRefs.current[existingRow.rowId]?.select();
+        return;
+      }
+
+      const emptyRow = itemRows.find((row) => row.item_id === "");
+      const targetRowId = emptyRow ? emptyRow.rowId : createRowId();
+
+      setItemRows((currentRows) => {
+        if (emptyRow) {
+          return currentRows.map((row) =>
+            row.rowId === targetRowId ? { ...row, item_id: item.id } : row,
+          );
+        }
+        return [...currentRows, { ...createEmptyItemRow(), rowId: targetRowId, item_id: item.id }];
+      });
+
+      setTimeout(() => {
+        quantityInputRefs.current[targetRowId]?.focus();
+      }, 0);
+    } catch (err) {
+      console.error(err);
+      setScanError(
+        t(lang, `No item found for code "${code}".`, `"${code}" සඳහා භාණ්ඩයක් හමු නොවීය.`),
+      );
+    }
+  }
 
   useEffect(() => {
     if (editingReceipt) {
@@ -594,6 +634,20 @@ export function StockReceivingForm({
 
           {/* Receipt items */}
           <div className="space-y-4">
+            <div className="max-w-md">
+              <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                {t(lang, "Scan Item", "භාණ්ඩය ස්කෑන් කරන්න")}
+              </label>
+              <BarcodeScannerInput
+                lang={lang}
+                onScan={handleScan}
+                placeholder={t(lang, "Scan barcode/QR or type item code…", "බාර්කේතය/QR ස්කෑන් කරන්න හෝ කේතය ටයිප් කරන්න…")}
+                autoFocus
+              />
+              {scanError && (
+                <p className="mt-1.5 text-xs text-red-500">{scanError}</p>
+              )}
+            </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-sm font-semibold text-gray-900">
@@ -686,6 +740,7 @@ export function StockReceivingForm({
                         <span className="ml-1 text-red-500">*</span>
                       </label>
                       <input
+                        ref={(el) => { quantityInputRefs.current[row.rowId] = el; }}
                         type="number"
                         min="1"
                         step="1"

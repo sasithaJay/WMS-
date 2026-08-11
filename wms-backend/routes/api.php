@@ -127,6 +127,11 @@ Route::middleware('auth:sanctum')->group(function () {
             'summary',
         ]);
 
+        Route::get('/items/lookup', [
+            ItemController::class, 
+            'lookup'
+        ]);
+
         Route::get('/items', [
             ItemController::class,
             'index',
@@ -140,11 +145,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/item-categories', [
             ItemCategoryController::class,
             'index',
-        ]);
-
-        Route::get('/items/lookup', [
-            ItemController::class, 
-            'lookup'
         ]);
 
         Route::get('/items/{item}/qr-code', [ItemLabelController::class, 'qrCode']);
