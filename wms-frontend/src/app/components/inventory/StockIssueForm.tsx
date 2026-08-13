@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Package, AlertCircle } from "lucide-react";
 import {
   getPendingIssuance,
@@ -9,6 +9,8 @@ import { t } from "../../constants/translations";
 import { EmptyState } from "../common/EmptyState";
 import type { Lang } from "../../types";
 import type { StockRequest } from "../../types/stockRequests";
+import { lookupItemByCode } from "../../../services/ItemService";
+import { BarcodeScannerInput } from "../ui/BarcodeScannerInput";
 
 function ItemChip({ label, color = "blue" }: { label: string; color?: string }) {
   return (
@@ -40,6 +42,60 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [drafts, setDrafts] = useState<IssueDraft>({});
   const [balances, setBalances] = useState<Record<number, InventoryBalanceInfo>>({});
+  const [scanError, setScanError] = useState("");
+  const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
+  const issueInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  function rowKey(requestId: number, itemId: number): string {
+  return `${requestId}-${itemId}`;
+}
+
+  async function handleScan(code: string) {
+    setScanError("");
+
+    try {
+      const item = await lookupItemByCode(code);
+
+      // Find every pending-issuance row across all cards that matches this item
+      const matches = requests.flatMap((r) =>
+        (r.items ?? [])
+          .filter((it) => it.item_id === item.id && remainingApproved(it) > 0)
+          .map((it) => ({ requestId: r.id, itemId: it.item_id })),
+      );
+
+      if (matches.length === 0) {
+        setScanError(
+          t(lang, `"${item.item_code}" is not part of any pending issuance.`, `"${item.item_code}" කිසිදු නිකුත් කිරීමකට අදාළ නොවේ.`),
+        );
+        return;
+      }
+
+      const key = rowKey(matches[0].requestId, matches[0].itemId);
+      setHighlightedKey(key);
+      issueInputRefs.current[key]?.focus();
+      issueInputRefs.current[key]?.select();
+
+      if (matches.length > 1) {
+        setScanError(
+          t(
+            lang,
+            `This item appears in ${matches.length} pending requests — jumped to the first one.`,
+            `මෙම භාණ්ඩය අපේක්ෂිත ඉල්ලීම් ${matches.length}ක ඇත — පළමුවැන්නට යොමු විය.`,
+          ),
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      setScanError(t(lang, `No item found for code "${code}".`, `"${code}" සඳහා භාණ්ඩයක් හමු නොවීය.`));
+    }
+  }
+
+  useEffect(() => {
+    if (!highlightedKey) return;
+    const timeout = setTimeout(() => setHighlightedKey(null), 3000);
+    return () => clearTimeout(timeout);
+  }, [highlightedKey]);
+
 
   const loadQueue = useCallback(async () => {
     try {
@@ -179,6 +235,16 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
         {requests.length} {t(lang, "approved request(s) ready to issue", "අනුමත ඉල්ලීම් ගිලිහීමට සූදානම්")}
       </p>
 
+      <div className="max-w-sm">
+        <BarcodeScannerInput
+          lang={lang}
+          onScan={handleScan}
+          placeholder={t(lang, "Scan item to verify…", "සත්‍යාපනය සඳහා භාණ්ඩය ස්කෑන් කරන්න…")}
+          autoFocus
+        />
+        {scanError && <p className="mt-1.5 text-xs text-amber-600">{scanError}</p>}
+      </div>
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {requests.map((r) => {
           const hasBackorder = (r.items ?? []).some((it) => Number(it.quantity_issued ?? 0) > 0 && remainingApproved(it) > 0);
@@ -236,6 +302,7 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
                                 {remaining > 0 ? (
                                   <>
                                     <input
+                                      ref={(el) => { issueInputRefs.current[rowKey(r.id, it.item_id)] = el; }}
                                       type="number"
                                       min={0}
                                       max={remaining}

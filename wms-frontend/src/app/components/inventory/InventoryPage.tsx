@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Package, ClipboardList } from "lucide-react";
+import { Package, ClipboardList, Printer } from "lucide-react";
 
 import { t } from "../../constants/translations";
 import { InventorySummary } from "./InventorySummary";
 import { StockBalanceTable } from "./StockBalanceTable";
 import { ItemRegistrationForm } from "./ItemRegistrationForm";
 import { MyItemUpdateRequestsTable } from "./MyItemUpdateRequestsTable";
+import { PrintableItemLabels } from "../ui/PrintableItemLabels";
 
 import {
   getItems,
@@ -31,6 +32,31 @@ export function InventoryPage({
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+const [showLabels, setShowLabels] = useState(false);
+
+function handleToggleSelect(id: number) {
+  setSelectedIds((current) => {
+    const next = new Set(current);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+}
+
+function handleToggleSelectAll(ids: number[]) {
+  setSelectedIds((current) => {
+    const allSelected = ids.every((id) => current.has(id));
+    if (allSelected) {
+      const next = new Set(current);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    }
+    return new Set([...current, ...ids]);
+  });
+}
+
+const selectedItems = items.filter((i) => selectedIds.has(i.id));
 
   const [showItemForm, setShowItemForm] = useState(false);
 
@@ -156,21 +182,34 @@ export function InventoryPage({
           <div />
         )}
 
-        {canManageItems && activeTab === "stock" && (
-          <button
-            type="button"
-            onClick={handleAddItem}
-            className="flex items-center gap-2 px-4 py-2 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all"
-          >
-            <Package className="w-4 h-4" />
+        <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowLabels(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-all"
+            >
+              <Printer className="w-4 h-4" />
+              {t(lang, `Print Labels (${selectedIds.size})`, `ලේබල් මුද්‍රණය (${selectedIds.size})`)}
+            </button>
+          )}
 
-            {t(
-              lang,
-              "Add Item",
-              "භාණ්ඩ එකතු කරන්න",
-            )}
-          </button>
-        )}
+          {canManageItems && activeTab === "stock" && (
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="flex items-center gap-2 px-4 py-2 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all"
+            >
+              <Package className="w-4 h-4" />
+
+              {t(
+                lang,
+                "Add Item",
+                "භාණ්ඩ එකතු කරන්න",
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {activeTab === "stock" && (
@@ -181,8 +220,20 @@ export function InventoryPage({
           canManageItems={canManageItems}
           onEdit={handleEdit}
           onToggleStatus={handleToggleStatus}
+          onToggleSelect={handleToggleSelect}
+          onToggleSelectAll={handleToggleSelectAll}
+          selectedIds={selectedIds}
         />
+        
       )}
+
+      {showLabels && (
+          <PrintableItemLabels
+            lang={lang}
+            items={selectedItems}
+            onClose={() => setShowLabels(false)}
+          />
+        )}
 
       {activeTab === "my-updates" && canManageItems && (
         <MyItemUpdateRequestsTable

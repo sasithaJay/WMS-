@@ -24,6 +24,9 @@ interface StockBalanceTableProps {
   onToggleStatus: (
     item: InventoryItem,
   ) => Promise<void>;
+  selectedIds: Set<number>;
+  onToggleSelect: (id: number) => void;
+  onToggleSelectAll: (ids: number[]) => void;
 }
 
 export function StockBalanceTable({
@@ -33,6 +36,9 @@ export function StockBalanceTable({
   canManageItems,
   onEdit,
   onToggleStatus,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
 }: StockBalanceTableProps) {
   const [search, setSearch] = useState("");
   const [updatingItemId, setUpdatingItemId] =
@@ -85,6 +91,8 @@ export function StockBalanceTable({
     }
   }
 
+  const colSpan = canManageItems ? 10 : 9;
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
 
@@ -125,6 +133,15 @@ export function StockBalanceTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
+              <th className="px-5 py-3 w-10">
+                <input
+                  type="checkbox"
+                  checked={filteredItems.length > 0 && filteredItems.every((i) => selectedIds.has(i.id))}
+                  onChange={() => onToggleSelectAll(filteredItems.map((i) => i.id))}
+                  className="rounded border-gray-300"
+                />
+              </th>
+
               <TableHeading>
                 {t(
                   lang,
@@ -201,9 +218,7 @@ export function StockBalanceTable({
             {loading && (
               <tr>
                 <td
-                  colSpan={
-                    canManageItems ? 9 : 8
-                  }
+                  colSpan={colSpan}
                   className="px-5 py-10 text-center text-gray-500"
                 >
                   {t(
@@ -239,6 +254,15 @@ export function StockBalanceTable({
                         : ""
                     }`}
                   >
+                    <td className="px-5 py-3.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => onToggleSelect(item.id)}
+                        className="rounded border-gray-300"
+                      />
+                    </td>
+
                     <td className="px-5 py-3.5 font-mono text-xs font-semibold text-gray-500 whitespace-nowrap">
                       {item.item_code}
                     </td>
@@ -365,9 +389,7 @@ export function StockBalanceTable({
               filteredItems.length === 0 && (
                 <tr>
                   <td
-                    colSpan={
-                      canManageItems ? 9 : 8
-                    }
+                    colSpan={colSpan}
                     className="px-5 py-10 text-center text-gray-500"
                   >
                     {t(
