@@ -31,7 +31,6 @@ interface FormState {
   item_code: string;
   unit_id: string;
   reorder_level: string;
-  barcode: string;
   description: string;
   reason: string;
 }
@@ -42,7 +41,6 @@ const initialForm: FormState = {
   item_code: "",
   unit_id: "",
   reorder_level: "",
-  barcode: "",
   description: "",
   reason: "",
 };
@@ -117,7 +115,6 @@ export function ItemRegistrationForm({
         reorder_level: String(
           item.reorder_level,
         ),
-        barcode: item.barcode ?? "",
         description: item.description ?? "",
         reason: "",
       });
@@ -189,14 +186,13 @@ export function ItemRegistrationForm({
     try {
       setSubmitting(true);
 
+      // No barcode field sent — backend auto-generates/syncs it from item_code.
       const payload = {
         name_en: form.name_en.trim(),
         item_code: form.item_code.trim(),
         category_id: Number(form.category_id),
         unit_id: Number(form.unit_id),
         reorder_level: reorderLevel,
-        barcode:
-          form.barcode.trim() || undefined,
         description:
           form.description.trim() || undefined,
       };
@@ -274,8 +270,8 @@ export function ItemRegistrationForm({
               <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
                 {t(
                   lang,
-                  "The item will not change immediately. AO or Accountant approval is required.",
-                  "භාණ්ඩ විස්තර වහාම වෙනස් නොවේ. පරිපාලන නිලධාරී හෝ ගණකාධිකාරී අනුමැතිය අවශ්‍ය වේ.",
+                  "The item will not change immediately. AO approval is required.",
+                  "භාණ්ඩ විස්තර වහාම වෙනස් නොවේ. පරිපාලන නිලධාරී අනුමැතිය අවශ්‍ය වේ.",
                 )}
               </div>
             )}
@@ -294,19 +290,33 @@ export function ItemRegistrationForm({
               required
             />
 
-            <FormInput
-              label={t(
-                lang,
-                "Item Code",
-                "භාණ්ඩ කේතය",
-              )}
-              value={form.item_code}
-              onChange={(value) =>
-                updateField("item_code", value)
-              }
-              disabled={submitting}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                {t(
+                  lang,
+                  "Item Code",
+                  "භාණ්ඩ කේතය",
+                )}
+                <span className="text-red-500"> *</span>
+              </label>
+
+              <FormInput
+                label=""
+                value={form.item_code}
+                onChange={(value) =>
+                  updateField("item_code", value)
+                }
+                disabled={submitting}
+              />
+
+              <p className="mt-1.5 text-xs text-gray-400">
+                {t(
+                  lang,
+                  "The QR code and barcode will be generated automatically from this code — you can print labels after saving.",
+                  "QR කේතය සහ බාර්කේතය මෙම කේතයෙන් ස්වයංක්‍රීයව ජනනය වේ — සුරැකීමෙන් පසු ලේබල් මුද්‍රණය කළ හැක.",
+                )}
+              </p>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -429,19 +439,6 @@ export function ItemRegistrationForm({
               }
               disabled={submitting}
               required
-            />
-
-            <FormInput
-              label={t(
-                lang,
-                "Barcode (optional)",
-                "බාකෝඩය (අවශ්‍ය නම්)",
-              )}
-              value={form.barcode}
-              onChange={(value) =>
-                updateField("barcode", value)
-              }
-              disabled={submitting}
             />
 
             <div>
@@ -575,16 +572,18 @@ function FormInput({
 }: FormInputProps) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          {label}
 
-        {required && (
-          <span className="text-red-500">
-            {" "}
-            *
-          </span>
-        )}
-      </label>
+          {required && (
+            <span className="text-red-500">
+              {" "}
+              *
+            </span>
+          )}
+        </label>
+      )}
 
       <input
         type={type}

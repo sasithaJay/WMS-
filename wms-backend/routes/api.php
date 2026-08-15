@@ -147,14 +147,14 @@ Route::middleware('auth:sanctum')->group(function () {
             'index',
         ]);
 
-        Route::get('/items/{item}/qr-code', [ItemLabelController::class, 'qrCode']);
-
-        Route::get('/items/{item}/barcode', [ItemLabelController::class, 'barcode']);
-
         Route::get('/units', [
             UnitController::class,
             'index',
         ]);
+
+        Route::get('/items/{item}/qr-code', [ItemLabelController::class, 'qrCode']);
+
+        Route::get('/items/{item}/barcode', [ItemLabelController::class, 'barcode']);
     });
 
     /*

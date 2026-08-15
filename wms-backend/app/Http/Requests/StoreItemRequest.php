@@ -52,13 +52,6 @@ class StoreItemRequest extends FormRequest
                 'string',
             ],
 
-            'barcode' => [
-                'nullable',
-                'string',
-                'max:100',
-                'unique:items,barcode',
-            ],
-
             'reorder_level' => [
                 'required',
                 'integer',

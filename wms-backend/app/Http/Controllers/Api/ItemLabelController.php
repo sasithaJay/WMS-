@@ -12,9 +12,12 @@ class ItemLabelController extends Controller
 {
     public function qrCode(Item $item): Response
     {
-        $png = QrCode::format('png')->size(200)->margin(1)->generate($item->item_code);
+        $svg = QrCode::format('svg')
+            ->size(200)
+            ->margin(1)
+            ->generate($item->item_code);
 
-        return response($png, 200)->header('Content-Type', 'image/png');
+        return response($svg, 200)->header('Content-Type', 'image/svg+xml');
     }
 
     public function barcode(Item $item): Response

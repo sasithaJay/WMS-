@@ -206,6 +206,7 @@ class ItemUpdateRequestController extends Controller
             )->validate();
 
             $item->update($lockedRequest->new_values);
+            $item->update(['barcode' => $item->item_code]);
 
             $lockedRequest->update([
                 'status' => 'APPROVED',

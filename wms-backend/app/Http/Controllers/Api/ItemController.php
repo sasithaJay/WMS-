@@ -76,6 +76,7 @@ class ItemController extends Controller
             $item = Item::create([
                 ...$data,
                 'created_by' => $user->id,
+                'barcode' => $data['item_code'],
             ]);
 
             $item->balance()->create([
