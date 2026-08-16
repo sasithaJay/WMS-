@@ -46,18 +46,14 @@ export function PrintableItemLabels({
     loadImages();
     return () => {
       cancelled = true;
-      images.forEach((img) => {
-        URL.revokeObjectURL(img.qrUrl);
-        URL.revokeObjectURL(img.barcodeUrl);
-      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 print:bg-white print:static">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-lg print:shadow-none print:max-h-none print:max-w-none">
-        <div className="flex items-center justify-between border-b border-gray-100 p-5 print:hidden">
+    <div className="print-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div id="print-label-area" className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-lg">
+        <div className="no-print flex items-center justify-between border-b border-gray-100 p-5">
           <h3 className="text-base font-semibold text-gray-900">
             {t(lang, "Print Item Labels", "භාණ්ඩ ලේබල් මුද්‍රණය")}
           </h3>
@@ -79,7 +75,7 @@ export function PrintableItemLabels({
         {loading ? (
           <p className="p-8 text-center text-sm text-gray-400">{t(lang, "Preparing labels…", "ලේබල් සකසමින්…")}</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-5 print:grid-cols-3 print:gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-5">
             {items.map((item) => {
               const img = images.find((i) => i.itemId === item.id);
               return (
@@ -91,7 +87,7 @@ export function PrintableItemLabels({
                   <p className="font-mono text-[10px] text-gray-500 mb-2">{item.item_code}</p>
                   {img && (
                     <>
-                      <img src={img.qrUrl} alt="QR code" className="w-20 h-20 mb-1" />
+                      <img src={img.qrUrl} alt="QR code" className="w-20 h-20 mb-3" />
                       <img src={img.barcodeUrl} alt="Barcode" className="w-full h-8 object-contain" />
                     </>
                   )}
