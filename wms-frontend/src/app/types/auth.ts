@@ -74,10 +74,20 @@ export interface DsOffice {
   district: string;
 }
 
+export interface Institution {
+  id: number;
+  division_id: number;
+  code: string;
+  name_en: string;
+  name_si: string;
+  district: string;
+}
+
 export interface RegistrationOptionsResponse {
   divisions: RegistrationDivision[];
   roles: RegistrationRole[];
   institution_types: InstitutionType[];
+  institutions: Institution[];
   ds_offices: DsOffice[];
 }
 
