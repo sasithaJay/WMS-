@@ -5,6 +5,7 @@ import type { Lang, Role } from "../../types";
 import { User } from "../../types/auth";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "../../../services/authService";
+import logo from "../../resources/logo.jpeg";
 
 function getDisplayName(user: User | null): string {
   if (!user) return "";
@@ -71,8 +72,9 @@ export function Sidebar({
       >
         {!collapsed && (
           <>
-            <div className="w-9 h-9 rounded-xl bg-[#4295D9] flex items-center justify-center flex-shrink-0">
-              <Warehouse className="w-5 h-5 text-white" />
+            <div className="w-15 h-15 rounded-full flex items-center justify-center flex-shrink-0">
+              {/* <Warehouse className="w-5 h-5 text-white" /> */}
+              <img className="rounded-full" src={logo} alt="Logo" />
             </div>
 
             <div className="overflow-hidden">
