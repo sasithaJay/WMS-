@@ -7,6 +7,7 @@ import { t } from "../constants/translations";
 import { login } from "../../services/authService";
 
 import type { Lang, Role } from "../types";
+import logo from "../resources/logo.jpeg";
 
 export function LoginPage({
   lang,
@@ -149,8 +150,9 @@ export function LoginPage({
 
         <div className="relative z-10 text-center px-12">
           <div className="flex items-center justify-center mb-8">
-            <div className="w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30">
-              <Warehouse className="w-10 h-10 text-white" />
+            <div className="w-30 h-30 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30">
+              {/* <Warehouse className="w-10 h-10 text-white" /> */}
+              <img className="rounded-full" src={logo} alt="Logo" />
             </div>
           </div>
 
