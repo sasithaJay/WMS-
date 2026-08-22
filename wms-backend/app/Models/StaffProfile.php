@@ -16,6 +16,7 @@ class StaffProfile extends Model
         'nic_number',
         'phone',
         'employee_number',
+        'salary_number',
     ];
 
     public function user(): BelongsTo

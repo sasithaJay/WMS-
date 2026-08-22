@@ -22,6 +22,8 @@ export interface StaffProfileSummary {
   role_id: number;
   division_id: number | null;
   section_id: number | null;
+  nic_number: string;
+  phone: string;
   employee_number: string;
   role?: RoleSummary;
   division?: DivisionSummary;
@@ -32,6 +34,9 @@ export interface OrganizationSummary {
   name: string;
   organization_kind: "INSTITUTION" | "DS_OFFICE";
   division_id: number;
+  address?: string;
+  contact_number?: string;
+  division?: DivisionSummary;
   district?: string;
 }
 

@@ -354,7 +354,8 @@ export function RegisterPage({
             !form.email ||
             !form.phone ||
             !form.roleId ||
-            !form.empId
+            !form.empId ||
+            !form.salaryNumber 
           ) {
             setError(
               t(
@@ -412,8 +413,10 @@ export function RegisterPage({
       }
 
       if (step === 3) {
+        const hasUsername = accountType === "staff" ? !!form.salaryNumber : !!form.username;
+
         if (
-          !form.username ||
+          !hasUsername ||
           !form.password ||
           !form.confirmPassword
         ) {
@@ -485,7 +488,7 @@ export function RegisterPage({
       if (accountType === "staff") {
         payload = {
           account_type: "STAFF",
-          username: form.username,
+          username: `SWPCD-${form.salaryNumber}`,
           email: form.email,
           password: form.password,
           password_confirmation: form.confirmPassword,
@@ -495,6 +498,7 @@ export function RegisterPage({
           nic_number: form.nic,
           phone: form.phone,
           employee_number: form.empId,
+          salary_number: form.salaryNumber,
 
           ...(requiresSection
             ? { section_id: Number(form.sectionId) }
@@ -878,7 +882,11 @@ export function RegisterPage({
                       </div>
                     )}
 
-                    {field("empId", "Employee ID", "සේවක ID")}
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      {field("empId", "Employee ID", "සේවක ID")}
+                      {field("salaryNumber", "Salary Number", "වැටුප් අංකය")}
+                    </div>
                   </>
                 )}
 
@@ -968,7 +976,17 @@ export function RegisterPage({
             {/* Step 4 - Credentials */}
             {step === 3 && (
               <div className="space-y-4">
-                {field("username", "Username", "පරිශීලක නාමය")}
+                {accountType === "staff" ? (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p className="text-xs text-gray-500">{t(lang, "Username (auto-generated)", "පරිශීලක නාමය (ස්වයංක්‍රීයව)")}</p>
+                    <p className="text-sm font-mono font-semibold text-gray-800">
+                      {form.salaryNumber ? `SWPCD-${form.salaryNumber}` : "—"}
+                    </p>
+                  </div>
+                ) : (
+                  field("username", "Username", "පරිශීලක නාමය")
+                )}
+
                 {field("password", "Password", "මුරපදය", "password")}
                 {field("confirmPassword", "Confirm Password", "මුරපදය තහවුරු කරන්න", "password")}
 

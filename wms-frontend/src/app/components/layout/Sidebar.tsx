@@ -72,7 +72,7 @@ export function Sidebar({
       >
         {!collapsed && (
           <>
-            <div className="w-15 h-15 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-15 h-15 rounded-full flex items-center sticky top-0 z-100 justify-center flex-shrink-0">
               {/* <Warehouse className="w-5 h-5 text-white" /> */}
               <img className="rounded-full" src={logo} alt="Logo" />
             </div>

@@ -131,6 +131,13 @@ class RegisterController extends Controller
                 'max:50',
                 'unique:staff_profiles,employee_number',
             ],
+
+            'salary_number' => [
+                'required',
+                'string',
+                'max:50',
+                'unique:staff_profiles,salary_number',
+            ],
         ]);
 
         /*
@@ -278,6 +285,9 @@ class RegisterController extends Controller
 
                 'employee_number' =>
                     $validated['employee_number'],
+
+                'salary_number' =>
+                    $validated['salary_number'],
             ]);
 
             return $user;

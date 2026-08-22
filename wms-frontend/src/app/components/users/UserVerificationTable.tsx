@@ -8,6 +8,7 @@ import {
 } from "../../../services/userService";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
+import { UserDetailModal } from "./UserDetailModal";
 
 function displayInfo(u: PendingRegistration, lang: Lang): { name: string; subtitle: string } {
   if (u.staff_profile) {
@@ -46,6 +47,7 @@ export function UserVerificationTable({ lang }: { lang: Lang }) {
 
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [viewingRegistration, setViewingRegistration] = useState<PendingRegistration | null>(null);
 
   const loadRegistrations = useCallback(async () => {
     try {
@@ -145,6 +147,7 @@ export function UserVerificationTable({ lang }: { lang: Lang }) {
             return (
               <div
                 key={u.id}
+                onClick={() => setViewingRegistration(u)}
                 className="bg-white rounded-xl border border-amber-100 p-4 flex items-start gap-4"
               >
                 <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center font-bold text-amber-600 text-sm flex-shrink-0">
@@ -165,7 +168,7 @@ export function UserVerificationTable({ lang }: { lang: Lang }) {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5 flex-shrink-0">
+                <div className="flex flex-col gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => handleActivate(u.id)}
                     disabled={busyId === u.id}
@@ -191,6 +194,14 @@ export function UserVerificationTable({ lang }: { lang: Lang }) {
             );
           })}
         </div>
+      )}
+
+      {viewingRegistration && (
+        <UserDetailModal
+          lang={lang}
+          registration={viewingRegistration}
+          onClose={() => setViewingRegistration(null)}
+        />
       )}
 
       {rejectingId !== null && (

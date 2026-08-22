@@ -17,25 +17,24 @@ class CommissionerSeeder extends Seeder
             'COMMISSIONER'
         )->firstOrFail();
 
-        $user = User::firstOrCreate(
+        // Commissioner is a permanent system account
+        $salaryNumber = '2';
+        $username = 'SWPCD-' . $salaryNumber;
+
+        $user = User::updateOrCreate(
             [
-                'username' => 'commissioner',
+                'username' => $username,
             ],
             [
                 'email' => 'commissioner@wms.gov.lk',
 
-                'password' => Hash::make(
-                    '12345678'
-                ),
+                'password' => Hash::make('12345678'),
 
                 'account_type' => 'STAFF',
-
                 'account_status' => 'ACTIVE',
 
                 'approved_by' => null,
-
                 'approved_at' => now(),
-
                 'rejection_reason' => null,
             ]
         );
@@ -46,22 +45,18 @@ class CommissionerSeeder extends Seeder
             ],
             [
                 'division_id' => null,
-
                 'section_id' => null,
-
                 'role_id' => $commissionerRole->id,
 
-                'full_name' =>
-                    'Commissioner of Social Services',
+                'full_name' => 'Commissioner of Social Services',
 
-                'nic_number' =>
-                    'COMMISSIONER-001',
+                'nic_number' => 'COMMISSIONER-001',
 
-                'phone' =>
-                    '0000000000',
+                'phone' => '0000000000',
 
-                'employee_number' =>
-                    'COMMISSIONER-001',
+                'employee_number' => 'COMMISSIONER-001',
+
+                'salary_number' => $salaryNumber,
             ]
         );
     }

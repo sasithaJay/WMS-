@@ -55,6 +55,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: CheckCircle, label: "Approve", labelSi: "අනුමත", id: "approve"},
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
+    { icon: Users, label: "User Verification", labelSi: "පරිශීලක කළමනාකරණය", id: "users" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
   ASSISTANT_DIRECTOR: [
@@ -62,6 +63,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: CheckCircle, label: "Approve", labelSi: "අනුමත", id: "approve" },
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
+    { icon: Users, label: "User Verification", labelSi: "පරිශීලක කළමනාකරණය", id: "users" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
   ACCOUNTANT: [
