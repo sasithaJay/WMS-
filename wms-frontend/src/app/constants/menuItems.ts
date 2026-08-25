@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Package, ClipboardList, PlusCircle, BookOpen,
-  BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle, FileText,
+  BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle, FileText, Percent,
   ClipboardCheck,
 } from "lucide-react";
 import type { Role } from "../types";
@@ -46,6 +46,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: CheckCircle, label: "Approve", labelSi: "අනුමත", id: "approve"},
+    { icon: Percent, label: "VAT Rate", labelSi: "VAT අනුපාතය", id: "vat-approve" },
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
     { icon: Users, label: "User Verification", labelSi: "පරිශීලක කළමනාකරණය", id: "users" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
@@ -94,6 +95,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: Package, label: "Issue Goods", labelSi: "භාණ්ඩ ගිලිහීම", id: "issue" },
     { icon: Warehouse, label: "Inventory", labelSi: "තොග ලැයිස්තුව", id: "inventory" },
     { icon: ArrowDownToLine, label: "Stock Receipts", labelSi: "ගබඩා රිසිට්", id: "receipts" },
+    { icon: Percent, label: "VAT Rate", labelSi: "VAT අනුපාතය", id: "vat" },
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],

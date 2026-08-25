@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { AxiosError } from "axios";
 
-import { getItems, lookupItemByCode  } from "../../../services/ItemService";
+import { getItems, lookupItemByCode } from "../../../services/ItemService";
 import { createStockReceipt, updateStockReceipt } from "../../../services/stockReceiptService";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
@@ -17,6 +17,7 @@ import type {
   StockReceipt,
 } from "../../../app/types/stockReceipts";
 import { BarcodeScannerInput } from "../ui/BarcodeScannerInput";
+import { getCurrentVatRate } from "../../../services/vatRateService";
 
 interface Item {
   id: number;
@@ -89,6 +90,11 @@ export function StockReceivingForm({
   const isEditMode = editingReceipt !== null;
   const [items, setItems] = useState<Item[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
+  const [currentVatPercentage, setCurrentVatPercentage] = useState(0);
+
+  useEffect(() => {
+    getCurrentVatRate().then((res) => setCurrentVatPercentage(res.data.percentage)).catch(() => {});
+  }, []);
 
   const [form, setForm] = useState<ReceiptHeaderForm>({
     received_date: getToday(),
@@ -230,6 +236,18 @@ export function StockReceivingForm({
         return total + quantity * unitCost;
       }, 0),
     [itemRows],
+  );
+
+  // VAT is applied server-side at creation using whatever rate is currently
+  // approved — this is only a live estimate shown while filling the form.
+  const vatAmount = useMemo(
+    () => totalValue * (currentVatPercentage / 100),
+    [totalValue, currentVatPercentage],
+  );
+
+  const totalWithVat = useMemo(
+    () => totalValue + vatAmount,
+    [totalValue, vatAmount],
   );
 
   const updateHeaderField = (
@@ -799,7 +817,7 @@ export function StockReceivingForm({
           </div>
 
           {/* Receipt summary */}
-          <div className="grid grid-cols-1 gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4 sm:grid-cols-3 lg:grid-cols-5">
             <div>
               <p className="text-xs text-gray-500">
                 {t(lang, "Item Rows", "භාණ්ඩ පේළි")}
@@ -820,11 +838,37 @@ export function StockReceivingForm({
 
             <div>
               <p className="text-xs text-gray-500">
-                {t(lang, "Estimated Total Value", "ඇස්තමේන්තුගත මුළු වටිනාකම")}
+                {t(lang, "Subtotal", "උප එකතුව")}
               </p>
               <p className="mt-1 text-lg font-bold text-gray-900">
                 Rs.{" "}
                 {totalValue.toLocaleString("en-LK", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500">
+                {t(lang, "VAT", "VAT")} ({currentVatPercentage}%)
+              </p>
+              <p className="mt-1 text-lg font-bold text-gray-900">
+                Rs.{" "}
+                {vatAmount.toLocaleString("en-LK", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500">
+                {t(lang, "Est. Total (incl. VAT)", "ඇස්. එකතුව (VAT සමඟ)")}
+              </p>
+              <p className="mt-1 text-lg font-bold text-[#4295D9]">
+                Rs.{" "}
+                {totalWithVat.toLocaleString("en-LK", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}

@@ -10,6 +10,8 @@ import { UserManagementTable } from "../../components/users/UserManagementTable"
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang, DashTab } from "../../types";
 import { DashboardMyView } from "../../components/dashboard/DashboardMyView";
+import { VatRateApprovalQueue } from "../../components/requests/VatRateApprovalQueue";
+
 
 export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -39,6 +41,7 @@ export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang;
           }} />
       )}
       {activeNav === "approve" && <ApprovalQueue lang={lang} />}
+      {activeNav === "vat-approve" && <VatRateApprovalQueue lang={lang} />}
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
       {activeNav === "users" && (
         <div className="space-y-6">

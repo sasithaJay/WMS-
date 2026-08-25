@@ -153,7 +153,7 @@ export function StockReceiptDetailModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+          {/* <div className="grid grid-cols-2 gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
             <div>
               <p className="text-xs text-gray-500">
                 {t(lang, "Total Quantity", "මුළු ප්‍රමාණය")}
@@ -168,6 +168,32 @@ export function StockReceiptDetailModal({
               </p>
               <p className="mt-1 text-lg font-bold text-gray-900">
                 Rs. {totalValue.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div> */}
+          <div className="grid grid-cols-2 gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+            <div>
+              <p className="text-xs text-gray-500">{t(lang, "Total Quantity", "මුළු ප්‍රමාණය")}</p>
+              <p className="mt-1 text-lg font-bold text-gray-900">{totalQuantity}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">{t(lang, "Subtotal", "උප එකතුව")}</p>
+              <p className="mt-1 text-lg font-bold text-gray-900">
+                Rs. {totalValue.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">
+                {t(lang, "VAT", "VAT")} ({Number(receipt.vat_percentage)}%)
+              </p>
+              <p className="mt-1 text-lg font-bold text-gray-900">
+                Rs. {Number(receipt.vat_amount).toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">{t(lang, "Total (incl. VAT)", "මුළු එකතුව (VAT සමඟ)")}</p>
+              <p className="mt-1 text-lg font-bold text-[#4295D9]">
+                Rs. {Number(receipt.total_with_vat).toLocaleString("en-LK", { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>

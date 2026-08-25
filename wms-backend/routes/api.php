@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\Admin\AdminStatsController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ItemLabelController;
+use App\Http\Controllers\Api\VatRateController;
 
 //Public Routes
 
@@ -273,6 +274,18 @@ Route::middleware('auth:sanctum')->group(function () {
             '/stock-movements',
             [StockMovementController::class, 'index']
     );
+
+    // vatRates routes — store keepers can propose new VAT rates, but only commissioners can approve/reject them.
+
+    Route::middleware('permission:stock.receive')->group(function () {
+        Route::get('/vat-rates/current', [VatRateController::class, 'current']);
+        Route::get('/vat-rates/my-requests', [VatRateController::class, 'myRequests']);
+        Route::post('/vat-rates', [VatRateController::class, 'store']);
+    });
+
+    Route::get('/vat-rates/pending', [VatRateController::class, 'pending']);
+    Route::patch('/vat-rates/{vatRate}/approve', [VatRateController::class, 'approve']);
+    Route::patch('/vat-rates/{vatRate}/reject', [VatRateController::class, 'reject']);
 
     // routes/api.php addition
 

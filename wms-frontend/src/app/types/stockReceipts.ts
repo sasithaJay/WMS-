@@ -56,4 +56,7 @@ export interface StockReceipt {
   items?: StockReceiptItem[];
   created_at: string;
   updated_at: string;
+  vat_percentage: string;
+  vat_amount: string;
+  total_with_vat: string;
 }

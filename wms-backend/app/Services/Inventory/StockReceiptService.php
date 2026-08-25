@@ -3,6 +3,7 @@
 namespace App\Services\Inventory;
 
 use App\Models\StockReceipt;
+use App\Models\VatRate;
 use Illuminate\Support\Facades\DB;
 use App\Models\InventoryBalance;
 use App\Models\StockMovement;
@@ -35,6 +36,14 @@ class StockReceiptService
                 abort(403, 'Your account is not assigned to a division.');
             }
 
+            $subtotal = collect($data['items'])->sum(
+                fn ($item) => ($item['quantity_received']) * ($item['unit_cost'] ?? 0)
+            );
+
+            $vatPercentage = VatRate::currentPercentage();
+            $vatAmount = round($subtotal * ($vatPercentage / 100), 2);
+            $totalWithVat = round($subtotal + $vatAmount, 2);
+
             $receipt = StockReceipt::create([
                 'division_id'    => $divisionId,
                 'grn_number'     => $grnNumber,
@@ -44,6 +53,9 @@ class StockReceiptService
                 'notes'          => $data['notes'] ?? null,
                 'status'         => 'DRAFT',
                 'created_by'     => $user->id,
+                'vat_percentage'   => $vatPercentage,
+                'vat_amount'       => $vatAmount,
+                'total_with_vat'   => $totalWithVat,
             ]);
 
             //
