@@ -947,10 +947,6 @@ export function RegisterPage({
                       </select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      {field("licence", "Licence Number", "බලපත්‍ර අංකය")}
-                    </div>
-
                     {field("address", "Address", "ලිපිනය")}
                     {field("contact", "Institution Contact", "ආයතන සම්බන්ධතා", "tel")}
 
