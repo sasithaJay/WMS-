@@ -18,7 +18,7 @@ class AdminSeeder extends Seeder
         )->firstOrFail();
 
         $salaryNumber = 'admin';
-        $username = 'SWPCD-' . $salaryNumber;
+        $username = 'SWPCS-' . $salaryNumber;
 
         $user = User::updateOrCreate(
             [

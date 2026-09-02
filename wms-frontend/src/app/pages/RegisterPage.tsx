@@ -488,7 +488,7 @@ export function RegisterPage({
       if (accountType === "staff") {
         payload = {
           account_type: "STAFF",
-          username: `SWPCD-${form.salaryNumber}`,
+          username: `SWPCS-${form.salaryNumber}`,
           email: form.email,
           password: form.password,
           password_confirmation: form.confirmPassword,
@@ -976,7 +976,7 @@ export function RegisterPage({
                   <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
                     <p className="text-xs text-gray-500">{t(lang, "Username (auto-generated)", "පරිශීලක නාමය (ස්වයංක්‍රීයව)")}</p>
                     <p className="text-sm font-mono font-semibold text-gray-800">
-                      {form.salaryNumber ? `SWPCD-${form.salaryNumber}` : "—"}
+                      {form.salaryNumber ? `SWPCS-${form.salaryNumber}` : "—"}
                     </p>
                   </div>
                 ) : (

@@ -19,7 +19,7 @@ class CommissionerSeeder extends Seeder
 
         // Commissioner is a permanent system account
         $salaryNumber = 'comm';
-        $username = 'SWPCD-' . $salaryNumber;
+        $username = 'SWPCS-' . $salaryNumber;
 
         $user = User::updateOrCreate(
             [
