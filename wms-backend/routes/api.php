@@ -363,4 +363,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/officer-requests/pdf', [ReportController::class, 'officerRequestsPdf']);
     });
 
+
 });

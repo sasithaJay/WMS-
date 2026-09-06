@@ -318,183 +318,6 @@ class RegisterController extends Controller
         ], 201);
     }
 
-    // private function registerOrganization(
-    //     Request $request,
-    //     string $organizationKind
-    //     ): JsonResponse {
-    //         $rules = [
-    //             'division_id' => [
-    //                 'required',
-    //                 Rule::exists('divisions', 'id')
-    //                     ->where('is_active', true),
-    //             ],
-
-    //             'organization_name' => [
-    //                 'required',
-    //                 'string',
-    //                 'max:255',
-    //             ],
-
-    //             'address' => [
-    //                 'required',
-    //                 'string',
-    //             ],
-
-    //             'contact_number' => [
-    //                 'required',
-    //                 'string',
-    //                 'max:20',
-    //             ],
-
-    //             'contact_person_name' => [
-    //                 'required',
-    //                 'string',
-    //                 'max:255',
-    //             ],
-
-    //             'contact_person_designation' => [
-    //                 'required',
-    //                 'string',
-    //                 'max:255',
-    //             ],
-
-    //             'contact_person_nic' => [
-    //                 'required',
-    //                 'string',
-    //                 'max:20',
-    //                 'unique:authorized_contacts,nic_number',
-    //             ],
-
-    //             'contact_person_phone' => [
-    //                 'required',
-    //                 'string',
-    //                 'max:20',
-    //             ],
-
-    //             'contact_person_email' => [
-    //                 'required',
-    //                 'email',
-    //                 'max:255',
-    //             ],
-    //         ];
-
-    //         if ($organizationKind === 'INSTITUTION') {
-
-    //             $rules['institution_id'] = [
-    //                 'required',
-    //                 Rule::exists('institutions', 'id')
-    //                     ->where('is_active', true),
-    //             ];
-
-    //             $rules['institution_type_id'] = [
-    //                 'required',
-    //                 Rule::exists('institution_types', 'id')
-    //                     ->where('is_active', true),
-    //             ];
-
-    //             $rules['licence_number'] = [
-    //                 'required',
-    //                 'string',
-    //                 'max:100',
-    //                 'unique:organizations,licence_number',
-    //             ];
-    //         } else {
-    //             $rules['division_id'] = [
-    //                 'required',
-    //                 Rule::exists('divisions', 'id')
-    //                     ->where('is_active', true),
-    //             ];
-
-    //             $rules['organization_name'] = [
-    //                 'required',
-    //                 'string',
-    //                 'max:255',
-    //             ]; 
-    //         }
-
-    //         $validated = $request->validate($rules);
-
-    //         $user = DB::transaction(function () use (
-    //             $request,
-    //             $validated,
-    //             $organizationKind
-    //         ) {
-    //             $user = User::create([
-    //                 'username' => $request->username,
-    //                 'email' => $request->email,
-    //                 'password' => $request->password,
-    //                 'account_type' => $organizationKind,
-    //                 'account_status' => 'PENDING',
-    //             ]);
-
-    //             $organization = Organization::create([
-    //                 'user_id' => $user->id,
-    //                 'division_id' => $validated['division_id'],
-
-    //                 'organization_kind' =>
-    //                     $organizationKind,
-
-    //                 'name' =>
-    //                     $validated['organization_name'],
-
-    //                 'institution_type_id' =>
-    //                     $organizationKind === 'INSTITUTION'
-    //                         ? $validated['institution_type_id']
-    //                         : null,
-
-    //                 'licence_number' =>
-    //                     $organizationKind === 'INSTITUTION'
-    //                         ? $validated['licence_number']
-    //                         : null,
-
-    //                 'address' => $validated['address'],
-
-    //                 'contact_number' =>
-    //                     $validated['contact_number'],
-    //             ]);
-
-    //             AuthorizedContact::create([
-    //                 'organization_id' => $organization->id,
-
-    //                 'full_name' =>
-    //                     $validated['contact_person_name'],
-
-    //                 'designation' =>
-    //                     $validated[
-    //                         'contact_person_designation'
-    //                     ],
-
-    //                 'nic_number' =>
-    //                     $validated['contact_person_nic'],
-
-    //                 'phone' =>
-    //                     $validated['contact_person_phone'],
-
-    //                 'email' =>
-    //                     $validated['contact_person_email'],
-
-    //                 'is_primary' => true,
-    //             ]);
-
-    //             return $user;
-    //         });
-
-    //         $this->notifyApprovers($user);
-
-    //         return response()->json([
-    //             'message' =>
-    //                 'Registration successful. Your account is awaiting approval.',
-
-    //             'user' => [
-    //                 'id' => $user->id,
-    //                 'username' => $user->username,
-    //                 'email' => $user->email,
-    //                 'account_type' => $user->account_type,
-    //                 'account_status' => $user->account_status,
-    //             ],
-    //         ], 201);
-    //     }
-
     private function registerOrganization(
     Request $request,
     string $organizationKind
@@ -558,12 +381,6 @@ class RegisterController extends Controller
                     ->where('is_active', true),
             ];
 
-            $rules['licence_number'] = [
-                'required',
-                'string',
-                'max:100',
-                'unique:organizations,licence_number',
-            ];
         } else {
             // DS_OFFICE — division is chosen freely (once per division per year,
             // per your earlier business rule), organization name stays free text
@@ -605,7 +422,6 @@ class RegisterController extends Controller
                     'organization_kind' => 'INSTITUTION',
                     'name' => $institution->name_en,
                     'institution_type_id' => $validated['institution_type_id'],
-                    'licence_number' => $validated['licence_number'],
                     'address' => $validated['address'],
                     'contact_number' => $validated['contact_number'],
                 ]);
@@ -616,7 +432,6 @@ class RegisterController extends Controller
                     'organization_kind' => 'DS_OFFICE',
                     'name' => $validated['organization_name'],
                     'institution_type_id' => null,
-                    'licence_number' => null,
                     'address' => $validated['address'],
                     'contact_number' => $validated['contact_number'],
                 ]);

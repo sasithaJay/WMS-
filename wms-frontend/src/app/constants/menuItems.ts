@@ -2,6 +2,7 @@ import {
   LayoutDashboard, Package, ClipboardList, PlusCircle, BookOpen,
   BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle, FileText, Percent,
   ClipboardCheck,
+  Database,
 } from "lucide-react";
 import type { Role } from "../types";
 

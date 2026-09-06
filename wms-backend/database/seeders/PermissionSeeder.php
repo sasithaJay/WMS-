@@ -154,6 +154,7 @@ class PermissionSeeder extends Seeder
                 'description' =>
                     'View system reports.',
             ],
+
         ];
 
         foreach ($permissions as $permission) {

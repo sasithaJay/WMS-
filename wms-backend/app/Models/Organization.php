@@ -14,7 +14,6 @@ class Organization extends Model
         'organization_kind',
         'name',
         'institution_type_id',
-        'licence_number',
         'address',
         'contact_number',
     ];

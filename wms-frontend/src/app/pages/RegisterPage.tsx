@@ -390,7 +390,6 @@ export function RegisterPage({
           if (
             !form.institutionId ||
             !form.institutionTypeId ||
-            !form.licence ||
             !form.address ||
             !form.contact ||
             !form.cpName ||
@@ -518,7 +517,6 @@ export function RegisterPage({
 
           institution_id: Number(form.institutionId),
           institution_type_id: Number(form.institutionTypeId),
-          licence_number: form.licence,
           address: form.address,
           contact_number: form.contact,
           contact_person_name: form.cpName,

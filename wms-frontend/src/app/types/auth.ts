@@ -28,7 +28,6 @@ export interface User {
     division?: { name_en: string; name_si: string };
     address?: string;
     contact_number?: string;
-    licence_number?: string;
   };
 }
 
