@@ -978,7 +978,14 @@ export function RegisterPage({
                     </p>
                   </div>
                 ) : (
-                  field("username", "Username", "පරිශීලක නාමය")
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p className="text-xs text-gray-500">{t(lang, "Username (auto-generated)", "පරිශීලක නාමය (ස්වයංක්‍රීයව)")}</p>
+                    <p className="text-sm font-mono font-semibold text-gray-800">
+                      {selectedInstitution
+                        ? `SWPCS-${selectedInstitution.id}`
+                        : "—"}
+                    </p>
+                  </div>
                 )}
 
                 {field("password", "Password", "මුරපදය", "password")}
