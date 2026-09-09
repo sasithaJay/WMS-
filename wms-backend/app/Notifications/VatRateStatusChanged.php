@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use App\Models\VatRate;
 use App\Notifications\Channels\SmsChannel;
 use Illuminate\Bus\Queueable;
@@ -20,7 +21,7 @@ class VatRateStatusChanged extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', 'mail'];
+        return ['database', 'mail', SmsChannel::class];
     }
 
     public function toArray($notifiable): array
@@ -49,6 +50,12 @@ class VatRateStatusChanged extends Notification
                 $this->action === 'REJECTED' && $this->vatRate->review_comment,
                 fn ($mail) => $mail->line("Reason: {$this->vatRate->review_comment}")
             );
+    }
+
+    public function toSms($notifiable): string
+    {
+        $label = $this->actionLabel();
+        return "WMS: VAT rate change to {$this->vatRate->percentage}% has been {$label}.";
     }
 
     private function actionLabel(): string

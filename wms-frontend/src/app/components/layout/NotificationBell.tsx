@@ -24,6 +24,12 @@ function describeNotification(n: AppNotification, lang: Lang): string {
       return t(lang, `${d.item_count} item(s) are low on stock`, `භාණ්ඩ ${d.item_count}ක් අඩු තොගයේ ඇත`);
     case "new_account_pending":
       return t(lang, `New registration: ${d.applicant_name}`, `නව ලියාපදිංචිය: ${d.applicant_name}`);
+    case "vat_rate_status_changed":
+      return t(
+        lang,
+        `VAT rate ${d.percentage}% was ${d.action?.toLowerCase()}`,
+        `VAT අනුපාතය ${d.percentage}% ${d.action}`,
+      );
     default:
       return t(lang, "New notification", "නව දැනුම්දීම");
   }

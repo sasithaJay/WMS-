@@ -264,6 +264,31 @@ export function NotificationDetailModal({
             </>
           )}
 
+          {d.type === "vat_rate_status_changed" && (
+            <>
+              <StatusBadge label={d.action ?? ""} color={actionColor(d.action)} />
+
+              <div>
+                <p className="text-xs text-gray-500">{t(lang, "Proposed Rate", "යෝජිත අනුපාතය")}</p>
+                <p className="text-sm font-semibold text-gray-900">{d.percentage}%</p>
+              </div>
+
+              {d.requester_name && (
+                <div>
+                  <p className="text-xs text-gray-500">{t(lang, "Requested by", "ඉල්ලූයේ")}</p>
+                  <p className="text-sm font-medium text-gray-900">{d.requester_name}</p>
+                </div>
+              )}
+
+              {d.review_comment && (
+                <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500 mb-1">{t(lang, "Reviewer Comment", "සමාලෝචකයාගේ අදහස")}</p>
+                  <p className="text-sm text-gray-800">{d.review_comment}</p>
+                </div>
+              )}
+            </>
+          )}
+
           <div className="pt-2 border-t border-gray-100">
             <p className="text-xs text-gray-500">{new Date(notification.created_at).toLocaleString()}</p>
           </div>

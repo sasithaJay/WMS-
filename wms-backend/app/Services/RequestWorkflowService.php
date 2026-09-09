@@ -19,6 +19,29 @@ class RequestWorkflowService
      * Determines whether it needs recommendation first, or goes
      * straight to approval, and resolves the actual recommender.
      */
+    public function notifyEligibleApprovers(StockRequest $request): void
+    {
+        $eligibleRoleIds = $this->resolveApprovalRoleIds($request);
+
+        if ($eligibleRoleIds->isEmpty()) {
+            return;
+        }
+
+        $commissionerRoleId = Role::where('code', 'COMMISSIONER')->value('id');
+
+        $approvers = User::whereHas('staffProfile', function ($q) use ($eligibleRoleIds, $request, $commissionerRoleId) {
+            $q->whereIn('role_id', $eligibleRoleIds)
+                ->where(function ($q2) use ($request, $commissionerRoleId) {
+                    $q2->where('division_id', $request->division_id)
+                        ->orWhere('role_id', $commissionerRoleId);
+                });
+        })->get();
+
+        foreach ($approvers as $approver) {
+            $approver->notify(new \App\Notifications\RequestNeedsAction($request, 'APPROVAL'));
+        }
+    }
+
     public function initiate(StockRequest $request): void
     {
         $rule = $this->findRecommendationRule($request);
@@ -49,18 +72,10 @@ class RequestWorkflowService
             $request->current_stage = 'APPROVAL';
             $request->status = 'PENDING_APPROVAL';
 
-            // Notify eligible approvers immediately, same as after a recommend action
             $request->submitted_at = now();
             $request->save();
 
-            $eligibleRoleIds = $this->resolveApprovalRoleIds($request);
-            $approvers = \App\Models\User::whereHas('staffProfile', fn ($q) =>
-                $q->whereIn('role_id', $eligibleRoleIds)->where('division_id', $request->division_id)
-            )->get();
-
-            foreach ($approvers as $approver) {
-                $approver->notify(new \App\Notifications\RequestNeedsAction($request, 'APPROVAL'));
-            }
+            $this->notifyEligibleApprovers($request);
 
             return;
         }

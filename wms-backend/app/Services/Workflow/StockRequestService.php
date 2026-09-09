@@ -102,7 +102,7 @@ class StockRequestService
         $updated->requester?->notify(new RequestStatusChanged($updated, 'RECOMMENDED', $data['remarks'] ?? null, auth()->user()));
 
         // Notify everyone now eligible to approve
-        $this->notifyEligibleApprovers($updated);
+        $this->workflow->notifyEligibleApprovers($updated);
 
         return $updated;
     }

@@ -14,6 +14,7 @@ export interface AppNotification {
     remarks?: string;
     request_context?: string;
     item_count?: number;
+    percentage?: string;
     requester_name?: string;
     requester_role?: string;
     actor_name?: string;
