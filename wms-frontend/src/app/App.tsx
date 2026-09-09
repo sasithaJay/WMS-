@@ -10,7 +10,7 @@ import { AccountantDashboard } from "./pages/dashboards/AccountantDashboard";
 import { AdministrativeOfficerDashboard } from "./pages/dashboards/AdministrativeOfficerDashboard";
 import { SectionHeadDashboard } from "./pages/dashboards/SectionHeadDashboard";
 import { StoreKeeperDashboard } from "./pages/dashboards/StoreKeeperDashboard";
-import { DevelopmentOfficerDashboard } from "./pages/dashboards/DevelopmentOfficerDashboard";
+import { GenericStaffDashboard } from "./pages/dashboards/GenericStaffDashboard";
 import { OfficerDashboard } from "./pages/dashboards/OfficerDashboard";
 import { InstitutionDashboard } from "./pages/dashboards/InstitutionDashboard";
 import { DivisionalSecretariatDashboard } from "./pages/dashboards/DivisionalSecretariatDashboard";
@@ -42,7 +42,14 @@ export default function App() {
     case "ADMINISTRATIVE_OFFICER": return <AdministrativeOfficerDashboard {...dashProps} />;
     case "SECTION_HEAD": return <SectionHeadDashboard {...dashProps} />;
     case "STORE_KEEPER": return <StoreKeeperDashboard {...dashProps} />;
-    case "DEVELOPMENT_OFFICER": return <DevelopmentOfficerDashboard {...dashProps} />;
+    case "DEVELOPMENT_OFFICER": 
+    case "MSO":
+    case "OA":
+    case "DRIVER":
+    case "SSO":
+    case "HQSSO":
+    case "SPO":
+      return <GenericStaffDashboard {...dashProps} role={role} />;
     case "OFFICER": return <OfficerDashboard {...dashProps} />;
     case "INSTITUTION": return <InstitutionDashboard {...dashProps} />;
     case "DIVISIONAL_SECRETARIAT": return <DivisionalSecretariatDashboard {...dashProps} />;

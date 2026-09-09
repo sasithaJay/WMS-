@@ -14,6 +14,13 @@ type NavItem = {
   badge?: number;
 };
 
+const STAFF_REQUESTER_NAV = [
+  { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
+  { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
+  { icon: PlusCircle, label: "New Request", labelSi: "නව ඉල්ලීම", id: "new" },
+  { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
+];
+
 export const NAV_ITEMS: Record<Role, NavItem[]> = {
   ADMIN: [
     {
@@ -124,6 +131,12 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: PlusCircle, label: "New Request", labelSi: "නව ඉල්ලීම", id: "new" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
+  MSO: STAFF_REQUESTER_NAV,
+  OA: STAFF_REQUESTER_NAV,
+  DRIVER: STAFF_REQUESTER_NAV,
+  SSO: STAFF_REQUESTER_NAV,
+  HQSSO: STAFF_REQUESTER_NAV,
+  SPO: STAFF_REQUESTER_NAV,
 };
 
 export const SECTIONS_SS = ["Institutional", "Development", "Accounts"];

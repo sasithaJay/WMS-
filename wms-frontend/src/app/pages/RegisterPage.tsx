@@ -840,6 +840,8 @@ export function RegisterPage({
                             ) {
                               return false;
                             }
+                            if (divisionId === 2 && (role.code === "SSO" || role.code === "HQSSO")) return false;
+                            if (divisionId === 1 && (role.code === "SPO")) return false;
                             return true;
                           })
                           .map((role) => (

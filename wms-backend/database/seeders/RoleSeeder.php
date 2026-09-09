@@ -60,6 +60,12 @@ class RoleSeeder extends Seeder
                 'name_en' => 'Admin',
                 'name_si' => 'පද්ධති පරිපාලක',
             ],
+            ['name_en' => 'Management Service Officer', 'name_si' => 'කළමනාකරණ සේවා නිලධාරී', 'code' => 'MSO'],
+            ['name_en' => 'Office Assistant', 'name_si' => 'කාර්යාල සහායක', 'code' => 'OA'],
+            ['name_en' => 'Driver', 'name_si' => 'රියදුරු', 'code' => 'DRIVER'],
+            ['name_en' => 'Senior Social Service Officer', 'name_si' => 'ජ්‍යෙෂ්ඨ සමාජ සේවා නිලධාරී', 'code' => 'SSO'],
+            ['name_en' => 'Head Quarters SSO', 'name_si' => 'මූලස්ථාන SSO', 'code' => 'HQSSO'],
+            ['name_en' => 'Senior Probation Officer', 'name_si' => 'ජ්‍යෙෂ්ඨ පරිවාස නිලධාරී', 'code' => 'SPO'],
         ];
 
         foreach ($roles as $role) {

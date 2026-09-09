@@ -150,6 +150,42 @@ class RolePermissionSeeder extends Seeder
                 'requests.own.view',
             ],
 
+            'MSO' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'OA' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'DRIVER' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'SSO' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'HQSSO' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'SPO' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
             //Other Officer
             'OTHER_OFFICER' => [
                 'inventory.view',
