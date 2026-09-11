@@ -1,16 +1,35 @@
 import { useEffect, useState } from "react";
-import { Eye, Download, X, Printer, Loader2,
-  FileBarChart2, ArrowUpFromLine, ArrowDownToLine, CalendarDays, FileStack, FileClock } from "lucide-react";
+import {
+  Eye,
+  Download,
+  X,
+  Printer,
+  Loader2,
+  FileBarChart2,
+  ArrowUpFromLine,
+  ArrowDownToLine,
+  CalendarDays,
+  FileStack,
+  FileClock,
+  AlertCircle,
+  Filter,
+} from "lucide-react";
 import { t } from "../../constants/translations";
 import type { Lang, Role } from "../../types";
 import api from "../../../api/axios";
 import {
-  getStockReport, downloadStockReportPdf,
-  getIssueReport, downloadIssueReportPdf,
-  getReceiptReport, downloadReceiptReportPdf,
-  getMonthlyReport, downloadMonthlyReportPdf,
-  getAnnualReport, downloadAnnualReportPdf,
-  getOfficerRequestsReport, downloadOfficerRequestsReportPdf,
+  getStockReport,
+  downloadStockReportPdf,
+  getIssueReport,
+  downloadIssueReportPdf,
+  getReceiptReport,
+  downloadReceiptReportPdf,
+  getMonthlyReport,
+  downloadMonthlyReportPdf,
+  getAnnualReport,
+  downloadAnnualReportPdf,
+  getOfficerRequestsReport,
+  downloadOfficerRequestsReportPdf,
 } from "../../../services/reportService";
 import type { ReportFilters } from "../../types/reports";
 import { StockReportTable } from "./StockReportTable";
@@ -28,18 +47,79 @@ interface DivisionOption {
   name_si: string;
 }
 
-const REPORT_CARDS: { id: ReportId; icon: any; title: string; titleSi: string; desc: string; descSi: string; color: string }[] = [
-  { id: "stock", icon: FileBarChart2, title: "Current Stock Report", titleSi: "වත්මන් තොග වාර්තාව", desc: "Full inventory snapshot with quantities and reorder status.", descSi: "ගබඩා දෙකෙහිම ප්‍රමාණ හා නැවත ඇණවුම් තත්ත්වය.", color: "bg-blue-50 text-[#4295D9]" },
-  { id: "issue", icon: ArrowUpFromLine, title: "Issue Report", titleSi: "ගිලිහීම් වාර්තාව", desc: "All goods issued within a selected period.", descSi: "තෝරාගත් කාලය තුළ ගිලිහූ සියලු භාණ්ඩ.", color: "bg-green-50 text-green-600" },
-  { id: "receipt", icon: ArrowDownToLine, title: "Receipt Report", titleSi: "රිසිට් වාර්තාව", desc: "Stock received from suppliers with GRN numbers.", descSi: "GRN අංක සහිත සැපයුම්කරුවන්ගෙන් ලැබූ තොග.", color: "bg-purple-50 text-purple-600" },
-  { id: "monthly", icon: CalendarDays, title: "Monthly Report", titleSi: "මාසික වාර්තාව", desc: "Consolidated monthly summary of receipts and issues.", descSi: "රිසිට්, ගිලිහීම් මාසික සාරාංශය.", color: "bg-amber-50 text-amber-600" },
-  { id: "annual", icon: FileStack, title: "Annual Report", titleSi: "වාර්ෂික වාර්තාව", desc: "Multi-year comprehensive report for audit purposes.", descSi: "විගණන අරමුණු සඳහා වාර්ෂික සාරාංශය.", color: "bg-red-50 text-red-600" },
-  { id: "officer", icon: FileClock, title: "Officer / DS Office Request Report", titleSi: "නිලධාරී ඉල්ලීම් වාර්තාව", desc: "All requests grouped by officer and division.", descSi: "නිලධාරී, DS කාර්යාලය, ආයතනය අනුව ඉල්ලීම්.", color: "bg-teal-50 text-teal-600" },
+const REPORT_CARDS: {
+  id: ReportId;
+  icon: any;
+  title: string;
+  titleSi: string;
+  desc: string;
+  descSi: string;
+  color: string;
+}[] = [
+  {
+    id: "stock",
+    icon: FileBarChart2,
+    title: "Current Stock Report",
+    titleSi: "වත්මන් තොග වාර්තාව",
+    desc: "Full inventory snapshot with quantities and reorder status.",
+    descSi: "ගබඩා දෙකෙහිම ප්‍රමාණ හා නැවත ඇණවුම් තත්ත්වය.",
+    color: "bg-blue-50 text-blue-600 border-blue-100",
+  },
+  {
+    id: "issue",
+    icon: ArrowUpFromLine,
+    title: "Issue Report",
+    titleSi: "ගිලිහීම් වාර්තාව",
+    desc: "All goods issued within a selected period.",
+    descSi: "තෝරාගත් කාලය තුළ ගිලිහූ සියලු භාණ්ඩ.",
+    color: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  },
+  {
+    id: "receipt",
+    icon: ArrowDownToLine,
+    title: "Receipt Report",
+    titleSi: "රිසිට් වාර්තාව",
+    desc: "Stock received from suppliers with GRN numbers.",
+    descSi: "GRN අංක සහිත සැපයුම්කරුවන්ගෙන් ලැබූ තොග.",
+    color: "bg-purple-50 text-purple-600 border-purple-100",
+  },
+  {
+    id: "monthly",
+    icon: CalendarDays,
+    title: "Monthly Report",
+    titleSi: "මාසික වාර්තාව",
+    desc: "Consolidated monthly summary of receipts and issues.",
+    descSi: "රිසිට්, ගිලිහීම් මාසික සාරාංශය.",
+    color: "bg-amber-50 text-amber-600 border-amber-100",
+  },
+  {
+    id: "annual",
+    icon: FileStack,
+    title: "Annual Report",
+    titleSi: "වාර්ෂික වාර්තාව",
+    desc: "Multi-year comprehensive report for audit purposes.",
+    descSi: "විගණන අරමුණු සඳහා වාර්ෂික සාරාංශය.",
+    color: "bg-rose-50 text-rose-600 border-rose-100",
+  },
+  {
+    id: "officer",
+    icon: FileClock,
+    title: "Officer / DS Office Request Report",
+    titleSi: "නිලධාරී ඉල්ලීම් වාර්තාව",
+    desc: "All requests grouped by officer and division.",
+    descSi: "නිලධාරී, DS කාර්යාලය, ආයතනය අනුව ඉල්ලීම්.",
+    color: "bg-teal-50 text-teal-600 border-teal-100",
+  },
 ];
 
 const STATUS_OPTIONS = [
-  "PENDING_RECOMMENDATION", "PENDING_APPROVAL", "APPROVED",
-  "ISSUED", "REJECTED", "RETURNED", "CANCELLED",
+  "PENDING_RECOMMENDATION",
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "ISSUED",
+  "REJECTED",
+  "RETURNED",
+  "CANCELLED",
 ];
 
 function defaultFiltersFor(id: ReportId): ReportFilters {
@@ -73,7 +153,10 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
 
   useEffect(() => {
     if (isCommissioner) {
-      api.get("/registration-options").then((res) => setDivisions(res.data.divisions)).catch((err) => console.error(err));
+      api
+        .get("/registration-options")
+        .then((res) => setDivisions(res.data.divisions))
+        .catch((err) => console.error(err));
     }
   }, [isCommissioner]);
 
@@ -83,16 +166,30 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
 
     try {
       switch (id) {
-        case "stock": setStockData((await getStockReport(activeFilters)).data); break;
-        case "issue": setIssueData((await getIssueReport(activeFilters)).data); break;
-        case "receipt": setReceiptData((await getReceiptReport(activeFilters)).data); break;
-        case "monthly": setMonthlyData((await getMonthlyReport(activeFilters)).data); break;
-        case "annual": setAnnualData((await getAnnualReport(activeFilters)).data); break;
-        case "officer": setOfficerData((await getOfficerRequestsReport(activeFilters)).data); break;
+        case "stock":
+          setStockData((await getStockReport(activeFilters)).data);
+          break;
+        case "issue":
+          setIssueData((await getIssueReport(activeFilters)).data);
+          break;
+        case "receipt":
+          setReceiptData((await getReceiptReport(activeFilters)).data);
+          break;
+        case "monthly":
+          setMonthlyData((await getMonthlyReport(activeFilters)).data);
+          break;
+        case "annual":
+          setAnnualData((await getAnnualReport(activeFilters)).data);
+          break;
+        case "officer":
+          setOfficerData((await getOfficerRequestsReport(activeFilters)).data);
+          break;
       }
     } catch (err) {
       console.error(err);
-      setError(t(lang, "Unable to load this report.", "මෙම වාර්තාව පූරණය කළ නොහැක."));
+      setError(
+        t(lang, "Unable to load this report.", "මෙම වාර්තාව පූරණය කළ නොහැක.")
+      );
     } finally {
       setLoading(false);
     }
@@ -124,7 +221,13 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
       await fn(activeFilters);
     } catch (err) {
       console.error(err);
-      setError(t(lang, "Unable to download PDF. Please try again.", "PDF බාගත කළ නොහැක. නැවත උත්සාහ කරන්න."));
+      setError(
+        t(
+          lang,
+          "Unable to download PDF. Please try again.",
+          "PDF බාගත කළ නොහැක. නැවත උත්සාහ කරන්න."
+        )
+      );
     } finally {
       setDownloadingId(null);
     }
@@ -132,8 +235,9 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
 
   const activeCard = REPORT_CARDS.find((r) => r.id === previewing);
 
-  const inputClass = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white";
-  const labelClass = "block text-xs font-medium text-gray-500 mb-1";
+  const inputClass =
+    "w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all";
+  const labelClass = "block text-xs font-bold text-slate-700 mb-1.5";
 
   const hasFilterFields =
     isCommissioner ||
@@ -144,32 +248,68 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
     previewing === "annual";
 
   return (
-    <div className="space-y-5">
-      <p className="text-sm text-gray-500">{t(lang, "Select a report to preview or download as PDF.", "PDF ලෙස බාගත කිරීමට හෝ පෙරදර්ශනය සඳහා වාර්තාවක් තෝරන්න.")}</p>
+    <div className="space-y-4 sm:space-y-6">
+      <p className="text-xs font-medium text-slate-500">
+        {t(
+          lang,
+          "Select a report to preview or download as PDF.",
+          "PDF ලෙස බාගත කිරීමට හෝ පෙරදර්ශනය සඳහා වාර්තාවක් තෝරන්න."
+        )}
+      </p>
 
+      {/* ERROR ALERT */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 text-xs font-semibold text-rose-700 flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
 
+      {/* REPORT CARDS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {REPORT_CARDS.map((r) => {
           const Icon = r.icon;
           return (
-            <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-sm transition-all flex flex-col">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${r.color}`}><Icon className="w-5 h-5" /></div>
-              <h3 className="font-semibold text-gray-900 text-sm mb-1">{t(lang, r.title, r.titleSi)}</h3>
-              <p className="text-xs text-gray-400 leading-relaxed flex-1 mb-5">{t(lang, r.desc, r.descSi)}</p>
-              <div className="flex gap-2">
-                <button onClick={() => handlePreview(r.id)} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-all flex-1 justify-center">
-                  <Eye className="w-3.5 h-3.5" />{t(lang, "Preview", "පෙරදර්ශනය")}
-                </button>
+            <div
+              key={r.id}
+              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 hover:shadow-md transition-all flex flex-col justify-between"
+            >
+              <div>
+                <div
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center mb-4 ${r.color}`}
+                >
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-slate-900 text-sm tracking-tight mb-1">
+                  {t(lang, r.title, r.titleSi)}
+                </h3>
+                <p className="text-xs font-medium text-slate-400 leading-relaxed mb-5">
+                  {t(lang, r.desc, r.descSi)}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                 <button
+                  type="button"
+                  onClick={() => handlePreview(r.id)}
+                  className="flex-1 h-9 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{t(lang, "Preview", "පෙරදර්ශනය")}</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => handleDownload(r.id)}
                   disabled={downloadingId === r.id}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-[#4295D9] text-white text-xs font-semibold rounded-lg hover:bg-[#3280C4] transition-all flex-1 justify-center disabled:opacity-50"
+                  className="flex-1 h-9 px-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  {downloadingId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                  {t(lang, "Download PDF", "PDF බාගත")}
+                  {downloadingId === r.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{t(lang, "Download PDF", "PDF බාගත")}</span>
                 </button>
               </div>
             </div>
@@ -177,54 +317,119 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
         })}
       </div>
 
+      {/* PREVIEW MODAL DIALOG */}
       {previewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white z-10">
-              <h3 className="font-bold text-gray-900">{t(lang, activeCard?.title || "", activeCard?.titleSi || "")}</h3>
-              <button onClick={() => setPreviewing(null)} className="text-gray-400 hover:text-gray-600 transition-colors"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-[100] grid place-items-center p-4">
+          {/* Frosted Glass Backdrop */}
+          <div
+            onClick={() => setPreviewing(null)}
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity"
+          />
+
+          {/* Centered Modal Frame */}
+          <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200/80 z-10 overflow-hidden flex flex-col max-h-[85vh] my-auto">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                  <Printer className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                    {t(
+                      lang,
+                      activeCard?.title || "",
+                      activeCard?.titleSi || ""
+                    )}
+                  </h3>
+                  <p className="text-[10px] font-mono font-bold text-slate-400">
+                    {previewing.toUpperCase()} REPORT PREVIEW
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreviewing(null)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              {/* Filter controls — vary per report type */}
-              
-
+            {/* Modal Scrollable Content */}
+            <div className="p-6 overflow-y-auto space-y-5 text-xs">
+              {/* FILTER BAR */}
               {hasFilterFields && (
-                <div className="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <Filter className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{t(lang, "Report Filters", "වාර්තා පෙරහන්")}</span>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     {isCommissioner && (
                       <div>
-                        <label className={labelClass}>{t(lang, "Division", "අංශය")}</label>
+                        <label className={labelClass}>
+                          {t(lang, "Division", "අංශය")}
+                        </label>
                         <select
                           value={filters.division_id ?? ""}
-                          onChange={(e) => setFilters((f) => ({ ...f, division_id: e.target.value ? Number(e.target.value) : undefined }))}
+                          onChange={(e) =>
+                            setFilters((f) => ({
+                              ...f,
+                              division_id: e.target.value
+                                ? Number(e.target.value)
+                                : undefined,
+                            }))
+                          }
                           className={inputClass}
                         >
-                          <option value="">{t(lang, "Both Divisions", "අංශ දෙකම")}</option>
+                          <option value="">
+                            {t(lang, "Both Divisions", "අංශ දෙකම")}
+                          </option>
                           {divisions.map((d) => (
-                            <option key={d.id} value={d.id}>{t(lang, d.name_en, d.name_si)}</option>
+                            <option key={d.id} value={d.id}>
+                              {t(lang, d.name_en, d.name_si)}
+                            </option>
                           ))}
                         </select>
                       </div>
                     )}
 
-                    {(previewing === "issue" || previewing === "receipt" || previewing === "officer") && (
+                    {(previewing === "issue" ||
+                      previewing === "receipt" ||
+                      previewing === "officer") && (
                       <>
                         <div>
-                          <label className={labelClass}>{t(lang, "From Date", "සිට දිනය")}</label>
+                          <label className={labelClass}>
+                            {t(lang, "From Date", "සිට දිනය")}
+                          </label>
                           <input
                             type="date"
                             value={filters.date_from ?? ""}
-                            onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value || undefined }))}
+                            onChange={(e) =>
+                              setFilters((f) => ({
+                                ...f,
+                                date_from: e.target.value || undefined,
+                              }))
+                            }
                             className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className={labelClass}>{t(lang, "To Date", "දක්වා දිනය")}</label>
+                          <label className={labelClass}>
+                            {t(lang, "To Date", "දක්වා දිනය")}
+                          </label>
                           <input
                             type="date"
                             value={filters.date_to ?? ""}
-                            onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value || undefined }))}
+                            onChange={(e) =>
+                              setFilters((f) => ({
+                                ...f,
+                                date_to: e.target.value || undefined,
+                              }))
+                            }
                             className={inputClass}
                           />
                         </div>
@@ -233,15 +438,26 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
 
                     {previewing === "officer" && (
                       <div>
-                        <label className={labelClass}>{t(lang, "Status", "තත්ත්වය")}</label>
+                        <label className={labelClass}>
+                          {t(lang, "Status", "තත්ත්වය")}
+                        </label>
                         <select
                           value={filters.status ?? ""}
-                          onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined }))}
+                          onChange={(e) =>
+                            setFilters((f) => ({
+                              ...f,
+                              status: e.target.value || undefined,
+                            }))
+                          }
                           className={inputClass}
                         >
-                          <option value="">{t(lang, "All Statuses", "සියලු තත්ත්ව")}</option>
+                          <option value="">
+                            {t(lang, "All Statuses", "සියලු තත්ත්ව")}
+                          </option>
                           {STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s}>{s}</option>
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -249,11 +465,20 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
 
                     {previewing === "monthly" && (
                       <div>
-                        <label className={labelClass}>{t(lang, "Year", "වර්ෂය")}</label>
+                        <label className={labelClass}>
+                          {t(lang, "Year", "වර්ෂය")}
+                        </label>
                         <input
                           type="number"
                           value={filters.year ?? ""}
-                          onChange={(e) => setFilters((f) => ({ ...f, year: e.target.value ? Number(e.target.value) : undefined }))}
+                          onChange={(e) =>
+                            setFilters((f) => ({
+                              ...f,
+                              year: e.target.value
+                                ? Number(e.target.value)
+                                : undefined,
+                            }))
+                          }
                           className={inputClass}
                         />
                       </div>
@@ -262,20 +487,38 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
                     {previewing === "annual" && (
                       <>
                         <div>
-                          <label className={labelClass}>{t(lang, "From Year", "සිට වර්ෂය")}</label>
+                          <label className={labelClass}>
+                            {t(lang, "From Year", "සිට වර්ෂය")}
+                          </label>
                           <input
                             type="number"
                             value={filters.from_year ?? ""}
-                            onChange={(e) => setFilters((f) => ({ ...f, from_year: e.target.value ? Number(e.target.value) : undefined }))}
+                            onChange={(e) =>
+                              setFilters((f) => ({
+                                ...f,
+                                from_year: e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined,
+                              }))
+                            }
                             className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className={labelClass}>{t(lang, "To Year", "දක්වා වර්ෂය")}</label>
+                          <label className={labelClass}>
+                            {t(lang, "To Year", "දක්වා වර්ෂය")}
+                          </label>
                           <input
                             type="number"
                             value={filters.to_year ?? ""}
-                            onChange={(e) => setFilters((f) => ({ ...f, to_year: e.target.value ? Number(e.target.value) : undefined }))}
+                            onChange={(e) =>
+                              setFilters((f) => ({
+                                ...f,
+                                to_year: e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined,
+                              }))
+                            }
                             className={inputClass}
                           />
                         </div>
@@ -284,9 +527,10 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
 
                     <div className="flex items-end">
                       <button
+                        type="button"
                         onClick={handleApplyFilters}
                         disabled={loading}
-                        className="w-full px-4 py-2 bg-[#4295D9] text-white text-xs font-semibold rounded-lg hover:bg-[#3280C4] transition-all disabled:opacity-50"
+                        className="w-full h-10 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50"
                       >
                         {t(lang, "Apply", "යොදන්න")}
                       </button>
@@ -295,33 +539,61 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
                 </div>
               )}
 
+              {/* REPORT PREVIEW DATA */}
               {loading ? (
-                <div className="flex flex-col items-center justify-center h-56 text-gray-400">
-                  <Printer className="w-8 h-8 mb-2 animate-pulse" />
-                  <p className="text-sm">{t(lang, "Loading report…", "වාර්තාව පූරණය වෙමින්…")}</p>
+                <div className="py-16 flex flex-col items-center justify-center text-slate-400 gap-2 bg-slate-50/50 rounded-2xl border border-slate-100">
+                  <Printer className="w-8 h-8 animate-pulse text-blue-600" />
+                  <p className="text-xs font-semibold">
+                    {t(lang, "Loading report…", "වාර්තාව පූරණය වෙමින්…")}
+                  </p>
                 </div>
               ) : (
-                <>
-                  {previewing === "stock" && <StockReportTable lang={lang} rows={stockData} />}
-                  {previewing === "issue" && <IssueReportTable lang={lang} rows={issueData} />}
-                  {previewing === "receipt" && <ReceiptReportTable lang={lang} rows={receiptData} />}
-                  {previewing === "monthly" && <MonthlyReportTable lang={lang} rows={monthlyData} />}
-                  {previewing === "annual" && <AnnualReportTable lang={lang} rows={annualData} />}
-                  {previewing === "officer" && <OfficerRequestReportTable lang={lang} groups={officerData} />}
-                </>
+                <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
+                  {previewing === "stock" && (
+                    <StockReportTable lang={lang} rows={stockData} />
+                  )}
+                  {previewing === "issue" && (
+                    <IssueReportTable lang={lang} rows={issueData} />
+                  )}
+                  {previewing === "receipt" && (
+                    <ReceiptReportTable lang={lang} rows={receiptData} />
+                  )}
+                  {previewing === "monthly" && (
+                    <MonthlyReportTable lang={lang} rows={monthlyData} />
+                  )}
+                  {previewing === "annual" && (
+                    <AnnualReportTable lang={lang} rows={annualData} />
+                  )}
+                  {previewing === "officer" && (
+                    <OfficerRequestReportTable lang={lang} groups={officerData} />
+                  )}
+                </div>
               )}
+            </div>
 
-              <div className="flex gap-3 mt-5">
-                <button onClick={() => setPreviewing(null)} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all">{t(lang, "Close", "වසන්න")}</button>
-                <button
-                  onClick={() => handleDownload(previewing)}
-                  disabled={downloadingId === previewing}
-                  className="flex-1 py-2.5 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {downloadingId === previewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {t(lang, "Download PDF", "PDF බාගත")}
-                </button>
-              </div>
+            {/* Modal Footer */}
+            <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/80 shrink-0">
+              <button
+                type="button"
+                onClick={() => setPreviewing(null)}
+                className="h-9 px-4 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                {t(lang, "Close", "වසන්න")}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDownload(previewing)}
+                disabled={downloadingId === previewing}
+                className="h-9 px-5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {downloadingId === previewing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>{t(lang, "Download PDF", "PDF බාගත")}</span>
+              </button>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Search, X, Save, UserPen } from "lucide-react";
+import { Search, X, Save, UserPen, Loader2, AlertCircle, User, ShieldAlert } from "lucide-react";
 import api from "../../../api/axios";
 import { getActiveUsers, updateUser } from "../../../services/userManagementService";
 import { t } from "../../constants/translations";
@@ -91,7 +91,6 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, search, lang]);
 
   useEffect(() => {
@@ -153,73 +152,70 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
   }
 
   async function handleSaveUser() {
-  if (!editingUser) return;
+    if (!editingUser) return;
 
-  if (!editForm.full_name.trim()) {
-    setEditError(t(lang, "Name is required.", "නම අවශ්‍යයි."));
-    return;
-  }
-
-  if (isRegularStaff) {
-    if (!editForm.role_id) {
-      setEditError(t(lang, "Please select a role.", "කරුණාකර භූමිකාවක් තෝරන්න."));
+    if (!editForm.full_name.trim()) {
+      setEditError(t(lang, "Name is required.", "නම අවශ්‍යයි."));
       return;
     }
-    if (!editForm.division_id) {
-      setEditError(t(lang, "Please select a division.", "කරුණාකර කොට්ඨාශයක් තෝරන්න."));
-      return;
-    }
-  }
 
-  try {
-    setBusyId(editingUser.id);
-    setEditError("");
-
-    const basePayload = {
-      full_name: editForm.full_name.trim(),
-      email: editForm.email.trim() || null,
-      phone: editForm.phone.trim() || null,
-    };
-
-    if (isAdminUser) {
-      // Admin: name + email + phone only, no status/role/division.
-      await updateUser(editingUser.id, basePayload);
-    } else if (isCommissionerUser) {
-      // Commissioner: name + email + phone + status, no role/division/section.
-      await updateUser(editingUser.id, {
-        ...basePayload,
-        account_status: editForm.account_status,
-      });
-    } else if (isRegularStaff) {
-      await updateUser(editingUser.id, {
-        ...basePayload,
-        account_status: editForm.account_status,
-        role_id: Number(editForm.role_id),
-        division_id: Number(editForm.division_id),
-        section_id: editForm.section_id ? Number(editForm.section_id) : null,
-      });
-    } else {
-      // Institution / DS Office
-      await updateUser(editingUser.id, {
-        ...basePayload,
-        account_status: editForm.account_status,
-        division_id: editForm.division_id ? Number(editForm.division_id) : undefined,
-      });
+    if (isRegularStaff) {
+      if (!editForm.role_id) {
+        setEditError(t(lang, "Please select a role.", "කරුණාකර භූමිකාවක් තෝරන්න."));
+        return;
+      }
+      if (!editForm.division_id) {
+        setEditError(t(lang, "Please select a division.", "කරුණාකර කොට්ඨාශයක් තෝරන්න."));
+        return;
+      }
     }
 
-    setEditingUser(null);
-    loadUsers();
-  } catch (err) {
-    console.error(err);
-    setEditError(t(lang, "Unable to save changes. Please try again.", "වෙනස්කම් සුරැකිය නොහැක. නැවත උත්සාහ කරන්න."));
-  } finally {
-    setBusyId(null);
+    try {
+      setBusyId(editingUser.id);
+      setEditError("");
+
+      const basePayload = {
+        full_name: editForm.full_name.trim(),
+        email: editForm.email.trim() || null,
+        phone: editForm.phone.trim() || null,
+      };
+
+      if (isAdminUser) {
+        await updateUser(editingUser.id, basePayload);
+      } else if (isCommissionerUser) {
+        await updateUser(editingUser.id, {
+          ...basePayload,
+          account_status: editForm.account_status,
+        });
+      } else if (isRegularStaff) {
+        await updateUser(editingUser.id, {
+          ...basePayload,
+          account_status: editForm.account_status,
+          role_id: Number(editForm.role_id),
+          division_id: Number(editForm.division_id),
+          section_id: editForm.section_id ? Number(editForm.section_id) : null,
+        });
+      } else {
+        await updateUser(editingUser.id, {
+          ...basePayload,
+          account_status: editForm.account_status,
+          division_id: editForm.division_id ? Number(editForm.division_id) : undefined,
+        });
+      }
+
+      setEditingUser(null);
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+      setEditError(t(lang, "Unable to save changes. Please try again.", "වෙනස්කම් සුරැකිය නොහැක. නැවත උත්සාහ කරන්න."));
+    } finally {
+      setBusyId(null);
+    }
   }
-}
 
   async function handleToggleStatus(user: AdminUser) {
     const roleCode = user.staff_profile?.role?.code;
-    if (roleCode === "ADMIN") return; // admins never toggled from this table
+    if (roleCode === "ADMIN") return;
 
     try {
       setBusyId(user.id);
@@ -235,23 +231,31 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+    <div className="space-y-4 sm:space-y-6">
+      {/* FILTER & SEARCH CONTROL BAR */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
+            type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t(lang, "Search users…", "පරිශීලකයන් සෙවීම…")}
-            className="w-full pl-9 pr-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+            className="w-full h-10 pl-10 pr-3.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
           />
         </div>
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+
+        <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0">
           {(["all", "staff", "institution"] as UserType[]).map((f) => (
             <button
+              type="button"
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${filter === f ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filter === f
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
             >
               {typeLabel[f]}
             </button>
@@ -259,164 +263,284 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
         </div>
       </div>
 
-      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
-        {t(lang, "Active Users", "සක්‍රිය පරිශීලකයන්")}
-      </h3>
+      {/* SECTION HEADER */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-slate-900 text-sm tracking-tight flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>{t(lang, "Active Users", "සක්‍රිය පරිශීලකයන්")}</span>
+        </h3>
+      </div>
 
+      {/* ERROR ALERT */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 text-xs font-semibold text-rose-700 flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-100">
-              {[
-                t(lang, "Name", "නාමය"),
-                t(lang, "Role", "කාර්යභාරය"),
-                t(lang, "Division", "කොට්ඨාශය"),
-                t(lang, "Section", "අංශය"),
-                t(lang, "Status", "තත්ත්වය"),
-                "",
-                "",
-              ].map((h, i) => (
-                <th key={i} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {loading && (
-              <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-gray-400">
-                  {t(lang, "Loading…", "පූරණය වෙමින්…")}
-                </td>
+      {/* USERS DATA TABLE */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        {/* DESKTOP TABLE VIEW (md+) */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="px-5 py-3.5 whitespace-nowrap">{t(lang, "Name", "නාමය")}</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">{t(lang, "Role", "කාර්යභාරය")}</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">{t(lang, "Division", "කොට්ඨාශය")}</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">{t(lang, "Section", "අංශය")}</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">{t(lang, "Status", "තත්ත්වය")}</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">{t(lang, "Actions", "ක්‍රියාමාර්ග")}</th>
               </tr>
-            )}
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs font-medium">
+              {loading && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                      <span className="font-semibold">{t(lang, "Loading…", "පූරණය වෙමින්…")}</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
 
-            {!loading && users.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-gray-400">
-                  {t(lang, "No users found.", "පරිශීලකයන් හමු නොවීය.")}
-                </td>
-              </tr>
-            )}
+              {!loading && users.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
+                    {t(lang, "No users found.", "පරිශීලකයන් හමු නොවීය.")}
+                  </td>
+                </tr>
+              )}
 
-            {!loading &&
-              users.map((u) => {
-                const roleCode = u.staff_profile?.role?.code;
-                const isAdminRow = roleCode === "ADMIN";
+              {!loading &&
+                users.map((u) => {
+                  const roleCode = u.staff_profile?.role?.code;
+                  const isAdminRow = roleCode === "ADMIN";
 
-                return (
-                  <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-5 py-3.5 font-medium text-gray-900">{displayName(u)}</td>
-                    <td className="px-5 py-3.5 text-gray-600 text-xs">{displayRole(u)}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                        {displayDivision(u)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-500 text-xs">{displaySection(u)}</td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                          u.account_status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {u.account_status === "ACTIVE" ? t(lang, "Active", "සක්‍රිය") : t(lang, "Suspended", "අත්හිටුවා ඇත")}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <button
-                        onClick={() => openEditModal(u)}
-                        disabled={busyId === u.id}
-                        className="text-xs text-[#4295D9] font-medium hover:underline disabled:opacity-50"
-                      >
-                        {t(lang, "Edit", "සංස්කරණය")}
-                      </button>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {!isAdminRow && (
-                        <button
-                          onClick={() => handleToggleStatus(u)}
-                          disabled={busyId === u.id}
-                          className={`text-xs font-medium hover:underline disabled:opacity-50 ${
-                            u.account_status === "ACTIVE" ? "text-amber-600" : "text-green-600"
+                  return (
+                    <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-5 py-3.5 font-bold text-slate-900">
+                        <div>{displayName(u)}</div>
+                        <div className="font-mono text-[10px] text-slate-400 font-semibold">@{u.username}</div>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600 font-semibold">{displayRole(u)}</td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80">
+                          {displayDivision(u)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500 font-medium">{displaySection(u)}</td>
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                            u.account_status === "ACTIVE"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                              : "bg-slate-100 text-slate-600 border-slate-200/80"
                           }`}
                         >
                           {u.account_status === "ACTIVE"
-                            ? t(lang, "Deactivate", "අක්‍රිය කරන්න")
-                            : t(lang, "Activate", "සක්‍රිය කරන්න")}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-          </tbody>
-        </table>
+                            ? t(lang, "Active", "සක්‍රිය")
+                            : t(lang, "Suspended", "අත්හිටුවා ඇත")}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(u)}
+                            disabled={busyId === u.id}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-50"
+                          >
+                            {t(lang, "Edit", "සංස්කරණය")}
+                          </button>
+
+                          {!isAdminRow && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(u)}
+                              disabled={busyId === u.id}
+                              className={`text-xs font-bold cursor-pointer disabled:opacity-50 ${
+                                u.account_status === "ACTIVE"
+                                  ? "text-amber-600 hover:text-amber-700"
+                                  : "text-emerald-600 hover:text-emerald-700"
+                              }`}
+                            >
+                              {u.account_status === "ACTIVE"
+                                ? t(lang, "Deactivate", "අක්‍රිය කරන්න")
+                                : t(lang, "Activate", "සක්‍රිය කරන්න")}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* MOBILE CARD VIEW (<md) */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {loading && (
+            <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <span className="text-xs font-semibold">{t(lang, "Loading…", "පූරණය වෙමින්…")}</span>
+            </div>
+          )}
+
+          {!loading && users.length === 0 && (
+            <div className="p-8 text-center text-xs font-medium text-slate-400">
+              {t(lang, "No users found.", "පරිශීලකයන් හමු නොවීය.")}
+            </div>
+          )}
+
+          {!loading &&
+            users.map((u) => {
+              const roleCode = u.staff_profile?.role?.code;
+              const isAdminRow = roleCode === "ADMIN";
+
+              return (
+                <div key={u.id} className="p-4 space-y-3 bg-white">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold shrink-0">
+                        {displayName(u)[0]?.toUpperCase() ?? <User className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-xs">{displayName(u)}</h4>
+                        <p className="font-mono text-[10px] font-bold text-slate-400">@{u.username}</p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                        u.account_status === "ACTIVE"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                          : "bg-slate-100 text-slate-600 border-slate-200/80"
+                      }`}
+                    >
+                      {u.account_status === "ACTIVE"
+                        ? t(lang, "Active", "සක්‍රිය")
+                        : t(lang, "Suspended", "අත්හිටුවා ඇත")}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-50/60 p-2.5 rounded-xl border border-slate-100">
+                    <div>
+                      <span className="text-slate-400 block font-medium">{t(lang, "Role", "කාර්යභාරය")}</span>
+                      <span className="font-bold text-slate-800">{displayRole(u)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-medium">{t(lang, "Division", "කොට්ඨාශය")}</span>
+                      <span className="font-bold text-slate-800">{displayDivision(u)}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(u)}
+                      disabled={busyId === u.id}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-50"
+                    >
+                      {t(lang, "Edit", "සංස්කරණය")}
+                    </button>
+
+                    {!isAdminRow && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(u)}
+                        disabled={busyId === u.id}
+                        className={`text-xs font-bold cursor-pointer disabled:opacity-50 ${
+                          u.account_status === "ACTIVE"
+                            ? "text-amber-600 hover:text-amber-700"
+                            : "text-emerald-600 hover:text-emerald-700"
+                        }`}
+                      >
+                        {u.account_status === "ACTIVE"
+                          ? t(lang, "Deactivate", "අක්‍රිය කරන්න")
+                          : t(lang, "Activate", "සක්‍රිය කරන්න")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+        </div>
       </div>
 
+      {/* EDIT USER DETAILS MODAL */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={closeEditModal} className="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity" />
+
+          <div className="relative w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-slate-200/80 z-10 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#EBF4FD] flex items-center justify-center">
-                  <UserPen className="w-5 h-5 text-[#4295D9]" />
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                  <UserPen className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">
+                  <h3 className="font-bold text-slate-900 text-sm tracking-tight">
                     {t(lang, "Edit User Details", "පරිශීලක තොරතුරු සංස්කරණය")}
                   </h3>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-[11px] font-medium text-slate-400">
                     {isAdminUser
                       ? t(lang, "Only the name can be updated for this account.", "මෙම ගිණුම සඳහා නම පමණක් යාවත්කාලීන කළ හැක.")
                       : isCommissionerUser
-                        ? t(lang, "Only name and account status can be updated.", "නම සහ ගිණුම් තත්ත්වය පමණක් යාවත්කාලීන කළ හැක.")
-                        : t(lang, "Update details and account status.", "විස්තර සහ ගිණුම් තත්ත්වය යාවත්කාලීන කරන්න.")}
+                      ? t(lang, "Only name and account status can be updated.", "නම සහ ගිණුම් තත්ත්වය පමණක් යාවත්කාලීන කළ හැක.")
+                      : t(lang, "Update details and account status.", "විස්තර සහ ගිණුම් තත්ත්වය යාවත්කාලීන කරන්න.")}
                   </p>
                 </div>
               </div>
-              <button onClick={closeEditModal} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all">
+              <button
+                type="button"
+                onClick={closeEditModal}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all cursor-pointer"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto space-y-5">
               {editError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{editError}</div>
+                <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 text-xs font-semibold text-rose-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span>{editError}</span>
+                </div>
               )}
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center font-bold text-[#4295D9]">
-                  {editForm.full_name[0]?.toUpperCase()}
+              {/* User Overview Tag */}
+              <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-100 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center font-bold text-blue-600 text-sm shrink-0 shadow-xs">
+                  {editForm.full_name[0]?.toUpperCase() ?? <User className="w-4 h-4" />}
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-900">@{editingUser.username}</div>
-                  <div className="text-xs text-gray-400">{displayRole(editingUser)}</div>
+                  <div className="text-xs font-bold text-slate-900">@{editingUser.username}</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">{displayRole(editingUser)}</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
-                
+              {/* Input Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     {t(lang, "Full Name", "සම්පූර්ණ නම")}
                   </label>
                   <input
+                    type="text"
                     value={editForm.full_name}
-                    onChange={(e) =>
-                      setEditForm((f) => ({ ...f, full_name: e.target.value }))
-                    }
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
+                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     {t(lang, "Email", "විද්‍යුත් තැපෑල")}
                   </label>
                   <input
@@ -424,12 +548,12 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                     value={editForm.email}
                     onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder={t(lang, "Optional", "අවශ්‍ය නම්")}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
+                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     {t(lang, "Phone Number", "දුරකථන අංකය")}
                   </label>
                   <input
@@ -437,20 +561,20 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                     value={editForm.phone}
                     onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
                     placeholder={t(lang, "Optional", "අවශ්‍ය නම්")}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
+                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
                   />
                 </div>
 
                 {isRegularStaff && (
                   <>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         {t(lang, "Role", "කාර්යභාරය")}
                       </label>
                       <select
                         value={editForm.role_id}
                         onChange={(e) => setEditForm((f) => ({ ...f, role_id: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+                        className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
                       >
                         <option value="">{t(lang, "Select role…", "භූමිකාව තෝරන්න…")}</option>
                         {roles.map((r) => (
@@ -462,13 +586,13 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         {t(lang, "Division", "කොට්ඨාශය")}
                       </label>
                       <select
                         value={editForm.division_id}
                         onChange={(e) => handleDivisionChange(e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+                        className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
                       >
                         <option value="">{t(lang, "Select division…", "කොට්ඨාශය තෝරන්න…")}</option>
                         {divisions.map((d) => (
@@ -480,14 +604,14 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         {t(lang, "Section", "අංශය")}
                       </label>
                       <select
                         value={editForm.section_id}
                         onChange={(e) => setEditForm((f) => ({ ...f, section_id: e.target.value }))}
                         disabled={!editForm.division_id || loadingSections}
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white disabled:opacity-50"
+                        className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer disabled:opacity-50"
                       >
                         <option value="">
                           {loadingSections
@@ -506,13 +630,13 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
 
                 {!isRegularStaff && !isAdminUser && editingUser.account_type !== "STAFF" && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
                       {t(lang, "Division", "කොට්ඨාශය")}
                     </label>
                     <select
                       value={editForm.division_id}
                       onChange={(e) => handleDivisionChange(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
                     >
                       <option value="">{t(lang, "Select division…", "කොට්ඨාශය තෝරන්න…")}</option>
                       {divisions.map((d) => (
@@ -526,13 +650,13 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
 
                 {!isAdminUser && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
                       {t(lang, "Account Status", "ගිණුම් තත්ත්වය")}
                     </label>
                     <select
                       value={editForm.account_status}
                       onChange={(e) => setEditForm((f) => ({ ...f, account_status: e.target.value as "ACTIVE" | "SUSPENDED" }))}
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-white"
+                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
                     >
                       <option value="ACTIVE">{t(lang, "Active", "සක්‍රිය")}</option>
                       <option value="SUSPENDED">{t(lang, "Suspended", "අත්හිටුවා ඇත")}</option>
@@ -542,27 +666,44 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
               </div>
 
               {isRegularStaff && (
-                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700">
-                  {t(
-                    lang,
-                    "Changing a user's role or division can affect what they can access in the system.",
-                    "පරිශීලකයාගේ කාර්යභාරය හෝ කොට්ඨාශය වෙනස් කිරීමෙන් ඔහුට පද්ධතියේ ප්‍රවේශ විය හැකි කොටස් වෙනස් විය හැකිය.",
-                  )}
+                <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-3.5 text-xs font-medium text-amber-800 flex items-start gap-2.5">
+                  <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    {t(
+                      lang,
+                      "Changing a user's role or division can affect what they can access in the system.",
+                      "පරිශීලකයාගේ කාර්යභාරය හෝ කොට්ඨාශය වෙනස් කිරීමෙන් ඔහුට පද්ධතියේ ප්‍රවේශ විය හැකි කොටස් වෙනස් විය හැකිය."
+                    )}
+                  </span>
                 </div>
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
-              <button onClick={closeEditModal} className="px-4 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-white transition-all">
+            {/* Modal Actions */}
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={closeEditModal}
+                className="h-9 px-4 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-all cursor-pointer"
+              >
                 {t(lang, "Cancel", "අවලංගු කරන්න")}
               </button>
               <button
+                type="button"
                 onClick={handleSaveUser}
                 disabled={busyId === editingUser.id}
-                className="flex items-center gap-2 px-5 py-2 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all disabled:opacity-50"
+                className="h-9 px-5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
-                <Save className="w-4 h-4" />
-                {busyId === editingUser.id ? t(lang, "Saving…", "සුරකිමින්…") : t(lang, "Save Changes", "වෙනස්කම් සුරකින්න")}
+                {busyId === editingUser.id ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {busyId === editingUser.id
+                    ? t(lang, "Saving…", "සුරකිමින්…")
+                    : t(lang, "Save Changes", "වෙනස්කම් සුරකින්න")}
+                </span>
               </button>
             </div>
           </div>

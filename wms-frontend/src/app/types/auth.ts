@@ -18,7 +18,7 @@ export interface User {
   staff_profile?: {
     full_name: string;
     nic_number: string;
-    role?: { name_en: string; name_si: string };
+    role?: { name_en: string; name_si: string, code: string };
     division?: { name_en: string; name_si: string };
     section?: { name_en: string; name_si: string };
   };

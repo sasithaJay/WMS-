@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Percent, Loader2, Send } from "lucide-react";
 import { AxiosError } from "axios";
 import { submitVatRateChange } from "../../../services/vatRateService";
 import { t } from "../../constants/translations";
@@ -28,7 +28,13 @@ export function VatRateRequestForm({
     const value = Number(percentage);
 
     if (percentage.trim() === "" || Number.isNaN(value) || value < 0 || value > 100) {
-      setError(t(lang, "Enter a valid VAT percentage between 0 and 100.", "0 සහ 100 අතර වලංගු VAT ප්‍රතිශතයක් ඇතුළත් කරන්න."));
+      setError(
+        t(
+          lang,
+          "Enter a valid VAT percentage between 0 and 100.",
+          "0 සහ 100 අතර වලංගු VAT ප්‍රතිශතයක් ඇතුළත් කරන්න."
+        )
+      );
       return;
     }
 
@@ -40,7 +46,11 @@ export function VatRateRequestForm({
       await submitVatRateChange(value);
 
       setSuccessMessage(
-        t(lang, "VAT rate change submitted for Commissioner approval.", "VAT අනුපාතය කොමසාරිස්වරයාගේ අනුමැතිය සඳහා ඉදිරිපත් කරන ලදී."),
+        t(
+          lang,
+          "VAT rate change submitted for Commissioner approval.",
+          "VAT අනුපාතය කොමසාරිස්වරයාගේ අනුමැතිය සඳහා ඉදිරිපත් කරන ලදී."
+        )
       );
       setPercentage("");
       onSubmitted?.();
@@ -50,11 +60,21 @@ export function VatRateRequestForm({
       if (axiosErr.response?.status === 422) {
         setError(
           axiosErr.response.data.message ??
-            t(lang, "Unable to submit VAT rate change.", "VAT අනුපාත වෙනස ඉදිරිපත් කළ නොහැක."),
+            t(
+              lang,
+              "Unable to submit VAT rate change.",
+              "VAT අනුපාත වෙනස ඉදිරිපත් කළ නොහැක."
+            )
         );
       } else {
         console.error(err);
-        setError(t(lang, "Unable to submit VAT rate change. Please try again.", "VAT අනුපාත වෙනස ඉදිරිපත් කළ නොහැක. නැවත උත්සාහ කරන්න."));
+        setError(
+          t(
+            lang,
+            "Unable to submit VAT rate change. Please try again.",
+            "VAT අනුපාත වෙනස ඉදිරිපත් කළ නොහැක. නැවත උත්සාහ කරන්න."
+          )
+        );
       }
     } finally {
       setSubmitting(false);
@@ -62,33 +82,46 @@ export function VatRateRequestForm({
   }
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-5 space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold text-gray-900">
-          {t(lang, "Change VAT Rate", "VAT අනුපාතය වෙනස් කරන්න")}
-        </h3>
-        <p className="mt-1 text-xs text-gray-500">
-          {t(lang, "Current rate", "වත්මන් අනුපාතය")}: <span className="font-semibold text-gray-700">{currentPercentage}%</span>
-        </p>
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
+      {/* Header Info */}
+      <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+            {t(lang, "Change VAT Rate", "VAT අනුපාතය වෙනස් කරන්න")}
+          </h3>
+          <p className="mt-1 text-xs font-medium text-slate-500">
+            {t(lang, "Current active system rate", "වත්මන් පද්ධති අනුපාතය")}:{" "}
+            <span className="font-mono font-extrabold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
+              {currentPercentage}%
+            </span>
+          </p>
+        </div>
+
+        <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+          <Percent className="w-4 h-4" />
+        </div>
       </div>
 
+      {/* Error Alert */}
       {error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 text-xs font-semibold text-rose-700 flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
+      {/* Success Alert */}
       {successMessage && (
-        <div className="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 text-xs font-semibold text-emerald-700 flex items-center gap-2.5">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
 
-      <div className="flex items-end gap-3">
-        <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-medium text-gray-600">
+      {/* Input & Action Section */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 pt-1">
+        <div className="flex-1 space-y-1.5">
+          <label className="block text-xs font-bold text-slate-700">
             {t(lang, "New VAT Percentage", "නව VAT ප්‍රතිශතය")}
           </label>
           <div className="relative">
@@ -100,9 +133,11 @@ export function VatRateRequestForm({
               value={percentage}
               onChange={(e) => setPercentage(e.target.value)}
               placeholder="18.00"
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 pr-8 text-sm outline-none transition focus:border-[#4295D9] focus:bg-white focus:ring-2 focus:ring-[#4295D9]/20"
+              className="w-full h-10 px-3.5 pr-8 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-mono font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400 placeholder:font-sans"
             />
-            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">%</span>
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 font-mono">
+              %
+            </span>
           </div>
         </div>
 
@@ -110,11 +145,19 @@ export function VatRateRequestForm({
           type="button"
           onClick={handleSubmit}
           disabled={submitting}
-          className="rounded-xl bg-[#4295D9] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#3280C4] disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-10 px-5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0"
         >
-          {submitting
-            ? t(lang, "Submitting…", "ඉදිරිපත් කරමින්…")
-            : t(lang, "Submit for Approval", "අනුමැතිය සඳහා ඉදිරිපත් කරන්න")}
+          {submitting ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>{t(lang, "Submitting…", "ඉදිරිපත් කරමින්…")}</span>
+            </>
+          ) : (
+            <>
+              <Send className="w-3.5 h-3.5" />
+              <span>{t(lang, "Submit for Approval", "අනුමැතිය සඳහා ඉදිරිපත් කරන්න")}</span>
+            </>
+          )}
         </button>
       </div>
     </div>
