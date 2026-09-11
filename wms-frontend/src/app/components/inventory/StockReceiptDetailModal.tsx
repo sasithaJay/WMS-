@@ -1,7 +1,18 @@
-import { X, Receipt, Building2, Calendar, FileText, User, CheckCircle2 } from "lucide-react";
+import {
+  X,
+  Receipt,
+  Building2,
+  Calendar,
+  FileText,
+  User,
+  CheckCircle2,
+} from "lucide-react";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
-import type { StockReceipt, StockReceiptStatus } from "../../types/stockReceipts";
+import type {
+  StockReceipt,
+  StockReceiptStatus,
+} from "../../types/stockReceipts";
 
 interface StockReceiptDetailModalProps {
   lang: Lang;
@@ -20,15 +31,33 @@ export function StockReceiptDetailModal({
   receipt,
   onClose,
 }: StockReceiptDetailModalProps) {
+  /*
+   * Total quantity is calculated from receipt items because
+   * it is a quantity aggregation, not a financial snapshot.
+   */
   const totalQuantity = (receipt.items ?? []).reduce(
     (sum, item) => sum + Number(item.quantity_received),
     0
   );
 
-  const totalValue = (receipt.items ?? []).reduce((sum, item) => {
-    if (item.unit_cost === null) return sum;
-    return sum + Number(item.unit_cost) * Number(item.quantity_received);
-  }, 0);
+  /*
+   * IMPORTANT:
+   * Use the stored subtotal from the database instead of
+   * recalculating it from the current item data.
+   *
+   * This is important for historical receipts because the
+   * financial snapshot should remain unchanged after confirmation.
+   */
+  const subtotal = Number(receipt.subtotal ?? 0);
+  const vatPercentage = Number(receipt.vat_percentage ?? 0);
+  const vatAmount = Number(receipt.vat_amount ?? 0);
+  const totalWithVat = Number(receipt.total_with_vat ?? 0);
+
+  const formatCurrency = (value: number) =>
+    `Rs. ${value.toLocaleString("en-LK", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
@@ -46,9 +75,11 @@ export function StockReceiptDetailModal({
             <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
               <Receipt className="w-5 h-5" />
             </div>
+
             <div>
               <h3 className="font-bold text-slate-900 text-sm tracking-tight flex items-center gap-2">
                 <span>{receipt.grn_number}</span>
+
                 <span
                   className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                     STATUS_STYLES[receipt.status]
@@ -57,8 +88,13 @@ export function StockReceiptDetailModal({
                   {receipt.status}
                 </span>
               </h3>
+
               <p className="text-[11px] font-medium text-slate-400">
-                {t(lang, "Goods Received Note Details", "තොග රිසිට්පත් විස්තර")}
+                {t(
+                  lang,
+                  "Goods Received Note Details",
+                  "තොග රිසිට්පත් විස්තර"
+                )}
               </p>
             </div>
           </div>
@@ -77,63 +113,80 @@ export function StockReceiptDetailModal({
         <div className="p-5 sm:p-6 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
           {/* Metadata Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-slate-50/60 p-4 rounded-2xl border border-slate-100/80">
+            {/* Supplier */}
             <div className="flex items-start gap-2.5">
               <Building2 className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   {t(lang, "Supplier", "සැපයුම්කරු")}
                 </p>
+
                 <p className="text-xs font-bold text-slate-800 mt-0.5">
                   {receipt.supplier_name}
                 </p>
               </div>
             </div>
 
+            {/* Received Date */}
             <div className="flex items-start gap-2.5">
               <Calendar className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   {t(lang, "Received Date", "ලැබුණු දිනය")}
                 </p>
+
                 <p className="text-xs font-bold text-slate-800 mt-0.5">
                   {receipt.received_date.trim()
-                    ? new Date(receipt.received_date).toLocaleDateString()
+                    ? new Date(
+                        receipt.received_date
+                      ).toLocaleDateString("en-LK")
                     : "—"}
                 </p>
               </div>
             </div>
 
+            {/* Invoice Number */}
             <div className="flex items-start gap-2.5">
               <FileText className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   {t(lang, "Invoice Number", "ඉන්වොයිස් අංකය")}
                 </p>
+
                 <p className="text-xs font-bold text-slate-800 font-mono mt-0.5">
                   {receipt.invoice_number ?? "—"}
                 </p>
               </div>
             </div>
 
+            {/* Created By */}
             <div className="flex items-start gap-2.5">
               <User className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   {t(lang, "Created By", "සාදන ලද්දේ")}
                 </p>
+
                 <p className="text-xs font-bold text-slate-800 mt-0.5">
                   {receipt.created_by}
                 </p>
               </div>
             </div>
 
+            {/* Confirmed At */}
             {receipt.confirmed_at && (
               <div className="flex items-start gap-2.5 sm:col-span-2 pt-2 border-t border-slate-200/40">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     {t(lang, "Confirmed At", "තහවුරු කළ දිනය")}
                   </p>
+
                   <p className="text-xs font-bold text-slate-800 mt-0.5">
                     {receipt.confirmed_at}
                   </p>
@@ -148,6 +201,7 @@ export function StockReceiptDetailModal({
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                 {t(lang, "Notes", "සටහන්")}
               </p>
+
               <p className="text-xs font-medium text-slate-700 leading-relaxed">
                 {receipt.notes}
               </p>
@@ -160,36 +214,53 @@ export function StockReceiptDetailModal({
               {t(lang, "Items", "භාණ්ඩ")}
             </h4>
 
-            {/* DESKTOP TABLE VIEW (md+) */}
+            {/* DESKTOP TABLE VIEW */}
             <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200/80 shadow-2xs">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <tr>
-                    <th className="px-4 py-2.5">{t(lang, "Item", "භාණ්ඩය")}</th>
-                    <th className="px-4 py-2.5">{t(lang, "Qty", "ප්‍රමාණය")}</th>
-                    <th className="px-4 py-2.5">{t(lang, "Unit Cost", "ඒකක මිල")}</th>
-                    <th className="px-4 py-2.5">{t(lang, "Remarks", "සටහන්")}</th>
+                    <th className="px-4 py-2.5">
+                      {t(lang, "Item", "භාණ්ඩය")}
+                    </th>
+
+                    <th className="px-4 py-2.5">
+                      {t(lang, "Qty", "ප්‍රමාණය")}
+                    </th>
+
+                    <th className="px-4 py-2.5">
+                      {t(lang, "Unit Cost", "ඒකක මිල")}
+                    </th>
+
+                    <th className="px-4 py-2.5">
+                      {t(lang, "Remarks", "සටහන්")}
+                    </th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
                   {(receipt.items ?? []).map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr
+                      key={item.id}
+                      className="hover:bg-slate-50/50 transition-colors"
+                    >
                       <td className="px-4 py-3 font-bold text-slate-900">
                         <span className="font-mono text-slate-500 font-semibold mr-1.5">
                           {item.item.item_code}
                         </span>
+
                         — {item.item.name_en}
                       </td>
+
                       <td className="px-4 py-3 font-bold font-mono text-slate-900">
                         {Number(item.quantity_received)}
                       </td>
+
                       <td className="px-4 py-3 font-mono font-semibold text-slate-800">
                         {item.unit_cost !== null
-                          ? `Rs. ${Number(item.unit_cost).toLocaleString("en-LK", {
-                              minimumFractionDigits: 2,
-                            })}`
+                          ? formatCurrency(Number(item.unit_cost))
                           : "—"}
                       </td>
+
                       <td className="px-4 py-3 text-slate-400">
                         {item.remarks ?? "—"}
                       </td>
@@ -199,19 +270,24 @@ export function StockReceiptDetailModal({
               </table>
             </div>
 
-            {/* MOBILE CARD VIEW (<md) */}
+            {/* MOBILE CARD VIEW */}
             <div className="block md:hidden divide-y divide-slate-100 rounded-2xl border border-slate-200/80 overflow-hidden">
               {(receipt.items ?? []).map((item) => (
-                <div key={item.id} className="p-3.5 space-y-2 bg-white">
+                <div
+                  key={item.id}
+                  className="p-3.5 space-y-2 bg-white"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                         {item.item.item_code}
                       </span>
+
                       <h5 className="text-xs font-bold text-slate-900 mt-1">
                         {item.item.name_en}
                       </h5>
                     </div>
+
                     <span className="text-xs font-extrabold font-mono text-slate-900 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
                       Qty: {Number(item.quantity_received)}
                     </span>
@@ -221,11 +297,10 @@ export function StockReceiptDetailModal({
                     <span className="text-slate-400 font-medium">
                       {t(lang, "Unit Cost", "ඒකක මිල")}:
                     </span>
+
                     <span className="font-bold font-mono text-slate-800">
                       {item.unit_cost !== null
-                        ? `Rs. ${Number(item.unit_cost).toLocaleString("en-LK", {
-                            minimumFractionDigits: 2,
-                          })}`
+                        ? formatCurrency(Number(item.unit_cost))
                         : "—"}
                     </span>
                   </div>
@@ -242,39 +317,47 @@ export function StockReceiptDetailModal({
 
           {/* Financial Calculation Totals */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+            {/* Total Quantity */}
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 {t(lang, "Total Quantity", "මුළු ප්‍රමාණය")}
               </p>
+
               <p className="mt-1 text-base font-extrabold font-mono text-slate-900">
                 {totalQuantity}
               </p>
             </div>
 
+            {/* Subtotal */}
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 {t(lang, "Subtotal", "උප එකතුව")}
               </p>
+
               <p className="mt-1 text-base font-extrabold font-mono text-slate-900">
-                Rs. {totalValue.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                {formatCurrency(subtotal)}
               </p>
             </div>
 
+            {/* VAT */}
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                {t(lang, "VAT", "VAT")} ({Number(receipt.vat_percentage)}%)
+                {t(lang, "VAT", "VAT")} ({vatPercentage}%)
               </p>
+
               <p className="mt-1 text-base font-extrabold font-mono text-slate-900">
-                Rs. {Number(receipt.vat_amount).toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                {formatCurrency(vatAmount)}
               </p>
             </div>
 
+            {/* Total Including VAT */}
             <div>
               <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">
                 {t(lang, "Total (incl. VAT)", "මුළු එකතුව (VAT සමඟ)")}
               </p>
+
               <p className="mt-1 text-base font-extrabold font-mono text-blue-600">
-                Rs. {Number(receipt.total_with_vat).toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                {formatCurrency(totalWithVat)}
               </p>
             </div>
           </div>

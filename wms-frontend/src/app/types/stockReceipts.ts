@@ -59,4 +59,5 @@ export interface StockReceipt {
   vat_percentage: string;
   vat_amount: string;
   total_with_vat: string;
+  subtotal: string;
 }
