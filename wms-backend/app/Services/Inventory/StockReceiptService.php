@@ -53,6 +53,7 @@ class StockReceiptService
                 'notes'          => $data['notes'] ?? null,
                 'status'         => 'DRAFT',
                 'created_by'     => $user->id,
+                'subtotal' => round($subtotal, 2),
                 'vat_percentage'   => $vatPercentage,
                 'vat_amount'       => $vatAmount,
                 'total_with_vat'   => $totalWithVat,
@@ -170,6 +171,7 @@ class StockReceiptService
     }
 
     // Update an existing stock receipt (Draft)
+
     public function update(
         StockReceipt $receipt,
         array $data
@@ -181,28 +183,72 @@ class StockReceiptService
 
         return DB::transaction(function () use ($receipt, $data) {
 
+            /*
+            * Recalculate financial values
+            * from the submitted receipt items.
+            */
+            $subtotal = collect($data['items'])->sum(
+                fn ($item) =>
+                    ($item['quantity_received']) *
+                    ($item['unit_cost'] ?? 0)
+            );
+
+            /*
+            * Get the current VAT rate.
+            *
+            * Since this is still a draft, the VAT rate can be
+            * refreshed when the receipt is edited.
+            */
+            $vatPercentage = VatRate::currentPercentage();
+
+            $vatAmount = round(
+                $subtotal * ($vatPercentage / 100),
+                2
+            );
+
+            $totalWithVat = round(
+                $subtotal + $vatAmount,
+                2
+            );
+
+            /*
+            * Update receipt header + financial snapshot.
+            */
             $receipt->update([
-                'supplier_name' => $data['supplier_name'],
+                'supplier_name'  => $data['supplier_name'],
                 'invoice_number' => $data['invoice_number'] ?? null,
-                'received_date' => $data['received_date'],
-                'notes' => $data['notes'] ?? null,
+                'received_date'  => $data['received_date'],
+                'notes'          => $data['notes'] ?? null,
+
+                'subtotal'       => round($subtotal, 2),
+                'vat_percentage' => $vatPercentage,
+                'vat_amount'     => $vatAmount,
+                'total_with_vat' => $totalWithVat,
             ]);
 
+            /*
+            * Replace receipt items.
+            */
             $receipt->items()->delete();
 
             foreach ($data['items'] as $item) {
 
                 $receipt->items()->create([
-                    'item_id' => $item['item_id'],
+                    'item_id'           => $item['item_id'],
                     'quantity_received' => $item['quantity_received'],
-                    'unit_cost' => $item['unit_cost'] ?? null,
-                    'remarks' => $item['remarks'] ?? null,
+                    'unit_cost'         => $item['unit_cost'] ?? null,
+                    'remarks'           => $item['remarks'] ?? null,
                 ]);
             }
 
-            return $receipt->fresh('items.item');
+            return $receipt->fresh([
+                'items.item',
+                'creator',
+            ]);
         });
     }
+
+
 
     // Cancel a stock receipt (Draft)
     public function cancel(
