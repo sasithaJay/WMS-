@@ -8,9 +8,13 @@ export const ROLES = {
   SECTION_HEAD: "SECTION_HEAD",
   STORE_KEEPER: "STORE_KEEPER",
   DEVELOPMENT_OFFICER: "DEVELOPMENT_OFFICER",
-  OFFICER: "OFFICER",
-  INSTITUTION: "INSTITUTION",
   DIVISIONAL_SECRETARIAT: "DIVISIONAL_SECRETARIAT",
+  MSO: "MSO",
+  OA: "OA",
+  DRIVER: "DRIVER",
+  SSO: "SSO",
+  HQSSO: "HQSSO",
+  SPO: "SPO",
 } as const;
 
 export const ROLE_LABELS: Record<string, { en: string; si: string }> = {
@@ -26,6 +30,12 @@ export const ROLE_LABELS: Record<string, { en: string; si: string }> = {
   SECTION_HEAD: { en: "Section Head (CC/FA)", si: "අංශ ප්‍රධානී" },
   STORE_KEEPER: { en: "Store Keeper", si: "ගබඩාරක්ෂක" },
   DEVELOPMENT_OFFICER: { en: "Development Officer", si: "සංවර්ධන නිලධාරී" },
+  OA: { en: "Office Assistant", si: "කාර්යාල සහකාර" },
+  MSO: { en: "Management Service Officer", si: "කළමනාකරණ සේවා නිලධාරී" },
+  SSO: { en: "Senior Social Service Officer", si: "ජ්‍යෙෂ්ඨ සමාජ සේවා නිලධාරී" },
+  HQSSO: { en: "Head Quarter Social Service Officer", si: "මූලස්ථානයේ සමාජ සේවා නිලධාරී" },
+  DRIVER: { en: "Driver", si: "රියදුරු" },
+  SPO: { en: "Senior Probational Officer", si: "ජ්‍යෙෂ්ඨ පරිවාස නිලධාරී" },
   OFFICER: { en: "Officer", si: "නිලධාරී" },
   INSTITUTION: { en: "Institution", si: "ආයතනය" },
   DIVISIONAL_SECRETARIAT: { en: "Divisional Secretariat", si: "දිව්‍යංශ ලේකම්" },

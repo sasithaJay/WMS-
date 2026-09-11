@@ -8,6 +8,7 @@ use App\Models\InstitutionType;
 use App\Models\Role;
 use App\Models\Section;
 use App\Models\DsOffice;
+use App\Models\Institution;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -52,6 +53,12 @@ class RegistrationOptionsController extends Controller
                     )
                     ->orderBy('id')
                     ->get(),
+
+            'institutions' => Institution::query()
+                ->where('is_active', true)
+                ->select('id', 'division_id', 'code', 'name_en', 'name_si', 'district')
+                ->orderBy('name_en')
+                ->get(),
 
             'ds_offices' => DsOffice::query()
                 ->where('is_active', true)

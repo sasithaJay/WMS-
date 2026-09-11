@@ -1,4 +1,5 @@
-import { Package, AlertTriangle, CheckCircle } from "lucide-react";
+import { useMemo } from "react";
+import { Package, AlertTriangle, CheckCircle2, AlertCircle } from "lucide-react";
 import { StatCard } from "../common/StatCard";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
@@ -16,20 +17,29 @@ export function InventorySummary({
   items,
   total,
 }: InventorySummaryProps) {
-  const low = items.filter((item) => {
-    const quantity = item.balance?.quantity_on_hand ?? 0;
+  // Memoized counts using getStockStatus helper to avoid unnecessary recalculations
+  const { lowStockCount, normalCount, outOfStockCount } = useMemo(() => {
+    let lowStock = 0;
+    let normal = 0;
+    let outOfStock = 0;
 
-    return quantity <= item.reorder_level;
-  }).length;
+    items.forEach((item) => {
+      const status = getStockStatus(item);
+      if (status === "low_stock") lowStock++;
+      else if (status === "normal") normal++;
+      else if (status === "out_of_stock") outOfStock++;
+    });
 
-  const normal = items.filter((item) => {
-    const quantity = item.balance?.quantity_on_hand ?? 0;
-
-    return quantity > item.reorder_level;
-  }).length;
+    return {
+      lowStockCount: lowStock,
+      normalCount: normal,
+      outOfStockCount: outOfStock,
+    };
+  }, [items]);
 
   return (
-    <div className="grid grid-cols-1 min-[700px]:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+      {/* Total Items Card */}
       <StatCard
         label={t(lang, "Total Items", "මුළු භාණ්ඩ")}
         value={total}
@@ -37,30 +47,28 @@ export function InventorySummary({
         icon={<Package className="w-5 h-5" />}
       />
 
+      {/* Low Stock Warning Card */}
       <StatCard
-        label={t(
-          lang,
-          "Low / Critical Stock",
-          "අඩු / බරපතල",
-        )}
-        //value={low}
-        value={items.filter((item) => getStockStatus(item) === "low_stock").length}
+        label={t(lang, "Low / Critical Stock", "අඩු / බරපතල")}
+        value={lowStockCount}
         color="amber"
         icon={<AlertTriangle className="w-5 h-5" />}
       />
 
+      {/* Normal Stock Card */}
       <StatCard
         label={t(lang, "Normal Stock", "සාමාන්‍ය")}
-        value={items.filter((item) => getStockStatus(item) === "normal").length}
+        value={normalCount}
         color="green"
-        icon={<CheckCircle className="w-5 h-5" />}
+        icon={<CheckCircle2 className="w-5 h-5" />}
       />
 
+      {/* Out of Stock Card */}
       <StatCard
-        label={t(lang, "Out of Stock", "අවස්ථාවේ")}
-        value={items.filter((item) => getStockStatus(item) === "out_of_stock").length}
+        label={t(lang, "Out of Stock", "තොග නොමැත")}
+        value={outOfStockCount}
         color="red"
-        icon={<AlertTriangle className="w-5 h-5" />}
+        icon={<AlertCircle className="w-5 h-5" />}
       />
     </div>
   );

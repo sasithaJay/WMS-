@@ -35,37 +35,6 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
   const [sessionCommitted, setSessionCommitted] = useState<Record<number, number>>({});
 
 
-  // const loadQueue = useCallback(async () => {
-  //   try {
-  //     setLoading((prev) => (requests.length === 0 ? true : prev));
-  //     setError("");
-  //     const response = await getPendingRecommendation({ per_page: 50 });
-  //     setRequests(response.data);
-
-  //     // seed drafts with the originally requested quantities
-  //     setDrafts((current) => {
-  //       const next = { ...current };
-  //       response.data.forEach((r) => {
-  //         if (!next[r.id]) {
-  //           next[r.id] = {};
-  //           (r.items ?? []).forEach((it) => {
-  //             next[r.id][it.item_id] = String(Number(it.quantity_requested));
-  //           });
-  //         }
-  //       });
-  //       return next;
-  //     });
-  //   } catch (err) {
-  //     console.error(err);
-  //     setError(
-  //       t(lang, "Unable to load the recommendation queue.", "නිර්දේශ පෝලිම පූරණය කළ නොහැක."),
-  //     );
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [lang]);
-
 const loadQueue = useCallback(async (showLoading = false) => {
   try {
     if (showLoading) {

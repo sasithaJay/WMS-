@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, AlertCircle, Info, Loader2 } from "lucide-react";
 
 import { t } from "../../constants/translations";
 
@@ -31,7 +31,6 @@ interface FormState {
   item_code: string;
   unit_id: string;
   reorder_level: string;
-  barcode: string;
   description: string;
   reason: string;
 }
@@ -42,7 +41,6 @@ const initialForm: FormState = {
   item_code: "",
   unit_id: "",
   reorder_level: "",
-  barcode: "",
   description: "",
   reason: "",
 };
@@ -53,21 +51,11 @@ export function ItemRegistrationForm({
   onClose,
   onSaved,
 }: ItemRegistrationFormProps) {
-  const [form, setForm] =
-    useState<FormState>(initialForm);
-
-  const [categories, setCategories] =
-    useState<ItemCategory[]>([]);
-
-  const [units, setUnits] =
-    useState<Unit[]>([]);
-
-  const [submitting, setSubmitting] =
-    useState(false);
-
-  const [loadingOptions, setLoadingOptions] =
-    useState(true);
-
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [categories, setCategories] = useState<ItemCategory[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [loadingOptions, setLoadingOptions] = useState(true);
   const [error, setError] = useState("");
 
   const isEditing = item !== null;
@@ -77,11 +65,10 @@ export function ItemRegistrationForm({
       try {
         setLoadingOptions(true);
 
-        const [categoryData, unitData] =
-          await Promise.all([
-            getItemCategories(),
-            getUnits(),
-          ]);
+        const [categoryData, unitData] = await Promise.all([
+          getItemCategories(),
+          getUnits(),
+        ]);
 
         setCategories(categoryData);
         setUnits(unitData);
@@ -92,8 +79,8 @@ export function ItemRegistrationForm({
           t(
             lang,
             "Failed to load categories and units.",
-            "ප්‍රවර්ග සහ ඒකක පූරණය අසාර්ථක විය.",
-          ),
+            "ප්‍රවර්ග සහ ඒකක පූරණය අසාර්ථක විය."
+          )
         );
       } finally {
         setLoadingOptions(false);
@@ -107,17 +94,10 @@ export function ItemRegistrationForm({
     if (item) {
       setForm({
         name_en: item.name_en,
-        category_id: String(
-          item.category_id ?? item.category.id,
-        ),
+        category_id: String(item.category_id ?? item.category.id),
         item_code: item.item_code,
-        unit_id: String(
-          item.unit_id ?? item.unit.id,
-        ),
-        reorder_level: String(
-          item.reorder_level,
-        ),
-        barcode: item.barcode ?? "",
+        unit_id: String(item.unit_id ?? item.unit.id),
+        reorder_level: String(item.reorder_level),
         description: item.description ?? "",
         reason: "",
       });
@@ -128,19 +108,14 @@ export function ItemRegistrationForm({
     setForm(initialForm);
   }, [item]);
 
-  function updateField(
-    field: keyof FormState,
-    value: string,
-  ) {
+  function updateField(field: keyof FormState, value: string) {
     setForm((current) => ({
       ...current,
       [field]: value,
     }));
   }
 
-  async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
@@ -160,27 +135,22 @@ export function ItemRegistrationForm({
             : "Please complete all required fields.",
           isEditing
             ? "අවශ්‍ය ක්ෂේත්‍ර සම්පූර්ණ කර හේතුව සඳහන් කරන්න."
-            : "අවශ්‍ය සියලු ක්ෂේත්‍ර සම්පූර්ණ කරන්න.",
-        ),
+            : "අවශ්‍ය සියලු ක්ෂේත්‍ර සම්පූර්ණ කරන්න."
+        )
       );
 
       return;
     }
 
-    const reorderLevel = Number(
-      form.reorder_level,
-    );
+    const reorderLevel = Number(form.reorder_level);
 
-    if (
-      Number.isNaN(reorderLevel) ||
-      reorderLevel < 0
-    ) {
+    if (Number.isNaN(reorderLevel) || reorderLevel < 0) {
       setError(
         t(
           lang,
           "Reorder level must be zero or greater.",
-          "නැවත ඇණවුම් මට්ටම ශුන්‍ය හෝ ඊට වැඩි විය යුතුය.",
-        ),
+          "නැවත ඇණවුම් මට්ටම ශුන්‍ය හෝ ඊට වැඩි විය යුතුය."
+        )
       );
 
       return;
@@ -195,10 +165,7 @@ export function ItemRegistrationForm({
         category_id: Number(form.category_id),
         unit_id: Number(form.unit_id),
         reorder_level: reorderLevel,
-        barcode:
-          form.barcode.trim() || undefined,
-        description:
-          form.description.trim() || undefined,
+        description: form.description.trim() || undefined,
       };
 
       if (item) {
@@ -214,8 +181,7 @@ export function ItemRegistrationForm({
     } catch (submitError: unknown) {
       console.error(submitError);
 
-      const errorMessage =
-        getErrorMessage(submitError);
+      const errorMessage = getErrorMessage(submitError);
 
       setError(
         errorMessage ??
@@ -226,8 +192,8 @@ export function ItemRegistrationForm({
               : "Failed to create item.",
             isEditing
               ? "භාණ්ඩ යාවත්කාලීන ඉල්ලීම යොමු කිරීම අසාර්ථක විය."
-              : "භාණ්ඩය නිර්මාණය කිරීම අසාර්ථක විය.",
-          ),
+              : "භාණ්ඩය නිර්මාණය කිරීම අසාර්ථක විය."
+          )
       );
     } finally {
       setSubmitting(false);
@@ -235,126 +201,103 @@ export function ItemRegistrationForm({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4 py-6">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <h3 className="font-bold text-gray-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      {/* Blurred Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity duration-300"
+      />
+
+      {/* Modal Dialog Container */}
+      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 my-auto">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-md flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h3 className="font-bold text-slate-900 text-sm tracking-tight">
             {isEditing
-              ? t(
-                  lang,
-                  "Request Item Update",
-                  "භාණ්ඩ යාවත්කාලීන ඉල්ලීම",
-                )
-              : t(
-                  lang,
-                  "Add New Item",
-                  "නව භාණ්ඩ එකතු කරන්න",
-                )}
+              ? t(lang, "Request Item Update", "භාණ්ඩ යාවත්කාලීන ඉල්ලීම")
+              : t(lang, "Add New Item", "නව භාණ්ඩ එකතු කරන්න")}
           </h3>
 
           <button
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-500 hover:text-slate-900 transition-all flex items-center justify-center cursor-pointer shrink-0 disabled:opacity-50"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4">
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="max-h-[80vh] overflow-y-auto custom-scrollbar">
+          <div className="p-5 sm:p-6 space-y-4">
             {error && (
-              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                {error}
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-700 flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
             )}
 
             {isEditing && (
-              <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
-                {t(
-                  lang,
-                  "The item will not change immediately. AO or Accountant approval is required.",
-                  "භාණ්ඩ විස්තර වහාම වෙනස් නොවේ. පරිපාලන නිලධාරී හෝ ගණකාධිකාරී අනුමැතිය අවශ්‍ය වේ.",
-                )}
+              <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl px-4 py-3 text-xs text-blue-800 font-medium flex items-start gap-2.5 shadow-2xs">
+                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span>
+                  {t(
+                    lang,
+                    "The item will not change immediately. AO approval is required.",
+                    "භාණ්ඩ විස්තර වහාම වෙනස් නොවේ. පරිපාලන නිලධාරී අනුමැතිය අවශ්‍ය වේ."
+                  )}
+                </span>
               </div>
             )}
 
             <FormInput
-              label={t(
-                lang,
-                "Item Name",
-                "භාණ්ඩ නාමය",
-              )}
+              label={t(lang, "Item Name", "භාණ්ඩ නාමය")}
               value={form.name_en}
-              onChange={(value) =>
-                updateField("name_en", value)
-              }
-              disabled={submitting}
-              required
-            />
-
-            <FormInput
-              label={t(
-                lang,
-                "Item Code",
-                "භාණ්ඩ කේතය",
-              )}
-              value={form.item_code}
-              onChange={(value) =>
-                updateField("item_code", value)
-              }
+              onChange={(value) => updateField("name_en", value)}
               disabled={submitting}
               required
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <FormInput
+                label={t(lang, "Item Code", "භාණ්ඩ කේතය")}
+                value={form.item_code}
+                onChange={(value) => updateField("item_code", value)}
+                disabled={submitting}
+                required
+              />
+
+              <p className="mt-1.5 text-[11px] font-medium text-slate-400">
                 {t(
                   lang,
-                  "Category",
-                  "ප්‍රවර්ගය",
+                  "The QR code and barcode will be generated automatically from this code — you can print labels after saving.",
+                  "QR කේතය සහ බාර්කේතය මෙම කේතයෙන් ස්වයංක්‍රීයව ජනනය වේ — සුරැකීමෙන් පසු ලේබල් මුද්‍රණය කළ හැක."
                 )}
-                <span className="text-red-500">
-                  {" "}
-                  *
-                </span>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                {t(lang, "Category", "ප්‍රවර්ගය")}
+                <span className="text-rose-500"> *</span>
               </label>
 
               <select
                 value={form.category_id}
-                disabled={
-                  loadingOptions || submitting
-                }
-                onChange={(event) =>
-                  updateField(
-                    "category_id",
-                    event.target.value,
-                  )
-                }
-                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white disabled:opacity-60"
+                disabled={loadingOptions || submitting}
+                onChange={(event) => updateField("category_id", event.target.value)}
+                className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60 cursor-pointer"
               >
                 <option value="">
                   {loadingOptions
-                    ? t(
-                        lang,
-                        "Loading categories...",
-                        "ප්‍රවර්ග පූරණය වෙමින්...",
-                      )
-                    : t(
-                        lang,
-                        "Select a category",
-                        "ප්‍රවර්ගයක් තෝරන්න",
-                      )}
+                    ? t(lang, "Loading categories...", "ප්‍රවර්ග පූරණය වෙමින්...")
+                    : t(lang, "Select a category", "ප්‍රවර්ගයක් තෝරන්න")}
                 </option>
 
                 {categories.map((category) => (
-                  <option
-                    key={category.id}
-                    value={category.id}
-                  >
-                    {lang === "si" &&
-                    category.name_si
+                  <option key={category.id} value={category.id}>
+                    {lang === "si" && category.name_si
                       ? category.name_si
                       : category.name_en}
                   </option>
@@ -363,48 +306,26 @@ export function ItemRegistrationForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 {t(lang, "Unit", "ඒකකය")}
-                <span className="text-red-500">
-                  {" "}
-                  *
-                </span>
+                <span className="text-rose-500"> *</span>
               </label>
 
               <select
                 value={form.unit_id}
-                disabled={
-                  loadingOptions || submitting
-                }
-                onChange={(event) =>
-                  updateField(
-                    "unit_id",
-                    event.target.value,
-                  )
-                }
-                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white disabled:opacity-60"
+                disabled={loadingOptions || submitting}
+                onChange={(event) => updateField("unit_id", event.target.value)}
+                className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60 cursor-pointer"
               >
                 <option value="">
                   {loadingOptions
-                    ? t(
-                        lang,
-                        "Loading units...",
-                        "ඒකක පූරණය වෙමින්...",
-                      )
-                    : t(
-                        lang,
-                        "Select a unit",
-                        "ඒකකයක් තෝරන්න",
-                      )}
+                    ? t(lang, "Loading units...", "ඒකක පූරණය වෙමින්...")
+                    : t(lang, "Select a unit", "ඒකකයක් තෝරන්න")}
                 </option>
 
                 {units.map((unit) => (
-                  <option
-                    key={unit.id}
-                    value={unit.id}
-                  >
-                    {lang === "si" &&
-                    unit.name_si
+                  <option key={unit.id} value={unit.id}>
+                    {lang === "si" && unit.name_si
                       ? unit.name_si
                       : unit.name_en}
                   </option>
@@ -413,139 +334,84 @@ export function ItemRegistrationForm({
             </div>
 
             <FormInput
-              label={t(
-                lang,
-                "Reorder Level",
-                "නැවත ඇණවුම් මට්ටම",
-              )}
+              label={t(lang, "Reorder Level", "නැවත ඇණවුම් මට්ටම")}
               type="number"
               min="0"
               value={form.reorder_level}
-              onChange={(value) =>
-                updateField(
-                  "reorder_level",
-                  value,
-                )
-              }
+              onChange={(value) => updateField("reorder_level", value)}
               disabled={submitting}
               required
             />
 
-            <FormInput
-              label={t(
-                lang,
-                "Barcode (optional)",
-                "බාකෝඩය (අවශ්‍ය නම්)",
-              )}
-              value={form.barcode}
-              onChange={(value) =>
-                updateField("barcode", value)
-              }
-              disabled={submitting}
-            />
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                {t(
-                  lang,
-                  "Description",
-                  "විස්තරය",
-                )}
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                {t(lang, "Description", "විස්තරය")}
               </label>
 
               <textarea
                 rows={3}
                 value={form.description}
                 disabled={submitting}
-                onChange={(event) =>
-                  updateField(
-                    "description",
-                    event.target.value,
-                  )
-                }
-                className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white resize-none disabled:opacity-60"
+                onChange={(event) => updateField("description", event.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all resize-none disabled:opacity-60 placeholder:text-slate-400"
               />
             </div>
 
             {isEditing && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  {t(
-                    lang,
-                    "Reason for Update",
-                    "යාවත්කාලීන කිරීමේ හේතුව",
-                  )}
-                  <span className="text-red-500">
-                    {" "}
-                    *
-                  </span>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {t(lang, "Reason for Update", "යාවත්කාලීන කිරීමේ හේතුව")}
+                  <span className="text-rose-500"> *</span>
                 </label>
 
                 <textarea
                   rows={3}
                   value={form.reason}
                   disabled={submitting}
-                  onChange={(event) =>
-                    updateField(
-                      "reason",
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => updateField("reason", event.target.value)}
                   placeholder={t(
                     lang,
                     "Explain why these item details need to be changed.",
-                    "මෙම භාණ්ඩ විස්තර වෙනස් කළ යුත්තේ ඇයිද පැහැදිලි කරන්න.",
+                    "මෙම භාණ්ඩ විස්තර වෙනස් කළ යුත්තේ ඇයිද පැහැදිලි කරන්න."
                   )}
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white resize-none disabled:opacity-60"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all resize-none disabled:opacity-60 placeholder:text-slate-400"
                 />
               </div>
             )}
           </div>
 
-          <div className="sticky bottom-0 bg-white flex gap-3 px-6 py-5 border-t border-gray-100">
+          {/* Sticky Actions Footer */}
+          <div className="sticky bottom-0 bg-slate-50/80 backdrop-blur-md flex items-center justify-end gap-2.5 px-5 py-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all disabled:opacity-50"
+              className="flex-1 sm:flex-initial h-10 px-5 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
             >
-              {t(
-                lang,
-                "Cancel",
-                "අවලංගු",
-              )}
+              {t(lang, "Cancel", "අවලංගු")}
             </button>
 
             <button
               type="submit"
-              disabled={
-                submitting || loadingOptions
-              }
-              className="flex-1 py-2.5 bg-[#4295D9] text-white text-sm font-semibold rounded-xl hover:bg-[#3280C4] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={submitting || loadingOptions}
+              className="flex-1 sm:flex-initial h-10 px-6 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md shadow-blue-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
-              {submitting
-                ? isEditing
-                  ? t(
-                      lang,
-                      "Submitting...",
-                      "යොමු කරමින්...",
-                    )
-                  : t(
-                      lang,
-                      "Adding...",
-                      "එකතු කරමින්...",
-                    )
-                : isEditing
-                  ? t(
-                      lang,
-                      "Submit for Approval",
-                      "අනුමැතිය සඳහා යොමු කරන්න",
-                    )
-                  : t(
-                      lang,
-                      "Add Item",
-                      "භාණ්ඩ එකතු කරන්න",
-                    )}
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>
+                    {isEditing
+                      ? t(lang, "Submitting...", "යොමු කරමින්...")
+                      : t(lang, "Adding...", "එකතු කරමින්...")}
+                  </span>
+                </>
+              ) : (
+                <span>
+                  {isEditing
+                    ? t(lang, "Submit for Approval", "අනුමැතිය සඳහා යොමු කරන්න")
+                    : t(lang, "Add Item", "භාණ්ඩ එකතු කරන්න")}
+                </span>
+              )}
             </button>
           </div>
         </form>
@@ -575,34 +441,26 @@ function FormInput({
 }: FormInputProps) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}
-
-        {required && (
-          <span className="text-red-500">
-            {" "}
-            *
-          </span>
-        )}
-      </label>
+      {label && (
+        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+          {label}
+          {required && <span className="text-rose-500"> *</span>}
+        </label>
+      )}
 
       <input
         type={type}
         min={min}
         value={value}
         disabled={disabled}
-        onChange={(event) =>
-          onChange(event.target.value)
-        }
-        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20 bg-gray-50 focus:bg-white disabled:opacity-60"
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60"
       />
     </div>
   );
 }
 
-function getErrorMessage(
-  error: unknown,
-): string | null {
+function getErrorMessage(error: unknown): string | null {
   if (
     typeof error !== "object" ||
     error === null ||
@@ -622,8 +480,7 @@ function getErrorMessage(
     }
   ).response;
 
-  const validationErrors =
-    response?.data?.errors;
+  const validationErrors = response?.data?.errors;
 
   if (validationErrors) {
     return Object.values(validationErrors)

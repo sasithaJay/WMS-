@@ -60,6 +60,8 @@ class RolePermissionSeeder extends Seeder
 
             //Assistant Commissioner
             'ASSISTANT_COMMISSIONER' => [
+                'users.approve',
+
                 'inventory.view',
 
                 'requests.create',
@@ -75,6 +77,8 @@ class RolePermissionSeeder extends Seeder
 
             //Assistant Director
             'ASSISTANT_DIRECTOR' => [
+                'users.approve',
+
                 'inventory.view',
 
                 'requests.create',
@@ -141,6 +145,42 @@ class RolePermissionSeeder extends Seeder
 
             //Development Officer
             'DEVELOPMENT_OFFICER' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'MSO' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'OA' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'DRIVER' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'SSO' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'HQSSO' => [
+                'inventory.view',
+                'requests.create',
+                'requests.own.view',
+            ],
+
+            'SPO' => [
                 'inventory.view',
                 'requests.create',
                 'requests.own.view',

@@ -24,7 +24,7 @@ class Division extends Model
         return $this->hasMany(User::class);
     }
 
-        public function sections(): HasMany
+    public function sections(): HasMany
     {
         return $this->hasMany(Section::class);
     }
@@ -37,5 +37,10 @@ class Division extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    public function institutions(): HasMany
+    {
+        return $this->hasMany(Institution::class);
     }
 }

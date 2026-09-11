@@ -48,14 +48,6 @@ class StoreItemUpdateRequest extends FormRequest
                 'string',
             ],
 
-            'barcode' => [
-                'nullable',
-                'string',
-                'max:100',
-                Rule::unique('items', 'barcode')
-                    ->ignore($item),
-            ],
-
             'reorder_level' => [
                 'required',
                 'integer',

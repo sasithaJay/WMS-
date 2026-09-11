@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'sms' => [
+        'user_id' => env('SMS_GATEWAY_USER_ID'),
+        'password' => env('SMS_GATEWAY_PASSWORD'),
+    ],
+
 ];

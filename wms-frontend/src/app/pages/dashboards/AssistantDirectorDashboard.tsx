@@ -8,6 +8,7 @@ import { ReportsPanel } from "../../components/reports/ReportsPanel";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang, DashTab } from "../../types";
 import { DashboardMyView } from "../../components/dashboard/DashboardMyView";
+import { UserVerificationTable } from "../../components/users/UserVerificationTable";
 
 export function AssistantDirectorDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -33,6 +34,12 @@ export function AssistantDirectorDashboard({ lang, setLang, onLogout }: { lang: 
         }} />}
       {activeNav === "approve" && <ApprovalQueue lang={lang} />}
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "users" && (
+              <div className="space-y-6">
+                <UserVerificationTable lang={lang} />
+                {/* <UserManagementTable lang={lang} /> */}
+              </div>
+            )}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

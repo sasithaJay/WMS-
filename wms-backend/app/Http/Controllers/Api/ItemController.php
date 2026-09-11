@@ -33,6 +33,7 @@ class ItemController extends Controller
                         ->where('item_code', 'like', "%{$search}%")
                         ->orWhere('name_en', 'like', "%{$search}%")
                         ->orWhere('name_si', 'like', "%{$search}%")
+                        ->orWhere('barcode', 'like', "%{$search}%")
                         ->orWhereHas('category', function ($categoryQuery) use ($search) {
                             $categoryQuery
                                 ->where('name_en', 'like', "%{$search}%")
@@ -75,6 +76,7 @@ class ItemController extends Controller
             $item = Item::create([
                 ...$data,
                 'created_by' => $user->id,
+                'barcode' => $data['item_code'],
             ]);
 
             $item->balance()->create([
@@ -236,5 +238,27 @@ class ItemController extends Controller
         }
 
         return $user->staffProfile?->division_id;
+    }
+
+
+    public function lookup(Request $request): JsonResponse
+    {
+        $request->validate(['code' => 'required|string']);
+        $code = $request->input('code');
+
+        $query = Item::with(['category', 'unit', 'division', 'balance'])
+            ->where(function ($q) use ($code) {
+                $q->where('item_code', $code)->orWhere('barcode', $code);
+            });
+
+        $this->applyDivisionScope($query, $request);
+
+        $item = $query->first();
+
+        if (! $item) {
+            return response()->json(['message' => 'No item found for this code.'], 404);
+        }
+
+        return response()->json(['data' => $item]);
     }
 }

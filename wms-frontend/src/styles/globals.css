@@ -1,0 +1,34 @@
+/* Add to your global stylesheet */
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  .print-modal-backdrop {
+    position: static !important;
+    background: none !important;
+    display: block !important;
+  }
+
+  /* Reveal only the print area and its children */
+  #print-label-area,
+  #print-label-area * {
+    visibility: visible;
+  }
+
+  /* Pull the print area out of the modal's fixed positioning so it
+     prints as a normal flowing page, not a small fixed-size box */
+  #print-label-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Explicitly hide anything tagged no-print, e.g. the modal's header
+     buttons that shouldn't appear on paper */
+  .no-print {
+    display: none !important;
+  }
+}
