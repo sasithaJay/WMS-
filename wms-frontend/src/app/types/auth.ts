@@ -18,7 +18,7 @@ export interface User {
   staff_profile?: {
     full_name: string;
     nic_number: string;
-    role?: { name_en: string; name_si: string };
+    role?: { name_en: string; name_si: string, code: string };
     division?: { name_en: string; name_si: string };
     section?: { name_en: string; name_si: string };
   };
@@ -28,7 +28,6 @@ export interface User {
     division?: { name_en: string; name_si: string };
     address?: string;
     contact_number?: string;
-    licence_number?: string;
   };
 }
 
@@ -74,10 +73,20 @@ export interface DsOffice {
   district: string;
 }
 
+export interface Institution {
+  id: number;
+  division_id: number;
+  code: string;
+  name_en: string;
+  name_si: string;
+  district: string;
+}
+
 export interface RegistrationOptionsResponse {
   divisions: RegistrationDivision[];
   roles: RegistrationRole[];
   institution_types: InstitutionType[];
+  institutions: Institution[];
   ds_offices: DsOffice[];
 }
 

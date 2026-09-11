@@ -13,7 +13,13 @@ export type Role =
   | "DEVELOPMENT_OFFICER"
   | "OFFICER"
   | "INSTITUTION"
-  | "DIVISIONAL_SECRETARIAT";
+  | "DIVISIONAL_SECRETARIAT"
+  | "MSO"
+  | "OA"
+  | "DRIVER"
+  | "SSO"
+  | "HQSSO"
+  | "SPO";
 export type DashTab = "personal" | "summary";
 export type UserType = "all" | "staff" | "institution" | "ds";
 export type StatusType =

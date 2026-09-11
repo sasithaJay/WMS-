@@ -10,6 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Models\Role;
+use App\Models\User;
+use App\Notifications\ItemUpdateRequestStatusChanged;
 
 class ItemUpdateRequestController extends Controller
 {
@@ -60,6 +63,19 @@ class ItemUpdateRequestController extends Controller
             'status' => 'PENDING',
             'reason' => $reason,
         ]);
+
+        $reviewerRoleIds = Role::whereHas('permissions', fn ($q) =>
+            $q->where('code', 'inventory.update.approve')
+        )->pluck('id');
+
+        $reviewers = User::whereHas('staffProfile', fn ($q) =>
+            $q->whereIn('role_id', $reviewerRoleIds)->where('division_id', $item->division_id)
+        )->get();
+
+        foreach ($reviewers as $reviewer) {
+            $reviewer->notify(new ItemUpdateRequestStatusChanged($updateRequest, 'SUBMITTED'));
+        }
+
 
         return response()->json([
             'message' => 'Item update request submitted successfully.',
@@ -190,6 +206,7 @@ class ItemUpdateRequestController extends Controller
             )->validate();
 
             $item->update($lockedRequest->new_values);
+            $item->update(['barcode' => $item->item_code]);
 
             $lockedRequest->update([
                 'status' => 'APPROVED',
@@ -199,6 +216,10 @@ class ItemUpdateRequestController extends Controller
                 'reviewed_at' => now(),
             ]);
         });
+
+        $itemUpdateRequest->requester?->notify(
+            new ItemUpdateRequestStatusChanged($itemUpdateRequest->fresh(), 'APPROVED', $request->user())
+        );
 
         return response()->json([
             'message' => 'Item update request approved successfully.',
@@ -238,6 +259,10 @@ class ItemUpdateRequestController extends Controller
             'review_comment' => $validated['review_comment'],
             'reviewed_at' => now(),
         ]);
+
+        $itemUpdateRequest->requester?->notify(
+            new ItemUpdateRequestStatusChanged($itemUpdateRequest, 'REJECTED', $request->user())
+        );
 
         return response()->json([
             'message' => 'Item update request rejected.',

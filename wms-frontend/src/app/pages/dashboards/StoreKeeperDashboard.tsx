@@ -24,6 +24,9 @@ import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
 import { DashboardOverview } from "../../components/dashboard/DashboardOverview";
 import { getDashboardOverview } from "../../../services/dashboardService";
 import type { DivisionDashboardSummary } from "../../types/dashboard";
+import { VatRateRequestForm } from "../../components/requests/VatRateRequestForm";
+import { MyVatRequestsTable } from "../../components/inventory/MyVatRequestsTable";
+import { getCurrentVatRate } from "../../../services/vatRateService";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [division, setDivision] = useState<DivisionDashboardSummary | null>(null);
@@ -39,6 +42,13 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
   const [stockActivityKey, setStockActivityKey] = useState(0);
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
   const role = "STORE_KEEPER" as const;
+  const [currentVat, setCurrentVat] = useState(0);
+  const [vatRefreshSignal, setVatRefreshSignal] = useState(0);
+
+  useEffect(() => {
+    getCurrentVatRate().then((res) => setCurrentVat(res.data.percentage));
+  }, [vatRefreshSignal]);
+
 
   useEffect(() => {
     loadDivisionSummary();
@@ -119,7 +129,6 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
                   <div className="lg:col-span-2"><RecentActivityTable lang={lang} movements={division.recent_movements} /></div>
                 </div>
                 <ReorderLevelTable lang={lang} />
-                <BarcodeScannerPanel lang={lang} />
               </div>
             )
       )}
@@ -178,6 +187,17 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
               onClose={() => setViewingReceipt(null)}
             />
           )}
+        </div>
+      )}
+
+      {activeNav === "vat" && (
+        <div className="space-y-5">
+          <VatRateRequestForm
+            lang={lang}
+            currentPercentage={currentVat}
+            onSubmitted={() => setVatRefreshSignal((s) => s + 1)}
+          />
+          <MyVatRequestsTable lang={lang} refreshSignal={vatRefreshSignal} />
         </div>
       )}
 

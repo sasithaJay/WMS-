@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, Package, ClipboardList, PlusCircle, BookOpen,
-  BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle, FileText,
+  BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle, FileText, Percent,
   ClipboardCheck,
+  Database,
 } from "lucide-react";
 import type { Role } from "../types";
 
@@ -12,6 +13,13 @@ type NavItem = {
   id: string;
   badge?: number;
 };
+
+const STAFF_REQUESTER_NAV = [
+  { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
+  { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
+  { icon: PlusCircle, label: "New Request", labelSi: "නව ඉල්ලීම", id: "new" },
+  { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
+];
 
 export const NAV_ITEMS: Record<Role, NavItem[]> = {
   ADMIN: [
@@ -46,6 +54,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: CheckCircle, label: "Approve", labelSi: "අනුමත", id: "approve"},
+    { icon: Percent, label: "VAT Rate", labelSi: "VAT අනුපාතය", id: "vat-approve" },
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
     { icon: Users, label: "User Verification", labelSi: "පරිශීලක කළමනාකරණය", id: "users" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
@@ -55,6 +64,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: CheckCircle, label: "Approve", labelSi: "අනුමත", id: "approve"},
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
+    { icon: Users, label: "User Verification", labelSi: "පරිශීලක කළමනාකරණය", id: "users" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
   ASSISTANT_DIRECTOR: [
@@ -62,6 +72,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: CheckCircle, label: "Approve", labelSi: "අනුමත", id: "approve" },
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
+    { icon: Users, label: "User Verification", labelSi: "පරිශීලක කළමනාකරණය", id: "users" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
   ACCOUNTANT: [
@@ -82,8 +93,8 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
   SECTION_HEAD: [
     { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
+    { icon: PlusCircle, label: "New Request", labelSi: "නව ඉල්ලීම", id: "new" },
     { icon: BookOpen, label: "Recommend", labelSi: "නිර්දේශ", id: "recommend"},
-    { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
   STORE_KEEPER: [
@@ -92,6 +103,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: Package, label: "Issue Goods", labelSi: "භාණ්ඩ ගිලිහීම", id: "issue" },
     { icon: Warehouse, label: "Inventory", labelSi: "තොග ලැයිස්තුව", id: "inventory" },
     { icon: ArrowDownToLine, label: "Stock Receipts", labelSi: "ගබඩා රිසිට්", id: "receipts" },
+    { icon: Percent, label: "VAT Rate", labelSi: "VAT අනුපාතය", id: "vat" },
     { icon: BarChart2, label: "Reports", labelSi: "වාර්තා", id: "reports" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
@@ -119,6 +131,12 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: PlusCircle, label: "New Request", labelSi: "නව ඉල්ලීම", id: "new" },
     { icon: Settings, label: "Settings", labelSi: "සැකසීම්", id: "settings" },
   ],
+  MSO: STAFF_REQUESTER_NAV,
+  OA: STAFF_REQUESTER_NAV,
+  DRIVER: STAFF_REQUESTER_NAV,
+  SSO: STAFF_REQUESTER_NAV,
+  HQSSO: STAFF_REQUESTER_NAV,
+  SPO: STAFF_REQUESTER_NAV,
 };
 
 export const SECTIONS_SS = ["Institutional", "Development", "Accounts"];

@@ -6,14 +6,15 @@ namespace App\Services\Workflow;
 
 use App\Models\InventoryBalance;
 use App\Models\Organization;
-use App\Models\StockRequest;
 use App\Models\StockMovement;
+use App\Models\StockRequest;
 use App\Models\Store;
 use App\Models\User;
+use App\Notifications\RequestNeedsAction;
+use App\Notifications\RequestStatusChanged;
 use App\Services\RequestWorkflowService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-
 
 class StockRequestService
 {
@@ -22,9 +23,6 @@ class StockRequestService
     ) {
     }
 
-    /**
-     * Create a new stock request and route it to the correct first stage.
-     */
     public function create(array $data): StockRequest
     {
         return DB::transaction(function () use ($data) {
@@ -36,7 +34,6 @@ class StockRequestService
             [$divisionId, $sectionId, $organizationId, $dsOfficeId] =
                 $this->resolveRequesterContext($user, $data);
 
-            // DS Offices may only submit once per calendar year.
             $this->assertDsOfficeFrequency($dsOfficeId, $divisionId);
 
             $store = Store::where('division_id', $divisionId)->first();
@@ -53,7 +50,7 @@ class StockRequestService
                 'section_id'       => $sectionId,
                 'organization_id'  => $organizationId,
                 'ds_office_id'     => $dsOfficeId,
-                'request_context'  => $requestContext, // ← backend-derived, not client-trusted
+                'request_context'  => $requestContext,
                 'notes'            => $data['notes'] ?? null,
             ]);
 
@@ -65,9 +62,11 @@ class StockRequestService
                 ]);
             }
 
+            // initiate() handles its own notification (RequestNeedsAction)
+            // to the recommender or approver, and its own save().
             $this->workflow->initiate($request);
 
-            return $request->fresh(['items.item', 'requester', 'recommender']);
+            return $request->fresh(['requester.staffProfile', 'requester.organization', 'items.item', 'recommender']);
         });
     }
 
@@ -76,7 +75,7 @@ class StockRequestService
      */
     public function recommend(StockRequest $request, array $data): StockRequest
     {
-        return DB::transaction(function () use ($request, $data) {
+        $updated = DB::transaction(function () use ($request, $data) {
 
             $this->assertStage($request, 'RECOMMENDATION');
             $this->assertRecommender($request);
@@ -96,8 +95,16 @@ class StockRequestService
                 'status'        => 'PENDING_APPROVAL',
             ]);
 
-            return $request->fresh(['items.item', 'actions']);
+            return $request->fresh(['requester.staffProfile', 'requester.organization', 'items.item', 'actions']);
         });
+
+        // Notify requester their request was recommended
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'RECOMMENDED', $data['remarks'] ?? null, auth()->user()));
+
+        // Notify everyone now eligible to approve
+        $this->workflow->notifyEligibleApprovers($updated);
+
+        return $updated;
     }
 
     /**
@@ -105,7 +112,7 @@ class StockRequestService
      */
     public function approve(StockRequest $request, array $data): StockRequest
     {
-        return DB::transaction(function () use ($request, $data) {
+        $updated = DB::transaction(function () use ($request, $data) {
 
             $this->assertStage($request, 'APPROVAL');
             $this->assertEligibleApprover($request);
@@ -138,8 +145,16 @@ class StockRequestService
                 'approver_id'   => auth()->id(),
             ]);
 
-            return $request->fresh(['items.item', 'actions']);
+            return $request->fresh(['requester.staffProfile', 'requester.organization', 'items.item', 'actions']);
         });
+
+        // Notify requester their request was approved
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'APPROVED', $data['remarks'] ?? null, auth()->user()));
+
+        // Notify Store Keeper(s) in this division that a request is ready to issue
+        $this->notifyStoreKeepers($updated);
+
+        return $updated;
     }
 
     /**
@@ -147,7 +162,7 @@ class StockRequestService
      */
     public function reject(StockRequest $request, string $reason): StockRequest
     {
-        return DB::transaction(function () use ($request, $reason) {
+        $updated = DB::transaction(function () use ($request, $reason) {
 
             $stage = $request->current_stage;
 
@@ -172,8 +187,12 @@ class StockRequestService
                 'current_stage' => null,
             ]);
 
-            return $request->fresh('actions');
+            return $request->fresh(['requester.staffProfile', 'requester.organization', 'actions']);
         });
+
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'REJECTED', $reason, auth()->user()));
+
+        return $updated;
     }
 
     /**
@@ -181,7 +200,7 @@ class StockRequestService
      */
     public function returnRequest(StockRequest $request, string $reason): StockRequest
     {
-        return DB::transaction(function () use ($request, $reason) {
+        $updated = DB::transaction(function () use ($request, $reason) {
 
             $stage = $request->current_stage;
 
@@ -206,8 +225,103 @@ class StockRequestService
                 'current_stage' => null,
             ]);
 
-            return $request->fresh('actions');
+            return $request->fresh(['requester.staffProfile', 'requester.organization', 'actions']);
         });
+
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'RETURNED', $reason, auth()->user()));
+
+        return $updated;
+    }
+
+    /**
+     * Store Keeper issues stock against an approved request. Supports partial
+     * issuance — back-ordered remainder stays reserved and the request
+     * remains in the issuance queue until topped up later.
+     */
+    public function issue(StockRequest $request, array $data): StockRequest
+    {
+        $updated = DB::transaction(function () use ($request, $data) {
+
+            $this->assertStage($request, 'ISSUANCE');
+            $this->assertEligibleIssuer($request);
+
+            $overridesByItemId = collect($data['items'] ?? [])->keyBy('item_id');
+            $allFullyIssued = true;
+
+            foreach ($request->items as $requestItem) {
+                $alreadyIssued = (float) ($requestItem->quantity_issued ?? 0);
+                $remainingApproved = (float) $requestItem->quantity_approved - $alreadyIssued;
+
+                if ($remainingApproved <= 0) {
+                    continue;
+                }
+
+                $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
+                    ['item_id' => $requestItem->item_id, 'division_id' => $request->division_id],
+                    ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
+                );
+
+                $override = $overridesByItemId->get($requestItem->item_id);
+                $requestedIssueQty = $override['quantity'] ?? $remainingApproved;
+
+                $issueQty = min($requestedIssueQty, $remainingApproved, (float) $balance->quantity_on_hand);
+
+                if ($issueQty <= 0) {
+                    $allFullyIssued = false;
+                    continue;
+                }
+
+                $before = (float) $balance->quantity_on_hand;
+                $after = $before - $issueQty;
+
+                $balance->update([
+                    'quantity_on_hand' => $after,
+                    'reserved_quantity' => max(0, (float) $balance->reserved_quantity - $issueQty),
+                ]);
+
+                StockMovement::create([
+                    'division_id'      => $request->division_id,
+                    'item_id'          => $requestItem->item_id,
+                    'movement_type'    => 'ISSUE',
+                    'quantity'         => $issueQty,
+                    'balance_before'   => $before,
+                    'balance_after'    => $after,
+                    'reference_type'   => 'STOCK_REQUEST',
+                    'reference_id'     => $request->id,
+                    'reference_number' => $request->request_number,
+                    'performed_by'     => auth()->id(),
+                    'remarks'          => $requestItem->remarks,
+                ]);
+
+                $requestItem->update([
+                    'quantity_issued' => $alreadyIssued + $issueQty,
+                ]);
+
+                if (($alreadyIssued + $issueQty) < (float) $requestItem->quantity_approved) {
+                    $allFullyIssued = false;
+                }
+            }
+
+            $request->actions()->create([
+                'stage'    => 'ISSUANCE',
+                'actor_id' => auth()->id(),
+                'action'   => $allFullyIssued ? 'ISSUED' : 'PARTIALLY_ISSUED',
+                'remarks'  => $data['remarks'] ?? null,
+                'acted_at' => now(),
+            ]);
+
+            $request->update([
+                'status'        => $allFullyIssued ? 'ISSUED' : 'APPROVED',
+                'current_stage' => $allFullyIssued ? null : 'ISSUANCE',
+            ]);
+
+            return $request->fresh(['requester.staffProfile', 'requester.organization', 'items.item', 'actions']);
+        });
+
+        $action = $updated->status === 'ISSUED' ? 'ISSUED' : 'PARTIALLY_ISSUED';
+        $updated->requester?->notify(new RequestStatusChanged($updated, $action, $data['remarks'] ?? null, auth()->user()));
+
+        return $updated;
     }
 
     // ------------------------------------------------------------------
@@ -229,13 +343,6 @@ class StockRequestService
         return sprintf('REQ-%s-%06d', $year, $number);
     }
 
-    /**
-     * Authoritatively determines the request context based on account type
-     * and role, rather than trusting whatever the client sent. Institutions
-     * always have a fixed context; DS Office requests are identified by the
-     * AO's chosen context in the payload; everything else falls back to
-     * whatever the staff member selected (PERSONAL / SECTION_COMMON).
-     */
     private function resolveRequestContext(User $user, array $data): string
     {
         if ($user->account_type === 'INSTITUTION') {
@@ -249,14 +356,8 @@ class StockRequestService
         return $data['request_context'];
     }
 
-    /**
-     * Determines division/section/organization for the new request based
-     * on who's submitting it and what context they selected.
-     */
     private function resolveRequesterContext(User $user, array $data): array
     {
-        // AO submitting on behalf of a DS Office — organization comes from
-        // the request payload, not from the submitting user's own account.
         if (($data['request_context'] ?? null) === 'DS_OFFICE') {
             $profile = $user->staffProfile;
 
@@ -267,9 +368,6 @@ class StockRequestService
             return [$profile->division_id, null, null, $data['ds_office_id']];
         }
 
-        // Institution/DS Office accounts logging in and submitting directly
-        // (institutions still do this; DS offices no longer have accounts,
-        // but this branch stays harmless for institutions).
         if ($user->account_type === 'INSTITUTION' || $user->account_type === 'DS_OFFICE') {
             $org = $user->organization;
 
@@ -286,8 +384,6 @@ class StockRequestService
             abort(403, 'Your account is not assigned to a staff profile.');
         }
 
-        // Commissioner may request from either division; everyone else is
-        // locked to their own division.
         $divisionId = $profile->division_id;
 
         if ($profile->role->code === 'COMMISSIONER' && ! empty($data['division_id'])) {
@@ -297,10 +393,6 @@ class StockRequestService
         return [$divisionId, $profile->section_id, null, null];
     }
 
-    /**
-     * DS Offices may only submit one active request per calendar year.
-     * Rejected/cancelled/returned requests don't count against the limit.
-     */
     private function assertDsOfficeFrequency(?int $dsOfficeId, int $divisionId): void
     {
         if (! $dsOfficeId) {
@@ -361,93 +453,6 @@ class StockRequestService
         }
     }
 
-    public function issue(StockRequest $request, array $data): StockRequest
-    {
-        return DB::transaction(function () use ($request, $data) {
-
-            $this->assertStage($request, 'ISSUANCE');
-            $this->assertEligibleIssuer($request);
-
-            $overridesByItemId = collect($data['items'] ?? [])->keyBy('item_id');
-            $allFullyIssued = true;
-
-            foreach ($request->items as $requestItem) {
-                $alreadyIssued = (float) ($requestItem->quantity_issued ?? 0);
-                $remainingApproved = (float) $requestItem->quantity_approved - $alreadyIssued;
-
-                if ($remainingApproved <= 0) {
-                    continue; // this item is already fully issued
-                }
-
-                $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
-                    ['item_id' => $requestItem->item_id, 'division_id' => $request->division_id],
-                    ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
-                );
-
-                $override = $overridesByItemId->get($requestItem->item_id);
-                $requestedIssueQty = $override['quantity'] ?? $remainingApproved;
-
-                // Cap by what's actually left to fulfil AND what's physically on hand.
-                $issueQty = min($requestedIssueQty, $remainingApproved, (float) $balance->quantity_on_hand);
-
-                if ($issueQty <= 0) {
-                    $allFullyIssued = false;
-                    continue; // nothing available for this item right now — stays back-ordered
-                }
-
-                $before = (float) $balance->quantity_on_hand;
-                $after = $before - $issueQty;
-
-                $balance->update([
-                    'quantity_on_hand' => $after,
-                    'reserved_quantity' => max(0, (float) $balance->reserved_quantity - $issueQty),
-                ]);
-
-                StockMovement::create([
-                    'division_id'      => $request->division_id,
-                    'item_id'          => $requestItem->item_id,
-                    'movement_type'    => 'ISSUE',
-                    'quantity'         => $issueQty,
-                    'balance_before'   => $before,
-                    'balance_after'    => $after,
-                    'reference_type'   => 'STOCK_REQUEST',
-                    'reference_id'     => $request->id,
-                    'reference_number' => $request->request_number,
-                    'performed_by'     => auth()->id(),
-                    'remarks'          => $requestItem->remarks,
-                ]);
-
-                $requestItem->update([
-                    'quantity_issued' => $alreadyIssued + $issueQty,
-                ]);
-
-                if (($alreadyIssued + $issueQty) < (float) $requestItem->quantity_approved) {
-                    $allFullyIssued = false;
-                }
-            }
-
-            $request->actions()->create([
-                'stage'    => 'ISSUANCE',
-                'actor_id' => auth()->id(),
-                'action'   => $allFullyIssued ? 'ISSUED' : 'PARTIALLY_ISSUED',
-                'remarks'  => $data['remarks'] ?? null,
-                'acted_at' => now(),
-            ]);
-
-            $request->update([
-                'status'        => $allFullyIssued ? 'ISSUED' : 'APPROVED',
-                'current_stage' => $allFullyIssued ? null : 'ISSUANCE',
-            ]);
-
-            return $request->fresh([
-                'requester.staffProfile',
-                'requester.organization',
-                'items.item', 
-                'actions',
-            ]);
-        });
-    }
-
     private function assertEligibleIssuer(StockRequest $request): void
     {
         $profile = auth()->user()->staffProfile;
@@ -457,5 +462,45 @@ class StockRequestService
             && $profile->division_id === $request->division_id;
 
         abort_unless($isEligible, 403, 'You are not eligible to issue this request.');
+    }
+
+    // ------------------------------------------------------------------
+    // Notification helpers
+    // ------------------------------------------------------------------
+
+    private function notifyEligibleApprovers(StockRequest $request): void
+    {
+        $eligibleRoleIds = $this->workflow->resolveApprovalRoleIds($request);
+
+        if ($eligibleRoleIds->isEmpty()) {
+            return;
+        }
+
+        $commissionerRoleId = \App\Models\Role::where('code', 'COMMISSIONER')->value('id');
+
+        $approvers = User::whereHas('staffProfile', function ($q) use ($eligibleRoleIds, $request, $commissionerRoleId) {
+            $q->whereIn('role_id', $eligibleRoleIds)
+                ->where(function ($q2) use ($request, $commissionerRoleId) {
+                    $q2->where('division_id', $request->division_id)
+                        ->orWhere('role_id', $commissionerRoleId); // Commissioner eligible regardless of her own division
+                });
+        })->get();
+
+        foreach ($approvers as $approver) {
+            $approver->notify(new RequestNeedsAction($request, 'APPROVAL'));
+        }
+    }
+
+    private function notifyStoreKeepers(StockRequest $request): void
+    {
+        $storeKeepers = User::whereHas('staffProfile.role', fn ($q) =>
+            $q->where('code', 'STORE_KEEPER')
+        )->whereHas('staffProfile', fn ($q) =>
+            $q->where('division_id', $request->division_id)
+        )->get();
+
+        foreach ($storeKeepers as $storeKeeper) {
+            $storeKeeper->notify(new RequestNeedsAction($request, 'ISSUANCE'));
+        }
     }
 }

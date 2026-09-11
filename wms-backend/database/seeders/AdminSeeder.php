@@ -17,25 +17,23 @@ class AdminSeeder extends Seeder
             'ADMIN'
         )->firstOrFail();
 
-        $user = User::firstOrCreate(
+        $salaryNumber = 'admin';
+        $username = 'SWPCS-' . $salaryNumber;
+
+        $user = User::updateOrCreate(
             [
-                'username' => 'admin',
+                'username' => $username,
             ],
             [
                 'email' => 'admin@wms.gov.lk',
 
-                'password' => Hash::make(
-                    '12345678'
-                ),
+                'password' => Hash::make('12345678'),
 
                 'account_type' => 'STAFF',
-
                 'account_status' => 'ACTIVE',
 
                 'approved_by' => null,
-
                 'approved_at' => now(),
-
                 'rejection_reason' => null,
             ]
         );
@@ -46,22 +44,18 @@ class AdminSeeder extends Seeder
             ],
             [
                 'division_id' => null,
-
                 'section_id' => null,
-
                 'role_id' => $adminRole->id,
 
-                'full_name' =>
-                    'Administrator',
+                'full_name' => 'Administrator',
 
-                'nic_number' =>
-                    'ADMIN-001',
+                'nic_number' => 'ADMIN-001',
 
-                'phone' =>
-                    '0000000000',
+                'phone' => '0000000000',
 
-                'employee_number' =>
-                    'ADMIN-001',
+                'employee_number' => 'ADMIN-001',
+
+                'salary_number' => $salaryNumber,
             ]
         );
     }

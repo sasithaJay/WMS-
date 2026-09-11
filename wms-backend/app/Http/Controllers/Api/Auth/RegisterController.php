@@ -9,14 +9,30 @@ use App\Models\Role;
 use App\Models\Section;
 use App\Models\StaffProfile;
 use App\Models\User;
+use App\Models\Institution;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use App\Notifications\NewAccountPendingApproval;
 
 class RegisterController extends Controller
 {
+
+    private function notifyApprovers(User $newUser): void
+    {
+        $approverRoleIds = Role::whereIn('code', ['COMMISSIONER', 'ADMIN'])->pluck('id');
+
+        $approvers = User::whereHas('staffProfile', fn ($q) =>
+            $q->whereIn('role_id', $approverRoleIds)
+        )->get();
+
+        foreach ($approvers as $approver) {
+            $approver->notify(new NewAccountPendingApproval($newUser));
+        }
+    }
+
     public function register(Request $request): JsonResponse
     {
         $request->validate([
@@ -64,6 +80,7 @@ class RegisterController extends Controller
                 'DS_OFFICE'
             ),
         };
+
     }
 
 
@@ -74,6 +91,7 @@ class RegisterController extends Controller
         | Validate Common Staff Fields
         |--------------------------------------------------------------------------
         */
+        
 
         $validated = $request->validate([
             'division_id' => [
@@ -112,6 +130,13 @@ class RegisterController extends Controller
                 'string',
                 'max:50',
                 'unique:staff_profiles,employee_number',
+            ],
+
+            'salary_number' => [
+                'required',
+                'string',
+                'max:50',
+                'unique:staff_profiles,salary_number',
             ],
         ]);
 
@@ -260,10 +285,15 @@ class RegisterController extends Controller
 
                 'employee_number' =>
                     $validated['employee_number'],
+
+                'salary_number' =>
+                    $validated['salary_number'],
             ]);
 
             return $user;
         });
+
+        $this->notifyApprovers($user);
 
         return response()->json([
             'message' =>
@@ -289,158 +319,148 @@ class RegisterController extends Controller
     }
 
     private function registerOrganization(
-        Request $request,
-        string $organizationKind
-        ): JsonResponse {
-            $rules = [
-                'division_id' => [
-                    'required',
-                    Rule::exists('divisions', 'id')
-                        ->where('is_active', true),
-                ],
+    Request $request,
+    string $organizationKind
+    ): JsonResponse {
+        $rules = [
+            'address' => [
+                'required',
+                'string',
+            ],
 
-                'organization_name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
+            'contact_number' => [
+                'required',
+                'string',
+                'max:20',
+            ],
 
-                'address' => [
-                    'required',
-                    'string',
-                ],
+            'contact_person_name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
 
-                'contact_number' => [
-                    'required',
-                    'string',
-                    'max:20',
-                ],
+            'contact_person_designation' => [
+                'required',
+                'string',
+                'max:255',
+            ],
 
-                'contact_person_name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
+            'contact_person_nic' => [
+                'required',
+                'string',
+                'max:20',
+                'unique:authorized_contacts,nic_number',
+            ],
 
-                'contact_person_designation' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
+            'contact_person_phone' => [
+                'required',
+                'string',
+                'max:20',
+            ],
 
-                'contact_person_nic' => [
-                    'required',
-                    'string',
-                    'max:20',
-                    'unique:authorized_contacts,nic_number',
-                ],
+            'contact_person_email' => [
+                'required',
+                'email',
+                'max:255',
+            ],
+        ];
 
-                'contact_person_phone' => [
-                    'required',
-                    'string',
-                    'max:20',
-                ],
-
-                'contact_person_email' => [
-                    'required',
-                    'email',
-                    'max:255',
-                ],
+        if ($organizationKind === 'INSTITUTION') {
+            // Selected from the seeded institutions list — division and name
+            // come from this record, not from client-typed input.
+            $rules['institution_id'] = [
+                'required',
+                Rule::exists('institutions', 'id')
+                    ->where('is_active', true),
             ];
 
+            $rules['institution_type_id'] = [
+                'required',
+                Rule::exists('institution_types', 'id')
+                    ->where('is_active', true),
+            ];
+
+        } else {
+            // DS_OFFICE — division is chosen freely (once per division per year,
+            // per your earlier business rule), organization name stays free text
+            // since DS offices aren't a fixed seeded list.
+            $rules['division_id'] = [
+                'required',
+                Rule::exists('divisions', 'id')
+                    ->where('is_active', true),
+            ];
+
+            $rules['organization_name'] = [
+                'required',
+                'string',
+                'max:255',
+            ];
+        }
+
+        $validated = $request->validate($rules);
+
+        $user = DB::transaction(function () use (
+            $request,
+            $validated,
+            $organizationKind
+        ) {
+            $user = User::create([
+                'username' => $request->username,
+                'email' => $request->email,
+                'password' => $request->password,
+                'account_type' => $organizationKind,
+                'account_status' => 'PENDING',
+            ]);
+
             if ($organizationKind === 'INSTITUTION') {
-                $rules['institution_type_id'] = [
-                    'required',
-                    Rule::exists('institution_types', 'id')
-                        ->where('is_active', true),
-                ];
-
-                $rules['licence_number'] = [
-                    'required',
-                    'string',
-                    'max:100',
-                    'unique:organizations,licence_number',
-                ];
-            }
-
-            $validated = $request->validate($rules);
-
-            $user = DB::transaction(function () use (
-                $request,
-                $validated,
-                $organizationKind
-            ) {
-                $user = User::create([
-                    'username' => $request->username,
-                    'email' => $request->email,
-                    'password' => $request->password,
-                    'account_type' => $organizationKind,
-                    'account_status' => 'PENDING',
-                ]);
+                $institution = Institution::findOrFail($validated['institution_id']);
 
                 $organization = Organization::create([
                     'user_id' => $user->id,
-                    'division_id' => $validated['division_id'],
-
-                    'organization_kind' =>
-                        $organizationKind,
-
-                    'name' =>
-                        $validated['organization_name'],
-
-                    'institution_type_id' =>
-                        $organizationKind === 'INSTITUTION'
-                            ? $validated['institution_type_id']
-                            : null,
-
-                    'licence_number' =>
-                        $organizationKind === 'INSTITUTION'
-                            ? $validated['licence_number']
-                            : null,
-
+                    'division_id' => $institution->division_id,
+                    'organization_kind' => 'INSTITUTION',
+                    'name' => $institution->name_en,
+                    'institution_type_id' => $validated['institution_type_id'],
                     'address' => $validated['address'],
-
-                    'contact_number' =>
-                        $validated['contact_number'],
+                    'contact_number' => $validated['contact_number'],
                 ]);
-
-                AuthorizedContact::create([
-                    'organization_id' => $organization->id,
-
-                    'full_name' =>
-                        $validated['contact_person_name'],
-
-                    'designation' =>
-                        $validated[
-                            'contact_person_designation'
-                        ],
-
-                    'nic_number' =>
-                        $validated['contact_person_nic'],
-
-                    'phone' =>
-                        $validated['contact_person_phone'],
-
-                    'email' =>
-                        $validated['contact_person_email'],
-
-                    'is_primary' => true,
+            } else {
+                $organization = Organization::create([
+                    'user_id' => $user->id,
+                    'division_id' => $validated['division_id'],
+                    'organization_kind' => 'DS_OFFICE',
+                    'name' => $validated['organization_name'],
+                    'institution_type_id' => null,
+                    'address' => $validated['address'],
+                    'contact_number' => $validated['contact_number'],
                 ]);
+            }
 
-                return $user;
-            });
+            AuthorizedContact::create([
+                'organization_id' => $organization->id,
+                'full_name' => $validated['contact_person_name'],
+                'designation' => $validated['contact_person_designation'],
+                'nic_number' => $validated['contact_person_nic'],
+                'phone' => $validated['contact_person_phone'],
+                'email' => $validated['contact_person_email'],
+                'is_primary' => true,
+            ]);
 
-            return response()->json([
-                'message' =>
-                    'Registration successful. Your account is awaiting approval.',
+            return $user;
+        });
 
-                'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'account_type' => $user->account_type,
-                    'account_status' => $user->account_status,
-                ],
-            ], 201);
-        }
+        $this->notifyApprovers($user);
+
+        return response()->json([
+            'message' => 'Registration successful. Your account is awaiting approval.',
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'account_type' => $user->account_type,
+                'account_status' => $user->account_status,
+            ],
+        ], 201);
+    }
 }    

@@ -4,9 +4,10 @@ import { Topbar } from "./Topbar";
 import { t } from "../../constants/translations";
 import type { Lang, Role, DashTab } from "../../types";
 import { getNavBadgeCounts } from "../../../services/badgeCountService";
-import { getCurrentUser} from "../../../services/authService";
+import { getCurrentUser } from "../../../services/authService";
 import type { User } from "../../types/auth";
 import { BadgeRefreshContext } from "../../context/BadgeRefreshContext";
+import { Sparkles } from "lucide-react";
 
 const NAV_TITLES: Record<string, { en: string; si: string }> = {
   dashboard: { en: "Dashboard", si: "උපකරණ පුවරුව" },
@@ -63,7 +64,11 @@ export function DashboardLayout({
   setDashTab?: (tab: DashTab) => void;
   children: React.ReactNode;
 }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // On mobile (<768px), sidebar is hidden by default (`collapsed = true`)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return typeof window !== "undefined" ? window.innerWidth < 768 : false;
+  });
+
   const [badges, setBadges] = useState<Record<string, number>>({});
   const [badgeRefreshSignal, setBadgeRefreshSignal] = useState(0);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -110,7 +115,8 @@ export function DashboardLayout({
 
   return (
     <BadgeRefreshContext.Provider value={{ triggerBadgeRefresh }}>
-      <div className="flex min-h-screen bg-[#F8FAFC]">
+      <div className="flex h-screen bg-[#F8FAFC] text-slate-800 overflow-hidden antialiased">
+        {/* RESPONSIVE SIDEBAR */}
         <Sidebar
           lang={lang}
           setLang={setLang}
@@ -122,28 +128,49 @@ export function DashboardLayout({
           onLogout={onLogout}
           badges={badges}
         />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Topbar lang={lang} setLang={setLang} title={title} />
-          <main className="flex-1 p-6 space-y-6 ">
+
+        {/* MAIN CONTAINER */}
+        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
+          {/* TOPBAR WITH MOBILE HAMBURGER TOGGLE */}
+          <Topbar
+            lang={lang}
+            setLang={setLang}
+            title={title}
+            onMobileMenuToggle={() => setSidebarCollapsed((c) => !c)}
+          />
+
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
             {activeNav === "dashboard" && (
-              <div
-                className="rounded-2xl p-6 text-white relative overflow-hidden"
-                style={{ background: "linear-gradient(135deg, #4295D9 0%, #1A5FA8 100%)" }}
-              >
-                <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/5" />
-                <div className="absolute bottom-0 right-20 w-24 h-24 rounded-full bg-white/5" />
-                <div className="relative z-10">
-                  <p className="text-blue-200 text-sm">{greeting()},</p>
-                  <h2 className="text-2xl font-bold mt-0.5">{userName || "\u00A0"}</h2>
-                  <p className="text-blue-100 text-sm mt-1">{roleLabel}</p>
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-700 p-5 sm:p-8 mb-6 shadow-xl shadow-blue-500/10 text-white">
+                <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-16 right-24 w-48 h-48 bg-white/5 rounded-full blur-xl pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-blue-100 mb-1">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{greeting()}</span>
+                    </div>
+
+                    <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight">
+                      {userName || "\u00A0"}
+                    </h2>
+
+                    <p className="text-xs text-blue-100 mt-1 font-medium">
+                      {roleLabel}
+                    </p>
+                  </div>
+
                   {canSeeSummary && dashTab !== undefined && setDashTab && (
-                    <div className="mt-4 flex gap-1 bg-white/10 rounded-lg p-0.5 w-fit backdrop-blur-sm">
+                    <div className="flex bg-white/15 border border-white/20 p-1 rounded-2xl backdrop-blur-md self-start md:self-auto">
                       {(["personal", "summary"] as DashTab[]).map((tab) => (
                         <button
                           key={tab}
                           onClick={() => setDashTab(tab)}
-                          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer ${
-                            dashTab === tab ? "bg-white text-[#4295D9]" : "text-blue-100 hover:text-white"
+                          className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            dashTab === tab
+                              ? "bg-white text-blue-700 shadow-md"
+                              : "text-blue-50 hover:text-white"
                           }`}
                         >
                           {tab === "personal"
@@ -156,6 +183,7 @@ export function DashboardLayout({
                 </div>
               </div>
             )}
+
             {children}
           </main>
         </div>

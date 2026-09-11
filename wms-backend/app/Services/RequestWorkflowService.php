@@ -19,6 +19,29 @@ class RequestWorkflowService
      * Determines whether it needs recommendation first, or goes
      * straight to approval, and resolves the actual recommender.
      */
+    public function notifyEligibleApprovers(StockRequest $request): void
+    {
+        $eligibleRoleIds = $this->resolveApprovalRoleIds($request);
+
+        if ($eligibleRoleIds->isEmpty()) {
+            return;
+        }
+
+        $commissionerRoleId = Role::where('code', 'COMMISSIONER')->value('id');
+
+        $approvers = User::whereHas('staffProfile', function ($q) use ($eligibleRoleIds, $request, $commissionerRoleId) {
+            $q->whereIn('role_id', $eligibleRoleIds)
+                ->where(function ($q2) use ($request, $commissionerRoleId) {
+                    $q2->where('division_id', $request->division_id)
+                        ->orWhere('role_id', $commissionerRoleId);
+                });
+        })->get();
+
+        foreach ($approvers as $approver) {
+            $approver->notify(new \App\Notifications\RequestNeedsAction($request, 'APPROVAL'));
+        }
+    }
+
     public function initiate(StockRequest $request): void
     {
         $rule = $this->findRecommendationRule($request);
@@ -27,15 +50,34 @@ class RequestWorkflowService
             $request->current_stage = 'RECOMMENDATION';
             $request->status = 'PENDING_RECOMMENDATION';
             $request->recommender_id = $this->resolveRecommenderUser($rule, $request)?->id;
-        } elseif ($this->isAutoApproved($request)) {
-            // e.g. Commissioner's own personal request — no recommendation,
-            // no approval, ready for issuance immediately.
+
+            $request->submitted_at = now();
+            $request->save();
+
+            // Notify the assigned recommender that a new request is waiting on them
+            if ($request->recommender_id) {
+                $request->recommender->notify(
+                    new \App\Notifications\RequestNeedsAction($request, 'RECOMMENDATION')
+                );
+            }
+
+            return;
+        }
+
+        if ($this->isAutoApproved($request)) {
             $request->current_stage = 'ISSUANCE';
             $request->status = 'APPROVED';
             $request->approver_id = $request->requester_id;
         } else {
             $request->current_stage = 'APPROVAL';
             $request->status = 'PENDING_APPROVAL';
+
+            $request->submitted_at = now();
+            $request->save();
+
+            $this->notifyEligibleApprovers($request);
+
+            return;
         }
 
         $request->submitted_at = now();

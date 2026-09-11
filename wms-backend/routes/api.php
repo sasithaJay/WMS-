@@ -22,6 +22,9 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\Admin\UserManagementController;
 use App\Http\Controllers\Api\Admin\AdminStatsController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ItemLabelController;
+use App\Http\Controllers\Api\VatRateController;
 
 //Public Routes
 
@@ -80,6 +83,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
     Route::get('/dashboard/my-view', [DashboardController::class, 'myView']);
 
+    //Notifications Routes
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
     /*
     |--------------------------------------------------------------------------
     | Account Approval
@@ -119,6 +128,11 @@ Route::middleware('auth:sanctum')->group(function () {
             'summary',
         ]);
 
+        Route::get('/items/lookup', [
+            ItemController::class, 
+            'lookup'
+        ]);
+
         Route::get('/items', [
             ItemController::class,
             'index',
@@ -138,6 +152,10 @@ Route::middleware('auth:sanctum')->group(function () {
             UnitController::class,
             'index',
         ]);
+
+        Route::get('/items/{item}/qr-code', [ItemLabelController::class, 'qrCode']);
+
+        Route::get('/items/{item}/barcode', [ItemLabelController::class, 'barcode']);
     });
 
     /*
@@ -257,6 +275,18 @@ Route::middleware('auth:sanctum')->group(function () {
             [StockMovementController::class, 'index']
     );
 
+    // vatRates routes — store keepers can propose new VAT rates, but only commissioners can approve/reject them.
+
+    Route::middleware('permission:stock.receive')->group(function () {
+        Route::get('/vat-rates/current', [VatRateController::class, 'current']);
+        Route::get('/vat-rates/my-requests', [VatRateController::class, 'myRequests']);
+        Route::post('/vat-rates', [VatRateController::class, 'store']);
+    });
+
+    Route::get('/vat-rates/pending', [VatRateController::class, 'pending']);
+    Route::patch('/vat-rates/{vatRate}/approve', [VatRateController::class, 'approve']);
+    Route::patch('/vat-rates/{vatRate}/reject', [VatRateController::class, 'reject']);
+
     // routes/api.php addition
 
     Route::prefix('stock-requests')->group(function () {
@@ -332,5 +362,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/officer-requests', [ReportController::class, 'officerRequests']);
         Route::get('/officer-requests/pdf', [ReportController::class, 'officerRequestsPdf']);
     });
+
 
 });

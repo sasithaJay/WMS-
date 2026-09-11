@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             RecommendationRuleSeeder::class,
             DsOfficeSeeder::class,
             AdminSeeder::class,
+            InstitutionSeeder::class,
         ]);
     }
 }

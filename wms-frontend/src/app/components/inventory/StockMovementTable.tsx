@@ -1,5 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
-import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  History,
+  Inbox,
+  AlertCircle,
+} from "lucide-react";
 import { getStockMovements } from "../../../services/stockMovementService";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
@@ -33,7 +42,10 @@ function formatDateTime(value: string): string {
   });
 }
 
-export function StockMovementTable({ lang, refreshSignal = 0 }: StockMovementTableProps) {
+export function StockMovementTable({
+  lang,
+  refreshSignal = 0,
+}: StockMovementTableProps) {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,8 +75,8 @@ export function StockMovementTable({ lang, refreshSignal = 0 }: StockMovementTab
         t(
           lang,
           "Unable to load stock movement history.",
-          "තොග චලන ඉතිහාසය පූරණය කළ නොහැක.",
-        ),
+          "තොග චලන ඉතිහාසය පූරණය කළ නොහැක."
+        )
       );
     } finally {
       setLoading(false);
@@ -74,14 +86,11 @@ export function StockMovementTable({ lang, refreshSignal = 0 }: StockMovementTab
   async function handleSeeMore() {
     const nextVisibleCount = visibleCount + PAGE_SIZE;
 
-    // If we already have enough cached records fetched, just reveal more —
-    // no API call needed.
     if (nextVisibleCount <= movements.length) {
       setVisibleCount(nextVisibleCount);
       return;
     }
 
-    // Otherwise, reveal what we have and fetch the next page to fill the rest.
     setVisibleCount(movements.length);
 
     if (currentPage >= lastPage) return;
@@ -109,8 +118,8 @@ export function StockMovementTable({ lang, refreshSignal = 0 }: StockMovementTab
         t(
           lang,
           "Unable to load more movements.",
-          "තවත් චලන පූරණය කළ නොහැක.",
-        ),
+          "තවත් චලන පූරණය කළ නොහැක."
+        )
       );
     } finally {
       setLoadingMore(false);
@@ -121,51 +130,77 @@ export function StockMovementTable({ lang, refreshSignal = 0 }: StockMovementTab
     setVisibleCount(PAGE_SIZE);
   }
 
-  // Initial load
   useEffect(() => {
     loadFirstPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadFirstPage]);
 
-  // On refresh signal (e.g. after confirming a receipt), reset back to page 1
   useEffect(() => {
     if (refreshSignal > 0) {
       loadFirstPage();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshSignal]);
+  }, [refreshSignal, loadFirstPage]);
 
   const visibleMovements = movements.slice(0, visibleCount);
   const canSeeMore = visibleCount < movements.length || currentPage < lastPage;
   const isExpanded = visibleCount > PAGE_SIZE;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100">
-      <div className="px-5 py-4 border-b border-gray-100">
-        <h3 className="font-semibold text-gray-900 text-sm">
-          {t(lang, "Stock Movement History", "තොග චලන ඉතිහාසය")}
-        </h3>
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      {/* Card Header */}
+      <div className="px-5 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+          <History className="w-4 h-4 text-blue-600" />
+        </div>
+        <div>
+          <h3 className="font-bold text-slate-900 text-sm tracking-tight">
+            {t(lang, "Stock Movement History", "තොග චලන ඉතිහාසය")}
+          </h3>
+          <p className="text-[11px] font-medium text-slate-400">
+            {t(
+              lang,
+              "Audit log of all stock receipts, issues, and adjustments",
+              "සියලු තොග ලැබීම්, නිකුත් කිරීම් සහ සකස් කිරීම් පිළිබඳ වාර්තාව"
+            )}
+          </p>
+        </div>
       </div>
 
+      {/* Loading State */}
       {loading && (
-        <p className="px-5 py-6 text-sm text-gray-400">
-          {t(lang, "Loading…", "පූරණය වෙමින්…")}
-        </p>
+        <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2.5">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+          <p className="text-xs font-semibold">
+            {t(lang, "Loading…", "පූරණය වෙමින්…")}
+          </p>
+        </div>
       )}
 
+      {/* Error Initial State */}
       {!loading && error && movements.length === 0 && (
-        <p className="px-5 py-6 text-sm text-red-500">{error}</p>
+        <div className="p-6 text-center">
+          <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-rose-50 border border-rose-200/80 rounded-xl text-xs font-bold text-rose-700">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <span>{error}</span>
+          </div>
+        </div>
       )}
 
+      {/* Empty State */}
       {!loading && movements.length === 0 && !error && (
-        <p className="px-5 py-6 text-sm text-gray-400">
-          {t(lang, "No stock movements yet.", "තොග චලන නොමැත.")}
-        </p>
+        <div className="py-12 text-center flex flex-col items-center justify-center gap-2 text-slate-400">
+          <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
+            <Inbox className="w-5 h-5 text-slate-400" />
+          </div>
+          <span className="text-xs font-medium text-slate-500">
+            {t(lang, "No stock movements yet.", "තොග චලන නොමැත.")}
+          </span>
+        </div>
       )}
 
+      {/* Content Entries List */}
       {!loading && movements.length > 0 && (
         <>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-slate-100 text-xs">
             {visibleMovements.map((m) => {
               const incoming = isIncomingMovement(m.movement_type);
               const label = MOVEMENT_LABELS[m.movement_type];
@@ -174,70 +209,89 @@ export function StockMovementTable({ lang, refreshSignal = 0 }: StockMovementTab
               return (
                 <div
                   key={m.id}
-                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition-colors"
+                  className="flex items-center gap-3.5 px-5 py-3.5 hover:bg-slate-50/60 transition-colors"
                 >
+                  {/* Direction Icon Badge */}
                   <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      incoming ? "bg-green-50" : "bg-red-50"
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                      incoming
+                        ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                        : "bg-rose-50 border-rose-100 text-rose-600"
                     }`}
                   >
                     {incoming ? (
-                      <ArrowDownToLine className="w-4 h-4 text-green-600" />
+                      <ArrowDownToLine className="w-4 h-4" />
                     ) : (
-                      <ArrowUpFromLine className="w-4 h-4 text-red-500" />
+                      <ArrowUpFromLine className="w-4 h-4" />
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {m.item.item_code} - {m.item.name_en}
+                  {/* Details */}
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] font-extrabold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200/60 shrink-0">
+                        {m.item.item_code}
+                      </span>
+                      <h4 className="text-xs font-bold text-slate-900 truncate">
+                        {m.item.name_en}
+                      </h4>
                     </div>
-                    <div className="text-xs text-gray-400 truncate">
-                      {label ? t(lang, label.en, label.si) : m.movement_type}
+
+                    <p className="text-[11px] font-medium text-slate-400 truncate">
+                      <span className="text-slate-600 font-semibold">
+                        {label ? t(lang, label.en, label.si) : m.movement_type}
+                      </span>
                       {m.reference_number ? ` · ${m.reference_number}` : ""}
                       {" · "}
                       {m.performer.name} · {formatDateTime(m.created_at)}
-                    </div>
+                    </p>
                   </div>
 
-                  <span
-                    className={`text-sm font-bold flex-shrink-0 ${
-                      incoming ? "text-green-600" : "text-red-500"
+                  {/* Quantity Indicator */}
+                  <div
+                    className={`text-sm font-extrabold font-mono shrink-0 px-2 py-0.5 rounded-lg ${
+                      incoming
+                        ? "text-emerald-700 bg-emerald-50/50"
+                        : "text-rose-700 bg-rose-50/50"
                     }`}
                   >
                     {incoming ? "+" : "-"}
                     {Math.abs(quantity)}
-                  </span>
+                  </div>
                 </div>
               );
             })}
           </div>
 
+          {/* Append Error Message if present during pagination */}
           {error && movements.length > 0 && (
-            <p className="px-5 py-2 text-xs text-red-500">{error}</p>
+            <p className="px-5 py-2 text-xs font-semibold text-rose-600 bg-rose-50/50 border-t border-rose-100">
+              {error}
+            </p>
           )}
 
+          {/* Expand & Collapse Trigger Footer */}
           {(canSeeMore || isExpanded) && (
-            <div className="border-t border-gray-50 px-5 py-3">
+            <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/50">
               <button
                 type="button"
                 onClick={canSeeMore ? handleSeeMore : handleShowLess}
                 disabled={loadingMore}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold text-[#4295D9] hover:bg-blue-50 transition-colors disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {loadingMore ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    {t(lang, "Loading…", "පූරණය වෙමින්…")}
+                    <span>{t(lang, "Loading…", "පූරණය වෙමින්…")}</span>
                   </>
                 ) : canSeeMore ? (
                   <>
-                    {t(lang, "See More", "තව බලන්න")}
+                    <span>{t(lang, "See More", "තව බලන්න")}</span>
                     <ChevronDown className="h-3.5 w-3.5" />
                   </>
                 ) : (
                   <>
-                    {t(lang, "Show Less", "අඩුවෙන් පෙන්වන්න")}
+                    <span>{t(lang, "Show Less", "අඩුවෙන් පෙන්වන්න")}</span>
                     <ChevronUp className="h-3.5 w-3.5" />
                   </>
                 )}
