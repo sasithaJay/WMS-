@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ItemLabelController;
 use App\Http\Controllers\Api\VatRateController;
+use App\Http\Controllers\Api\Admin\BackupController;
 
 //Public Routes
 
@@ -361,6 +362,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/officer-requests', [ReportController::class, 'officerRequests']);
         Route::get('/officer-requests/pdf', [ReportController::class, 'officerRequestsPdf']);
+    });
+
+    Route::middleware('permission:system.backup')->prefix('admin/backups')->group(function () {
+        Route::get('/', [BackupController::class, 'index']);
+        Route::post('/database', [BackupController::class, 'backupDatabase']);
+        Route::post('/uploads', [BackupController::class, 'backupUploads']);
+        Route::get('/{backup}/download', [BackupController::class, 'download']);
+        Route::delete('/{backup}', [BackupController::class, 'destroy']);
+        Route::post('/{backup}/restore', [BackupController::class, 'restore']);
+        Route::get('/maintenance', [BackupController::class, 'maintenanceStatus']);
+        Route::patch('/maintenance', [BackupController::class, 'toggleMaintenance']);
     });
 
 

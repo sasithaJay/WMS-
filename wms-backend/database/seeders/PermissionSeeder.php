@@ -155,6 +155,13 @@ class PermissionSeeder extends Seeder
                     'View system reports.',
             ],
 
+            [
+                'name' => 'System Backup',
+                'code' => 'system.backup',
+                'description' =>
+                    'Perform system backups.',
+            ],
+
         ];
 
         foreach ($permissions as $permission) {
