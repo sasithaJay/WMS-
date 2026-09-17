@@ -673,7 +673,7 @@ export function StockReceivingForm({
           {/* BARCODE SCANNER & ITEM ENTRIES */}
           <div className="space-y-4 pt-2 border-t border-slate-100">
             <div className="max-w-md">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <label className="flex text-xs font-bold text-slate-700 mb-1.5 items-center gap-1.5">
                 <Scan className="w-3.5 h-3.5 text-blue-600" />
                 <span>{t(lang, "Scan Item", "භාණ්ඩය ස්කෑන් කරන්න")}</span>
               </label>

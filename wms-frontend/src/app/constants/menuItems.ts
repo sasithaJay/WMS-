@@ -42,6 +42,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
       labelSi: "වාර්තා",
       icon: FileText,
     },
+    { icon: Database, label: "Backups", labelSi: "උපස්ථ", id: "backups" },
     {
       id: "settings",
       label: "Settings",

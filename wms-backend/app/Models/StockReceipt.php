@@ -18,6 +18,13 @@ class StockReceipt extends Model
         'invoice_number',
         'received_date',
         'notes',
+
+        // Financial fields
+        'subtotal',
+        'vat_percentage',
+        'vat_amount',
+        'total_with_vat',
+
         'status',
         'created_by',
         'confirmed_by',
@@ -33,6 +40,11 @@ class StockReceipt extends Model
             'received_date' => 'date',
             'confirmed_at' => 'datetime',
             'cancelled_at' => 'datetime',
+
+            'subtotal' => 'decimal:2',
+            'vat_percentage' => 'decimal:2',
+            'vat_amount' => 'decimal:2',
+            'total_with_vat' => 'decimal:2',
         ];
     }
 
@@ -84,3 +96,4 @@ class StockReceipt extends Model
         return $this->status === 'CANCELLED';
     }
 }
+

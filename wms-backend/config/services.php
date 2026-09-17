@@ -40,4 +40,9 @@ return [
         'password' => env('SMS_GATEWAY_PASSWORD'),
     ],
 
+    'mysql_tools' => [
+        'mysqldump' => env('MYSQLDUMP_PATH', 'mysqldump'),
+        'mysql' => env('MYSQL_PATH', 'mysql'),
+    ],
+
 ];
