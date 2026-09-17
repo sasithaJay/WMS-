@@ -10,6 +10,7 @@ import type { Lang } from "../../types";
 import { UserManagementTable } from "../../components/users/UserManagementTable";
 import { getAdminStats } from "../../../services/userManagementService";
 import type { AdminStats } from "../../types/userManagement";
+import { BackupSettingsPanel } from "../../components/settings/BackupSettingsPanel";
 
 export function AdminDashboard({
   lang,
@@ -82,6 +83,7 @@ export function AdminDashboard({
         </div>
       )}
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {/* {activeNav === "backups" && <BackupSettingsPanel lang={lang} />} */}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

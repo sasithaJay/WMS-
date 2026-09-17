@@ -21,6 +21,7 @@ class RolePermissionSeeder extends Seeder
                 'users.approve',
                 'users.manage',
                 'reports.view',
+                'system.backup',
             ],
 
             //Commissioner
