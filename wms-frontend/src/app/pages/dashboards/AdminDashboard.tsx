@@ -83,7 +83,7 @@ export function AdminDashboard({
         </div>
       )}
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
-      {activeNav === "backups" && <BackupSettingsPanel lang={lang} />}
+      {/* {activeNav === "backups" && <BackupSettingsPanel lang={lang} />} */}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );
