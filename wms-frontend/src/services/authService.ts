@@ -18,6 +18,17 @@ export async function login(
   return response.data;
 }
 
+export async function requestTemporaryPassword(
+  username: string,
+): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>(
+    "/forgot-password",
+    { username },
+  );
+
+  return response.data;
+}
+
 export async function getRegistrationOptions():
   Promise<RegistrationOptionsResponse> {
   const response =
