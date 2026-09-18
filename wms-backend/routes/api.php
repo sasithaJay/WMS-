@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\Auth\LoginController;
+use App\Http\Controllers\Api\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\Auth\RegistrationOptionsController;
 use App\Http\Controllers\Api\Admin\AccountApprovalController;
 use App\Http\Controllers\Api\ItemController;
@@ -38,6 +39,11 @@ Route::post('/login', [
     LoginController::class,
     'login',
 ]);
+
+Route::post('/forgot-password', [
+    ForgotPasswordController::class,
+    'store',
+])->middleware('throttle:5,10');
 
 Route::get('/registration-options', [
     RegistrationOptionsController::class,
