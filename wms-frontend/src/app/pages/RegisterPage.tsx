@@ -161,7 +161,7 @@ export function RegisterPage({
             "ලියාපදිංචි විකල්ප පූරණය කළ නොහැක.",
           ),
         );
-      } fontFinally: {
+      } finally {
         setLoadingOptions(false);
       }
     };
@@ -344,7 +344,7 @@ export function RegisterPage({
 
     if (step === 3) {
       const hasUsername =
-        accountType === "staff" ? !!form.salaryNumber : !!form.username;
+        accountType === "staff" ? !!form.salaryNumber : !!form.institutionId;
 
       if (!hasUsername || !form.password || !form.confirmPassword) {
         setError(
@@ -410,7 +410,7 @@ export function RegisterPage({
       } else {
         payload = {
           account_type: "INSTITUTION",
-          username: form.username,
+          username: `SWPCS-${form.institutionId}`,
           email: form.cpEmail,
           password: form.password,
           password_confirmation: form.confirmPassword,
