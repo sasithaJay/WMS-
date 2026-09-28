@@ -11,22 +11,68 @@ class BackupService
 {
     private const DIR = 'backups';
 
+    // public function createDatabaseBackup(int $userId): Backup
+    // {
+    //     $config = config('database.connections.' . config('database.default'));
+    //     $fileName = 'backup_db_' . now()->format('Y-m-d_H-i-s') . '.sql';
+    //     $tempPath = storage_path('app/' . self::DIR . '/' . $fileName);
+
+    //     $this->ensureDirectoryExists();
+
+    //     $process = new Process($this->buildMysqldumpCommand($config));
+    //     $process->setTimeout(300);
+    //     $process->run(function ($type, $buffer) use ($tempPath) {
+    //         file_put_contents($tempPath, $buffer, FILE_APPEND);
+    //     });
+
+    //     if (! $process->isSuccessful()) {
+    //         @unlink($tempPath);
+    //         throw new ProcessFailedException($process);
+    //     }
+
+    //     $zipFileName = 'backup_db_' . now()->format('Y-m-d_H-i-s') . '.zip';
+    //     $zipPath = storage_path('app/' . self::DIR . '/' . $zipFileName);
+
+    //     $zip = new ZipArchive();
+    //     $zip->open($zipPath, ZipArchive::CREATE);
+    //     $zip->addFile($tempPath, $fileName);
+    //     $zip->close();
+    //     unlink($tempPath);
+
+    //     return Backup::create([
+    //         'file_name' => $zipFileName,
+    //         'type' => 'DATABASE',
+    //         'file_size' => filesize($zipPath),
+    //         'created_by' => $userId,
+    //     ]);
+    // }
+
     public function createDatabaseBackup(int $userId): Backup
     {
         $config = config('database.connections.' . config('database.default'));
+
         $fileName = 'backup_db_' . now()->format('Y-m-d_H-i-s') . '.sql';
         $tempPath = storage_path('app/' . self::DIR . '/' . $fileName);
 
         $this->ensureDirectoryExists();
 
         $process = new Process($this->buildMysqldumpCommand($config));
+
         $process->setTimeout(300);
-        $process->run(function ($type, $buffer) use ($tempPath) {
-            file_put_contents($tempPath, $buffer, FILE_APPEND);
+
+        $output = fopen($tempPath, 'wb');
+
+        $process->run(function ($type, $buffer) use ($output) {
+            if ($type === Process::OUT) {
+                fwrite($output, $buffer);
+            }
         });
+
+        fclose($output);
 
         if (! $process->isSuccessful()) {
             @unlink($tempPath);
+
             throw new ProcessFailedException($process);
         }
 
@@ -34,9 +80,16 @@ class BackupService
         $zipPath = storage_path('app/' . self::DIR . '/' . $zipFileName);
 
         $zip = new ZipArchive();
-        $zip->open($zipPath, ZipArchive::CREATE);
+
+        if ($zip->open($zipPath, ZipArchive::CREATE) !== true) {
+            @unlink($tempPath);
+
+            throw new \RuntimeException('Could not create backup ZIP file.');
+        }
+
         $zip->addFile($tempPath, $fileName);
         $zip->close();
+
         unlink($tempPath);
 
         return Backup::create([
@@ -137,12 +190,6 @@ class BackupService
         return storage_path('app/' . self::DIR . '/' . $backup->file_name);
     }
 
-    /**
-     * Builds the mysqldump command array, using the configured binary path
-     * (falls back to plain "mysqldump" on Linux where it's already on PATH)
-     * and omitting --password entirely when empty, since some MySQL builds
-     * reject a blank --password= flag rather than treating it as no password.
-     */
     // private function buildMysqldumpCommand(array $config): array
     // {
     //     $args = [
@@ -160,15 +207,11 @@ class BackupService
 
     //     return $args;
     // }
+
     private function buildMysqldumpCommand(array $config): array
     {
-        $mysqldump = config('services.mysql_tools.mysqldump');
-
         return [
-            $mysqldump,
-            '--protocol=tcp',
-            '--host=127.0.0.1',
-            '--port=3306',
+            config('services.mysql_tools.mysqldump'),
             '--user=' . $config['username'],
             $config['database'],
         ];
@@ -191,15 +234,11 @@ class BackupService
 
     //     return $args;
     // }
+
     private function buildMysqlCommand(array $config): array
     {
-        $mysql = config('services.mysql_tools.mysql');
-
         return [
-            $mysql,
-            '--protocol=tcp',
-            '--host=127.0.0.1',
-            '--port=3306',
+            config('services.mysql_tools.mysql'),
             '--user=' . $config['username'],
             $config['database'],
         ];

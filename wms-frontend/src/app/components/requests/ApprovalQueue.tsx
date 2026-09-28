@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { CheckCircle2, AlertCircle, Loader2, X, User } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, X, CheckSquare, Square, Check, User } from "lucide-react";
 import {
   getPendingApproval,
   approveStockRequest,
@@ -37,6 +37,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -77,13 +78,13 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         t(
           lang,
           "Unable to load the approval queue.",
-          "අනුමැති පෝලිම පූරණය කළ නොහැක.",
-        ),
+          "අනුමැති පෝලිම පූරණය කළ නොහැක."
+        )
       );
     } finally {
       setLoading(false);
     }
-  }, [lang]);
+  }, [lang, requests.length]);
 
   useEffect(() => {
     loadQueue();
@@ -97,7 +98,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         byDivision.set(r.division_id, new Set());
       }
       (r.items ?? []).forEach((it) =>
-        byDivision.get(r.division_id)!.add(it.item_id),
+        byDivision.get(r.division_id)!.add(it.item_id)
       );
     });
 
@@ -105,7 +106,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
       getInventoryBalances(Array.from(itemIdSet), divisionId).then(
         (result) => {
           setBalances((prev) => ({ ...prev, ...result }));
-        },
+        }
       );
     });
   }, [requests]);
@@ -113,7 +114,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
   function setDraftQuantity(
     requestId: number,
     itemId: number,
-    value: string,
+    value: string
   ) {
     setDrafts((current) => ({
       ...current,
@@ -130,6 +131,20 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
       const draftQty = Number(itemDrafts[it.item_id]);
       return draftQty !== baselineQuantity(it);
     });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.length === requests.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(requests.map((r) => r.id));
+    }
+  }
+
+  function toggleSelectRow(id: number) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   }
 
   async function handleApprove(request: StockRequest) {
@@ -150,7 +165,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         [request.id]: t(
           lang,
           "Approved quantity must be between 0 and the recommended quantity.",
-          "අනුමත ප්‍රමාණය 0 සහ නිර්දේශිත ප්‍රමාණය අතර විය යුතුය.",
+          "අනුමත ප්‍රමාණය 0 සහ නිර්දේශිත ප්‍රමාණය අතර විය යුතුය."
         ),
       }));
       return;
@@ -165,7 +180,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         [request.id]: t(
           lang,
           "Please enter a reason for changing the quantity.",
-          "ප්‍රමාණය වෙනස් කිරීමට හේතුවක් ඇතුළත් කරන්න.",
+          "ප්‍රමාණය වෙනස් කිරීමට හේතුවක් ඇතුළත් කරන්න."
         ),
       }));
       return;
@@ -181,21 +196,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         remarks: changed ? comment : undefined,
       });
       setRequests((current) => current.filter((r) => r.id !== request.id));
-      const remainingSameDivision = requests.filter(
-        (r) => r.id !== request.id && r.division_id === request.division_id,
-      );
-      const itemIds = Array.from(
-        new Set(
-          remainingSameDivision.flatMap((r) =>
-            (r.items ?? []).map((it) => it.item_id),
-          ),
-        ),
-      );
-      if (itemIds.length > 0) {
-        getInventoryBalances(itemIds, request.division_id).then((result) => {
-          setBalances((prev) => ({ ...prev, ...result }));
-        });
-      }
+      setSelectedIds((prev) => prev.filter((i) => i !== request.id));
       triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
@@ -203,11 +204,20 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         t(
           lang,
           "Unable to approve this request. Please try again.",
-          "මෙම ඉල්ලීම අනුමත කළ නොහැක. නැවත උත්සාහ කරන්න.",
-        ),
+          "මෙම ඉල්ලීම අනුමත කළ නොහැක. නැවත උත්සාහ කරන්න."
+        )
       );
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function handleBulkApprove() {
+    for (const id of selectedIds) {
+      const req = requests.find((r) => r.id === id);
+      if (req) {
+        await handleApprove(req);
+      }
     }
   }
 
@@ -219,6 +229,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
       setError("");
       await rejectStockRequest(id, rejectReason);
       setRequests((current) => current.filter((r) => r.id !== id));
+      setSelectedIds((prev) => prev.filter((i) => i !== id));
       setRejectingId(null);
       setRejectReason("");
       triggerBadgeRefresh();
@@ -228,8 +239,8 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         t(
           lang,
           "Unable to reject this request. Please try again.",
-          "මෙම ඉල්ලීම ප්‍රතික්ෂේප කළ නොහැක. නැවත උත්සාහ කරන්න.",
-        ),
+          "මෙම ඉල්ලීම ප්‍රතික්ෂේප කළ නොහැක. නැවත උත්සාහ කරන්න."
+        )
       );
     } finally {
       setBusyId(null);
@@ -238,7 +249,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
 
   if (loading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
+      <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2.5 bg-white rounded-2xl border border-slate-200/80">
         <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
         <p className="text-xs font-semibold">
           {t(lang, "Loading queue…", "පූරණය වෙමින්…")}
@@ -255,40 +266,302 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         subtitle={t(
           lang,
           "All requests have been processed.",
-          "සියලු ඉල්ලීම් සකස් කර ඇත.",
+          "සියලු ඉල්ලීම් සකස් කර ඇත."
         )}
       />
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-6">
       {error && (
-        <div className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-700">
+        <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 text-xs font-semibold text-rose-700 flex items-center gap-2.5">
           <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-slate-500">
+      {/* HEADER BAR & BATCH ACTIONS */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <p className="text-xs font-bold text-slate-700">
           {requests.length}{" "}
           {t(
             lang,
             "request(s) awaiting your approval",
-            "ඉල්ලීම් ඔබගේ අනුමතිය බලා සිටී",
+            "ඉල්ලීම් ඔබගේ අනුමතිය බලා සිටී"
           )}
         </p>
+
+        {selectedIds.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-500 font-mono">
+              {selectedIds.length} selected
+            </span>
+            <button
+              type="button"
+              onClick={handleBulkApprove}
+              className="h-8 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>{t(lang, "Approve Selected", "තෝරාගත් අනුමත කරන්න")}</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* DESKTOP VIEW: MASTER DATA TABLE (md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="px-4 py-3.5 w-10 text-center">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {selectedIds.length === requests.length &&
+                    requests.length > 0 ? (
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3.5 whitespace-nowrap">
+                  {t(lang, "Request / Requester", "ඉල්ලීම / ඉල්ලුම්කරු")}
+                </th>
+                <th className="px-4 py-3.5 whitespace-nowrap">
+                  {t(lang, "Items & Quantities", "භාණ්ඩ සහ ප්‍රමාණයන්")}
+                </th>
+                <th className="px-4 py-3.5 whitespace-nowrap">
+                  {t(lang, "Notes / Justification", "සටහන්")}
+                </th>
+                <th className="px-4 py-3.5 text-right whitespace-nowrap">
+                  {t(lang, "Actions", "ක්‍රියා")}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100 text-xs font-medium">
+              {requests.map((r) => {
+                const isSelected = selectedIds.includes(r.id);
+                const changed = hasQuantityChanges(r);
+
+                return (
+                  <tr
+                    key={r.id}
+                    className={`hover:bg-slate-50/60 transition-colors ${
+                      isSelected ? "bg-blue-50/30" : ""
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <td className="px-4 py-4 text-center align-top">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelectRow(r.id)}
+                        className="text-slate-400 hover:text-slate-600 cursor-pointer mt-1"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-4 h-4 text-blue-600" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
+                    </td>
+
+                    {/* Request & Requester Info */}
+                    <td className="px-4 py-4 align-top space-y-1.5 min-w-[200px]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
+                          {r.request_number}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80">
+                          {r.request_context}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 pt-0.5 text-slate-800 font-bold">
+                        <span>{r.requester?.name ?? `#${r.requester_id}`}</span>
+                        {r.requester?.role_label && (
+                          <span className="text-slate-400 font-normal">
+                            · {r.requester.role_label}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-slate-400 font-mono">
+                        {formatDate(r.submitted_at)}
+                      </p>
+                    </td>
+
+                    {/* Multiple Items & Quantities Editor */}
+                    <td className="px-4 py-4 align-top min-w-[320px]">
+                      <div className="space-y-3">
+                        {(r.items ?? []).map((it) => {
+                          const maxLimit = baselineQuantity(it);
+                          const draftVal = Number(
+                            drafts[r.id]?.[it.item_id] ?? 0
+                          );
+                          const balance = balances[it.item_id];
+                          const availableQty = balance?.available ?? 0;
+                          const isZeroStock = availableQty === 0;
+                          const isOverLimit =
+                            draftVal < 0 || draftVal > maxLimit;
+                          const isShortStock = draftVal > availableQty;
+
+                          return (
+                            <div
+                              key={it.id}
+                              className="bg-slate-100 p-2.5 rounded-xl border border-slate-100 space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-bold text-slate-800">
+                                  {it.item.item_code} — {it.item.name_en}
+                                </span>
+                                {balance && (
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                                      isZeroStock
+                                        ? "bg-rose-100 text-rose-800 border border-rose-300 animate-pulse"
+                                        : isShortStock
+                                        ? "bg-rose-50 text-rose-700 border border-rose-200/80"
+                                        : "text-slate-500"
+                                    }`}
+                                  >
+                                    {isZeroStock
+                                      ? t(lang, "Out of stock (0)", "තොග නොමැත (0)")
+                                      : `${availableQty} in stock`}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                                <span>
+                                  {t(lang, "Recommended", "නිර්දේශිත")}:{" "}
+                                  <strong className="text-slate-700 font-mono">
+                                    {maxLimit}
+                                  </strong>
+                                </span>
+
+                                <div className="flex items-center gap-1.5 ml-auto">
+                                  <label className=" text-[12px] font-bold text-slate-600">
+                                    {t(lang, "Approve Qty", "අනුමත")}
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={maxLimit}
+                                    value={drafts[r.id]?.[it.item_id] ?? ""}
+                                    onChange={(e) =>
+                                      setDraftQuantity(
+                                        r.id,
+                                        it.item_id,
+                                        e.target.value
+                                      )
+                                    }
+                                    className={`w-16 h-7 rounded-lg border text-center text-sm font-mono font-bold outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                      isOverLimit
+                                        ? "border-rose-500 bg-rose-50 text-rose-700"
+                                        : "border-slate-200 bg-white text-slate-900 focus:border-blue-500"
+                                    }`}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Quantity Change Reason Box */}
+                      {changed && (
+                        <div className="mt-3 space-y-1 animate-in fade-in">
+                          <label className="block text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                            {t(
+                              lang,
+                              "Reason for quantity change required",
+                              "ප්‍රමාණය වෙනස් කිරීමට හේතුව අවශ්‍යයි"
+                            )}
+                          </label>
+                          <input
+                            type="text"
+                            value={qtyChangeComments[r.id] ?? ""}
+                            onChange={(e) =>
+                              setQtyChangeComments((prev) => ({
+                                ...prev,
+                                [r.id]: e.target.value,
+                              }))
+                            }
+                            placeholder={t(
+                              lang,
+                              "Enter reason...",
+                              "හේතුව ඇතුළත් කරන්න..."
+                            )}
+                            className="w-full h-8 px-3 rounded-lg border border-amber-200 bg-amber-50/40 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-amber-500"
+                          />
+                        </div>
+                      )}
+
+                      {validationError[r.id] && (
+                        <p className="mt-1 text-[11px] font-bold text-rose-600">
+                          {validationError[r.id]}
+                        </p>
+                      )}
+                    </td>
+
+                    {/* Notes */}
+                    <td className="px-4 py-4 align-top text-slate-500 italic text-[11px] max-w-[200px]">
+                      {r.notes ? `"${r.notes}"` : "—"}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-4 align-top text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRejectingId(r.id);
+                            setRejectReason("");
+                          }}
+                          disabled={busyId === r.id}
+                          className="h-8 px-3 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          {t(lang, "Reject", "ප්‍රතික්ෂේප")}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(r)}
+                          disabled={busyId === r.id}
+                          className="h-8 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1 shadow-xs"
+                        >
+                          {busyId === r.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          <span>{t(lang, "Approve", "අනුමත")}</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* MOBILE VIEW: CARD-LIKE LAYOUT WITH AVAILABLE STOCK COLUMN (<md) */}
+      <div className="block md:hidden space-y-4">
         {requests.map((r) => {
           const changed = hasQuantityChanges(r);
 
           return (
             <div
               key={r.id}
-              className="flex flex-col justify-between bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:border-slate-300"
+              className="flex flex-col justify-between bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-200"
             >
               <div>
                 {/* Header Badge Row */}
@@ -333,23 +606,24 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                   </p>
                 )}
 
-                {/* Items Table */}
+                {/* Items Card Sub-list with Available Column */}
                 <div className="overflow-hidden rounded-xl border border-slate-200/80 my-4">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        <th className="px-3.5 py-2.5">
+                        <th className="px-3 py-2.5">
                           {t(lang, "Item", "භාණ්ඩය")}
                         </th>
-                        <th className="px-3.5 py-2.5 text-center">
-                          {t(lang, "Recommended", "නිර්දේශිත")}
+                        <th className="px-2 py-2.5 text-center">
+                          {t(lang, "Recommeded Qty", "නිර්දේශිත")}
                         </th>
-                        <th className="px-3.5 py-2.5 text-center">
-                          {t(lang, "Approve Qty", "අනුමත ප්‍රමාණය")}
+                        <th className="px-2 py-2.5 text-center">
+                          {t(lang, "Approve Qty", "අනුමත")}
                         </th>
-                        <th className="px-3.5 py-2.5 text-center">
+                        <th className="px-2 py-2.5 text-center">
                           {t(lang, "Available", "ලබාගත හැකි")}
                         </th>
+                        
                       </tr>
                     </thead>
 
@@ -357,28 +631,31 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                       {(r.items ?? []).map((it) => {
                         const maxLimit = baselineQuantity(it);
                         const draftVal = Number(
-                          drafts[r.id]?.[it.item_id] ?? 0,
+                          drafts[r.id]?.[it.item_id] ?? 0
                         );
                         const balance = balances[it.item_id];
+                        const availableQty = balance?.available ?? 0;
+                        const isZeroStock = availableQty === 0;
                         const isOverLimit =
                           draftVal < 0 || draftVal > maxLimit;
-                        const isShortStock =
-                          balance && draftVal > balance.available;
 
                         return (
                           <tr
                             key={it.id}
                             className="hover:bg-slate-50/50 transition-colors"
                           >
-                            <td className="px-3.5 py-3 font-semibold text-slate-800">
-                              {it.item.item_code} — {it.item.name_en}
+                            <td className="px-3 py-3 font-semibold text-slate-800">
+                              <div>{it.item.name_en}</div>
+                              <span className="font-mono text-[10px] text-slate-400">
+                                {it.item.item_code}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 text-center font-semibold text-slate-800">
+                              <div>{maxLimit}</div>
+                            
                             </td>
 
-                            <td className="px-3.5 py-3 text-center font-medium text-slate-500">
-                              {maxLimit}
-                            </td>
-
-                            <td className="px-3.5 py-3 text-center">
+                            <td className="px-2 py-3 text-center">
                               <input
                                 type="number"
                                 min={0}
@@ -388,34 +665,34 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                                   setDraftQuantity(
                                     r.id,
                                     it.item_id,
-                                    e.target.value,
+                                    e.target.value
                                   )
                                 }
-                                className={`w-18 h-8 rounded-lg border text-center text-xs font-bold outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                className={`w-14 h-8 rounded-lg border text-center text-xs font-bold outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                   isOverLimit
-                                    ? "border-rose-500 bg-rose-50/50 text-rose-700 focus:ring-2 focus:ring-rose-500/20"
-                                    : "border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+                                    ? "border-rose-500 bg-rose-50/50 text-rose-700"
+                                    : "border-slate-200 bg-slate-50 text-slate-900"
                                 }`}
                               />
                             </td>
 
-                            <td className="px-3.5 py-3 text-center">
+                            <td className="px-2 py-3 text-center">
                               {balance ? (
                                 <span
-                                  className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md ${
-                                    isShortStock
-                                      ? "bg-rose-50 text-rose-600 font-bold border border-rose-100"
-                                      : "text-slate-500"
+                                  className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                    isZeroStock
+                                      ? "bg-rose-100 text-rose-800 border border-rose-300"
+                                      : "text-slate-600"
                                   }`}
                                 >
-                                  {t(
-                                    lang,
-                                    `${balance.available} in stock`,
-                                    `තොගයේ ${balance.available}`,
-                                  )}
+                                  {isZeroStock ? "0 (Out)" : availableQty}
                                 </span>
-                              ) : null}
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
                             </td>
+
+                            
                           </tr>
                         );
                       })}
@@ -423,25 +700,14 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                   </table>
                 </div>
 
-                <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200/80 bg-amber-50/60 px-3.5 py-2.5 text-xs font-medium text-amber-800">
-                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                  <span>
-                    {t(
-                      lang,
-                      "You may reduce quantities before approving.",
-                      "අනුමත කිරීමට පෙර ප්‍රමාණ අඩු කළ හැකිය.",
-                    )}
-                  </span>
-                </div>
-
                 {/* Animated Reason Input Box */}
                 {changed && (
-                  <div className="mb-4 transition-all duration-300 animate-in fade-in slide-in-from-top-1">
+                  <div className="mb-4 transition-all duration-300">
                     <label className="mb-1.5 block text-xs font-bold text-slate-700">
                       {t(
                         lang,
                         "Reason for quantity change",
-                        "ප්‍රමාණය වෙනස් කිරීමට හේතුව",
+                        "ප්‍රමාණය වෙනස් කිරීමට හේතුව"
                       )}
                     </label>
 
@@ -454,11 +720,11 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                         }))
                       }
                       rows={2}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500"
                       placeholder={t(
                         lang,
                         "Example: Only partial stock is available.",
-                        "උදාහරණය: තොගයේ පවතින්නේ කොටස් ප්‍රමාණයක් පමණි.",
+                        "උදාහරණය: තොගයේ පවතින්නේ කොටස් ප්‍රමාණයක් පමණි."
                       )}
                     />
                   </div>
@@ -480,7 +746,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                     setRejectReason("");
                   }}
                   disabled={busyId === r.id}
-                  className="h-9 px-4 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-xs font-bold text-rose-600 hover:text-rose-700 disabled:opacity-50 transition-all cursor-pointer"
+                  className="h-9 px-4 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-xs font-bold text-rose-600 transition-all cursor-pointer"
                 >
                   {t(lang, "Reject", "ප්‍රතික්ෂේප")}
                 </button>
@@ -489,13 +755,10 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                   type="button"
                   onClick={() => handleApprove(r)}
                   disabled={busyId === r.id}
-                  className="h-9 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-xs hover:shadow-md shadow-blue-500/20 disabled:opacity-50 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="h-9 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   {busyId === r.id ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>{t(lang, "Processing…", "සකසමින්…")}</span>
-                    </>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <span>{t(lang, "Approve", "අනුමත")}</span>
                   )}
@@ -506,12 +769,20 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         })}
       </div>
 
-      {/* Reject Modal */}
+      {/* REJECT MODAL DIALOG */}
       {rejectingId !== null && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-base font-bold text-slate-900">
+        <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-[100] grid place-items-center p-4">
+          <div
+            onClick={() => {
+              setRejectingId(null);
+              setRejectReason("");
+            }}
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity"
+          />
+
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200/80 z-10 p-6 space-y-4 my-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
                 {t(lang, "Reject Request", "ඉල්ලීම ප්‍රතික්ෂේප කරන්න")}
               </h3>
               <button
@@ -520,17 +791,17 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                   setRejectingId(null);
                   setRejectReason("");
                 }}
-                className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs font-medium text-slate-500">
               {t(
                 lang,
                 "Please enter the reason for rejecting this request.",
-                "මෙම ඉල්ලීම ප්‍රතික්ෂේප කිරීමට හේතුව ඇතුළත් කරන්න.",
+                "මෙම ඉල්ලීම ප්‍රතික්ෂේප කිරීමට හේතුව ඇතුළත් කරන්න."
               )}
             </p>
 
@@ -538,15 +809,15 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               rows={3}
-              className="w-full border border-slate-200 bg-slate-50/50 rounded-xl p-3 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all placeholder:text-slate-400"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all placeholder:text-slate-400"
               placeholder={t(
                 lang,
                 "Enter reject reason...",
-                "ප්‍රතික්ෂේප හේතුව ඇතුළත් කරන්න...",
+                "ප්‍රතික්ෂේප හේතුව ඇතුළත් කරන්න..."
               )}
             />
 
-            <div className="flex gap-2.5 mt-5">
+            <div className="pt-2 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -554,7 +825,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                   setRejectReason("");
                 }}
                 disabled={busyId === rejectingId}
-                className="flex-1 h-9 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl disabled:opacity-50 transition-all cursor-pointer"
+                className="h-9 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all cursor-pointer"
               >
                 {t(lang, "Cancel", "අවලංගු කරන්න")}
               </button>
@@ -563,19 +834,18 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                 type="button"
                 onClick={() => handleReject(rejectingId)}
                 disabled={!rejectReason.trim() || busyId === rejectingId}
-                className="flex-1 h-9 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow-xs disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                className="h-9 px-5 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs"
               >
                 {busyId === rejectingId ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <span>
-                    {t(
-                      lang,
-                      "Confirm Reject",
-                      "ප්‍රතික්ෂේප කිරීම තහවුරු කරන්න",
-                    )}
-                  </span>
-                )}
+                ) : null}
+                <span>
+                  {t(
+                    lang,
+                    "Confirm Reject",
+                    "ප්‍රතික්ෂේප කිරීම තහවුරු කරන්න"
+                  )}
+                </span>
               </button>
             </div>
           </div>
