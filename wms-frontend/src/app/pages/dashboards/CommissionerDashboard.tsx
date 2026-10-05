@@ -41,7 +41,7 @@ export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang;
           }} />
       )}
       {activeNav === "approve" && <ApprovalQueue lang={lang} />}
-      {activeNav === "vat-approve" && <VatRateApprovalQueue lang={lang} />}
+      
       {activeNav === "reports" && <ReportsPanel lang={lang} />}
       {activeNav === "users" && (
         <div className="space-y-6">

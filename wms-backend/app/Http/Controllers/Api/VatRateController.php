@@ -59,14 +59,14 @@ class VatRateController extends Controller
             'requested_by' => $request->user()->id,
         ]);
 
-        // Notify Commissioner(s) — VAT approval is Commissioner-only,
+        // Notify Accountant(s) — VAT approval is Accountant-only,
         // unlike item updates which AO/Accountant can also review.
-        $commissioners = \App\Models\User::whereHas('staffProfile.role', fn ($q) =>
-            $q->where('code', 'COMMISSIONER')
+        $accountants = \App\Models\User::whereHas('staffProfile.role', fn ($q) =>
+            $q->where('code', 'ACCOUNTANT')
         )->get();
 
-        foreach ($commissioners as $commissioner) {
-            $commissioner->notify(new VatRateStatusChanged($vatRate, 'SUBMITTED'));
+        foreach ($accountants as $accountant) {
+            $accountant->notify(new VatRateStatusChanged($vatRate, 'SUBMITTED'));
         }
 
         return response()->json([
@@ -90,7 +90,7 @@ class VatRateController extends Controller
 
     public function approve(Request $request, VatRate $vatRate): JsonResponse
     {
-        abort_if($request->user()->staffProfile?->role?->code !== 'COMMISSIONER', 403, 'Only the Commissioner can approve VAT rate changes.');
+        abort_if($request->user()->staffProfile?->role?->code !== 'ACCOUNTANT', 403, 'Only the Accountant can approve VAT rate changes.');
 
         abort_unless($vatRate->status === 'PENDING', 422, 'This request has already been reviewed.');
 
@@ -115,7 +115,7 @@ class VatRateController extends Controller
 
     public function reject(Request $request, VatRate $vatRate): JsonResponse
     {
-        abort_if($request->user()->staffProfile?->role?->code !== 'COMMISSIONER', 403, 'Only the Commissioner can review VAT rate changes.');
+        abort_if($request->user()->staffProfile?->role?->code !== 'ACCOUNTANT', 403, 'Only the Accountant can review VAT rate changes.');
 
         abort_unless($vatRate->status === 'PENDING', 422, 'This request has already been reviewed.');
 
