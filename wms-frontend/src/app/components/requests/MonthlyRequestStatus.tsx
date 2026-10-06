@@ -42,6 +42,8 @@ function toActionItem(r: StockRequest): ActionRequiredItem {
 const STATUS_STYLES: Record<StockRequestStatus, string> = {
   PENDING_RECOMMENDATION: "bg-amber-50 text-amber-700 border-amber-200/80",
   PENDING_APPROVAL: "bg-amber-50 text-amber-700 border-amber-200/80",
+  PARTIALLY_PROCESSED: "bg-orange-50 text-orange-700 border-orange-200/80",
+  PARTIALLY_ISSUED: "bg-blue-50 text-blue-700 border-blue-200/80",
   APPROVED: "bg-blue-50 text-blue-700 border-blue-200/80",
   ISSUED: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
   REJECTED: "bg-rose-50 text-rose-700 border-rose-200/80",
@@ -52,6 +54,8 @@ const STATUS_STYLES: Record<StockRequestStatus, string> = {
 const STATUS_LABELS: Record<StockRequestStatus, { en: string; si: string }> = {
   PENDING_RECOMMENDATION: { en: "Pending Recommendation", si: "නිර්දේශය අපේක්ෂිතයි" },
   PENDING_APPROVAL: { en: "Pending Approval", si: "අනුමැතිය අපේක්ෂිතයි" },
+  PARTIALLY_PROCESSED: { en: "Partially Processed", si: "කොටසක් සකස් කර ඇත" },
+  PARTIALLY_ISSUED: { en: "Partially Issued", si: "කොටසක් නිකුත් කර ඇත" },
   APPROVED: { en: "Approved", si: "අනුමත" },
   ISSUED: { en: "Issued", si: "නිකුත් කරන ලදී" },
   REJECTED: { en: "Rejected", si: "ප්‍රතික්ෂේප" },

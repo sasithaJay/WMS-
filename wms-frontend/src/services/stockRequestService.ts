@@ -9,6 +9,7 @@ import type {
 export async function getStockRequests(params?: {
   page?: number;
   per_page?: number;
+  request_context?: "PERSONAL" | "SECTION_COMMON" | "DS_OFFICE" | "INSTITUTION";
 }): Promise<StockRequestListResponse> {
   const response = await api.get("/stock-requests", { params });
   return response.data;

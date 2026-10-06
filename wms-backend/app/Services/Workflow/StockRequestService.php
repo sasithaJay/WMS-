@@ -5,6 +5,7 @@
 namespace App\Services\Workflow;
 
 use App\Models\InventoryBalance;
+use App\Models\EquipmentAssignment;
 use App\Models\Organization;
 use App\Models\StockMovement;
 use App\Models\StockRequest;
@@ -404,6 +405,24 @@ class StockRequestService
                     continue;
                 }
 
+                if ($requestItem->item->category?->is_returnable) {
+                    $hasActiveAssignment = EquipmentAssignment::where('item_id', $requestItem->item_id)
+                        ->where('assigned_to', $request->requester_id)
+                        ->where(function ($query) use ($requestItem) {
+                            $query->whereNull('stock_request_item_id')
+                                ->orWhere('stock_request_item_id', '!=', $requestItem->id);
+                        })
+                        ->whereIn('status', ['ASSIGNED', 'RETURN_REQUIRED', 'RETURN_PENDING'])
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($hasActiveAssignment) {
+                        throw ValidationException::withMessages([
+                            'item' => 'This returnable item cannot be issued until the previously assigned item is returned.',
+                        ]);
+                    }
+                }
+
                 $before = (float) $balance->quantity_on_hand;
                 $after = $before - $issueQty;
 
@@ -430,6 +449,19 @@ class StockRequestService
                     'quantity_issued' => $alreadyIssued + $issueQty,
                 ]);
 
+                if ($requestItem->item->category?->is_returnable) {
+                    for ($unit = 0; $unit < (int) floor($issueQty); $unit++) {
+                        EquipmentAssignment::create([
+                            'item_id' => $requestItem->item_id,
+                            'stock_request_item_id' => $requestItem->id,
+                            'assigned_to' => $request->requester_id,
+                            'issued_by' => auth()->id(),
+                            'issued_at' => now(),
+                            'status' => 'ASSIGNED',
+                        ]);
+                    }
+                }
+
                 if (($alreadyIssued + $issueQty) < (float) $requestItem->quantity_approved) {
                     $allFullyIssued = false;
                 }
@@ -446,7 +478,7 @@ class StockRequestService
             $request->update([
                 'status'        => $allFullyIssued
                     ? ($hasPendingApproval ? 'PARTIALLY_PROCESSED' : 'ISSUED')
-                    : ($hasPendingApproval ? 'PARTIALLY_PROCESSED' : 'APPROVED'),
+                    : ($hasPendingApproval ? 'PARTIALLY_PROCESSED' : 'PARTIALLY_ISSUED'),
                 'current_stage' => $allFullyIssued && ! $hasPendingApproval ? null : 'ISSUANCE',
             ]);
 

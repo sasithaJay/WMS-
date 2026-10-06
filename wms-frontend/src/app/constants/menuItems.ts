@@ -3,6 +3,7 @@ import {
   BarChart2, Settings, Warehouse, ArrowDownToLine, Users, CheckCircle, FileText, Percent,
   ClipboardCheck,
   Database,
+  RotateCcw,
 } from "lucide-react";
 import type { Role } from "../types";
 
@@ -102,6 +103,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { icon: LayoutDashboard, label: "Dashboard", labelSi: "උපකරණ පුවරුව", id: "dashboard" },
     { icon: ClipboardList, label: "My Requests", labelSi: "මගේ ඉල්ලීම්", id: "requests" },
     { icon: Package, label: "Issue Goods", labelSi: "භාණ්ඩ ගිලිහීම", id: "issue" },
+    { icon: RotateCcw, label: "Equipment Returns", labelSi: "උපකරණ ආපසු ලබාගැනීම", id: "equipment-returns" },
     { icon: Warehouse, label: "Inventory", labelSi: "තොග ලැයිස්තුව", id: "inventory" },
     { icon: ArrowDownToLine, label: "Stock Receipts", labelSi: "ගබඩා රිසිට්", id: "receipts" },
     { icon: Percent, label: "VAT Rate", labelSi: "VAT අනුපාතය", id: "vat" },

@@ -30,7 +30,7 @@ return new class extends Migration
             ->update(['approval_status' => 'approved']);
 
         // Existing deployments use a MySQL enum for the parent status.
-        DB::statement("ALTER TABLE stock_requests MODIFY status ENUM('PENDING_RECOMMENDATION','PENDING_APPROVAL','PARTIALLY_PROCESSED','APPROVED','REJECTED','RETURNED','ISSUED','CANCELLED') NOT NULL DEFAULT 'PENDING_RECOMMENDATION'");
+        DB::statement("ALTER TABLE stock_requests MODIFY status ENUM('PENDING_RECOMMENDATION','PENDING_APPROVAL','PARTIALLY_PROCESSED','PARTIALLY_ISSUED','APPROVED','REJECTED','RETURNED','ISSUED','CANCELLED') NOT NULL DEFAULT 'PENDING_RECOMMENDATION'");
     }
 
     public function down(): void

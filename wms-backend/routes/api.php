@@ -348,6 +348,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/stock-request-items/{stockRequestItem}/reject', [
         StockRequestController::class, 'rejectItem'
     ]);
+    Route::get('/equipment-assignments/mine', [StockRequestController::class, 'myEquipmentAssignments']);
+    Route::post('/equipment-assignments/{equipmentAssignment}/return-request', [StockRequestController::class, 'requestEquipmentReturn']);
+    Route::get('/equipment-assignments/pending-returns', [StockRequestController::class, 'pendingEquipmentReturns']);
+    Route::post('/equipment-assignments/users/{user}/mark-return-required', [StockRequestController::class, 'markOfficerEquipmentReturnRequired']);
+    Route::post('/equipment-assignments/{equipmentAssignment}/confirm-return', [StockRequestController::class, 'confirmEquipmentReturn']);
 
     // routes/api.php
     Route::get('/inventory-balances', [InventoryBalanceController::class, 'index']);

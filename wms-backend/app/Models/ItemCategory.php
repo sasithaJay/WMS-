@@ -11,6 +11,7 @@ class ItemCategory extends Model
         'name_en',
         'name_si',
         'code',
+        'is_returnable',
         'is_active',
     ];
 
@@ -18,6 +19,7 @@ class ItemCategory extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_returnable' => 'boolean',
         ];
     }
 

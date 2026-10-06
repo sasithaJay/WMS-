@@ -10,6 +10,7 @@ export type StockRequestStatus =
   | "PENDING_RECOMMENDATION"
   | "PENDING_APPROVAL"
   | "PARTIALLY_PROCESSED"
+  | "PARTIALLY_ISSUED"
   | "APPROVED"
   | "REJECTED"
   | "RETURNED"

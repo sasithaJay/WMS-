@@ -111,4 +111,9 @@ class User extends Authenticatable
     {
         return $this->roleCode() === 'STORE_KEEPER';
     }
+
+    public function equipmentAssignments(): HasMany
+    {
+        return $this->hasMany(EquipmentAssignment::class, 'assigned_to');
+    }
 }

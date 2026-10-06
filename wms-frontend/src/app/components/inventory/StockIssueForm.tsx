@@ -353,7 +353,7 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
                       <th className="py-2.5 px-3 text-center">{t(lang, "Approved", "අනුමත")}</th>
                       <th className="py-2.5 px-3 text-center">{t(lang, "Issued", "නිකුත් කළ")}</th>
                       <th className="py-2.5 px-3 text-center">{t(lang, "Issue Now", "දැන් නිකුත් කරන්න")}</th>
-                      <th className="py-2.5 px-3 text-center">{t(lang, "Stock Status", "තොග තත්වය")}</th>
+                      <th className="py-2.5 px-3 text-center">{t(lang, "Available to Issue", "නිකුත් කිරීමට ලබාගත හැකි")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">

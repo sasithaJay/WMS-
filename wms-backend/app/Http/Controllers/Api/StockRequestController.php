@@ -7,6 +7,9 @@ use App\Http\Requests\StoreStockRequestRequest;
 use App\Http\Requests\StockRequestActionRequest;
 use App\Http\Requests\StockRequestReasonRequest;
 use App\Http\Requests\StockRequestItemApproveRequest;
+use App\Http\Requests\EquipmentReturnRequest;
+use App\Http\Requests\EquipmentConfirmReturnRequest;
+use App\Models\EquipmentAssignment;
 use App\Models\StockRequestItem;
 use App\Models\StockRequest;
 use App\Services\Workflow\StockRequestService;
@@ -32,6 +35,11 @@ class StockRequestController extends Controller
         // (in which case they may also want to see their queue — handle via
         // separate endpoints below rather than overloading index()).
         $query->where('requester_id', $user->id);
+
+        $context = $request->string('request_context')->toString();
+        if (in_array($context, ['PERSONAL', 'SECTION_COMMON', 'DS_OFFICE', 'INSTITUTION'], true)) {
+            $query->where('request_context', $context);
+        }
 
         return response()->json(
             $query->paginate($request->integer('per_page', 15))
@@ -236,5 +244,102 @@ class StockRequestController extends Controller
             'message' => 'Stock issued successfully.',
             'data'    => $updated,
         ]);
+    }
+
+    public function myEquipmentAssignments(): JsonResponse
+    {
+        StockRequestItem::with(['item.category', 'stockRequest'])
+            ->whereHas('stockRequest', fn ($query) => $query->where('requester_id', auth()->id()))
+            ->where('quantity_issued', '>', 0)
+            ->get()
+            ->each(function (StockRequestItem $requestItem) {
+                if (! $requestItem->item?->category?->is_returnable) {
+                    return;
+                }
+
+                $issuedUnits = (int) floor((float) $requestItem->quantity_issued);
+                $recordedUnits = EquipmentAssignment::where('stock_request_item_id', $requestItem->id)->count();
+
+                for ($unit = $recordedUnits; $unit < $issuedUnits; $unit++) {
+                    EquipmentAssignment::create([
+                        'item_id' => $requestItem->item_id,
+                        'stock_request_item_id' => $requestItem->id,
+                        'assigned_to' => $requestItem->stockRequest->requester_id,
+                        'issued_by' => $requestItem->stockRequest->approver_id
+                            ?? $requestItem->stockRequest->requester_id,
+                        'issued_at' => $requestItem->stockRequest->updated_at ?? now(),
+                        'status' => 'ASSIGNED',
+                    ]);
+                }
+            });
+
+        return response()->json([
+            'data' => EquipmentAssignment::with(['item.category'])
+                ->where('assigned_to', auth()->id())
+                ->whereIn('status', ['ASSIGNED', 'RETURN_REQUIRED', 'RETURN_PENDING'])
+                ->latest('issued_at')->get(),
+        ]);
+    }
+
+    public function requestEquipmentReturn(EquipmentReturnRequest $request, EquipmentAssignment $equipmentAssignment): JsonResponse
+    {
+        abort_unless($equipmentAssignment->assigned_to === auth()->id(), 403);
+        abort_if($equipmentAssignment->status === 'RETURNED', 422, 'This equipment has already been returned.');
+
+        $equipmentAssignment->update([
+            'status' => 'RETURN_PENDING',
+            'return_reason' => $request->validated()['reason'],
+            'return_requested_at' => now(),
+        ]);
+
+        return response()->json(['data' => $equipmentAssignment->fresh(['item.category'])]);
+    }
+
+    public function pendingEquipmentReturns(): JsonResponse
+    {
+        $profile = auth()->user()->staffProfile;
+        abort_unless($profile?->role?->code === 'STORE_KEEPER', 403);
+
+        $assignments = EquipmentAssignment::with(['item.category', 'assignedTo.staffProfile', 'stockRequestItem.stockRequest'])
+            ->whereHas('item', fn ($query) => $query->where('division_id', $profile->division_id))
+            ->whereIn('status', ['RETURN_REQUIRED', 'RETURN_PENDING'])
+            ->latest('return_requested_at')->get();
+
+        return response()->json(['data' => $assignments]);
+    }
+
+    public function markOfficerEquipmentReturnRequired(\App\Models\User $user): JsonResponse
+    {
+        $profile = auth()->user()->staffProfile;
+        abort_unless($profile?->role?->code === 'STORE_KEEPER', 403);
+
+        $count = EquipmentAssignment::where('assigned_to', $user->id)
+            ->whereHas('item', fn ($query) => $query->where('division_id', $profile->division_id))
+            ->where('status', 'ASSIGNED')
+            ->update([
+                'status' => 'RETURN_REQUIRED',
+                'return_reason' => 'Officer transfer or retirement',
+                'return_requested_at' => now(),
+            ]);
+
+        return response()->json(['message' => 'Officer equipment marked for return.', 'count' => $count]);
+    }
+
+    public function confirmEquipmentReturn(EquipmentConfirmReturnRequest $request, EquipmentAssignment $equipmentAssignment): JsonResponse
+    {
+        $profile = auth()->user()->staffProfile;
+        abort_unless($profile?->role?->code === 'STORE_KEEPER', 403);
+        abort_unless($equipmentAssignment->item()->where('division_id', $profile->division_id)->exists(), 403);
+        abort_if($equipmentAssignment->status === 'RETURNED', 422, 'This equipment has already been returned.');
+
+        $equipmentAssignment->update([
+            'status' => 'RETURNED',
+            'returned_by' => auth()->id(),
+            'returned_at' => now(),
+            'return_condition' => $request->validated()['condition'],
+            'return_remarks' => $request->validated()['remarks'] ?? null,
+        ]);
+
+        return response()->json(['data' => $equipmentAssignment->fresh(['item.category', 'assignedTo'])]);
     }
 }

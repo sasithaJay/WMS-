@@ -16,6 +16,7 @@ import type {
   StockRequestItemView,
   StockRequestStatus,
 } from "../../types/stockRequests";
+import { MyEquipmentAssignmentsPanel } from "./MyEquipmentAssignmentsPanel";
 
 function ItemChip({ label }: { label: string }) {
   return (
@@ -25,16 +26,39 @@ function ItemChip({ label }: { label: string }) {
   );
 }
 
-function itemStatusClass(status: StockRequestItemView["approval_status"]): string {
-  if (status === "approved") return "text-emerald-700";
-  if (status === "rejected") return "text-rose-700";
-  return "text-amber-700";
+  function displayQuantity(value: number | string | null): string {
+    return String(Number(value ?? 0));
+  }
+
+function itemDisplayStatus(item: StockRequestItemView): {
+  label: string;
+  labelSi: string;
+  className: string;
+} {
+  if (item.approval_status === "rejected") {
+    return { label: "rejected", labelSi: "ප්‍රතික්ෂේප", className: "text-rose-700" };
+  }
+
+  if (item.approval_status === "approved") {
+    const approved = Number(item.quantity_approved ?? 0);
+    const issued = Number(item.quantity_issued ?? 0);
+    if (issued > 0 && issued < approved) {
+      return { label: "Partially Issued", labelSi: "කොටසක් නිකුත් කර ඇත", className: "text-green-500" };
+    }
+    if (approved > 0 && issued >= approved) {
+      return { label: "Issued", labelSi: "නිකුත් කරන ලදී", className: "text-emerald-700" };
+    }
+    return { label: "approved", labelSi: "අනුමත", className: "text-emerald-700" };
+  }
+
+  return { label: "pending", labelSi: "අපේක්ෂිත", className: "text-amber-700" };
 }
 
 const STATUS_STYLES: Record<StockRequestStatus, string> = {
   PENDING_RECOMMENDATION: "bg-amber-50 text-amber-700 border-amber-200/80",
   PENDING_APPROVAL: "bg-amber-50 text-amber-700 border-amber-200/80",
   PARTIALLY_PROCESSED: "bg-orange-50 text-orange-700 border-orange-200/80",
+  PARTIALLY_ISSUED: "bg-green-50 text-green-700 border-green-200/80",
   APPROVED: "bg-blue-50 text-blue-700 border-blue-200/80",
   ISSUED: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
   REJECTED: "bg-rose-50 text-rose-700 border-rose-200/80",
@@ -52,6 +76,7 @@ const STATUS_LABELS: Record<
   },
   PENDING_APPROVAL: { en: "Pending Approval", si: "අනුමැතිය අපේක්ෂිතයි" },
   PARTIALLY_PROCESSED: { en: "Partially Processed", si: "කොටසක් සකස් කර ඇත" },
+  PARTIALLY_ISSUED: { en: "Partially Issued", si: "කොටසක් නිකුත් කර ඇත" },
   APPROVED: { en: "Approved", si: "අනුමත" },
   ISSUED: { en: "Issued", si: "නිකුත් කරන ලදී" },
   REJECTED: { en: "Rejected", si: "ප්‍රතික්ෂේප" },
@@ -82,12 +107,21 @@ export function MyRequestsTable({
   const [requests, setRequests] = useState<StockRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const requestContextForTab = {
+    personal: "PERSONAL",
+    section: "SECTION_COMMON",
+    ds_office: "DS_OFFICE",
+    institution: "INSTITUTION",
+  } as const;
 
   const loadRequests = useCallback(async () => {
     try {
       setLoading((prev) => (requests.length === 0 ? true : prev));
       setError("");
-      const response = await getStockRequests({ per_page: 50 });
+      const response = await getStockRequests({
+        per_page: 50,
+        request_context: requestContextForTab[tab],
+      });
       setRequests(response.data);
     } catch (err) {
       console.error(err);
@@ -101,7 +135,7 @@ export function MyRequestsTable({
     } finally {
       setLoading(false);
     }
-  }, [lang]);
+  }, [lang, tab]);
 
   useEffect(() => {
     loadRequests();
@@ -307,9 +341,9 @@ export function MyRequestsTable({
                             <div key={it.id} className="space-y-1">
                               <ItemChip label={it.item.name_en} />
                               <div className="text-[10px] text-slate-500">
-                                {t(lang, "Requested", "ඉල්ලූ")}: {it.quantity_requested}
-                                {it.quantity_approved !== null && ` | ${t(lang, "Approved", "අනුමත")}: ${it.quantity_approved}`}
-                                  {it.approval_status && <span className={`font-bold ${itemStatusClass(it.approval_status)}`}> | {t(lang, it.approval_status, it.approval_status)}</span>}
+                                {t(lang, "Requested", "ඉල්ලූ")}: {displayQuantity(it.quantity_requested)}
+                                {it.quantity_approved !== null && ` | ${t(lang, "Approved", "අනුමත")}: ${displayQuantity(it.quantity_approved)}`}
+                                  {(() => { const status = itemDisplayStatus(it); return <span className={`font-bold ${status.className}`}> | {t(lang, status.label, status.labelSi)}</span>; })()}
                               </div>
                               {it.rejection_reason && <div className="text-[10px] font-semibold text-rose-600">{it.rejection_reason}</div>}
                             </div>
@@ -407,9 +441,9 @@ export function MyRequestsTable({
                       <div key={it.id} className="space-y-1">
                         <ItemChip label={it.item.name_en} />
                         <div className="text-[10px] text-slate-500">
-                          {t(lang, "Requested", "ඉල්ලූ")}: {it.quantity_requested}
-                          {it.quantity_approved !== null && ` | ${t(lang, "Approved", "අනුමත")}: ${it.quantity_approved}`}
-                          {it.approval_status && <span className={`font-bold ${itemStatusClass(it.approval_status)}`}> | {t(lang, it.approval_status, it.approval_status)}</span>}
+                          {t(lang, "Requested", "ඉල්ලූ")}: {displayQuantity(it.quantity_requested)}
+                          {it.quantity_approved !== null && ` | ${t(lang, "Approved", "අනුමත")}: ${displayQuantity(it.quantity_approved)}`}
+                          {(() => { const status = itemDisplayStatus(it); return <span className={`font-bold ${status.className}`}> | {t(lang, status.label, status.labelSi)}</span>; })()}
                         </div>
                         {it.rejection_reason && <div className="text-[10px] font-semibold text-rose-600">{it.rejection_reason}</div>}
                       </div>
@@ -435,6 +469,7 @@ export function MyRequestsTable({
             })}
         </div>
       </div>
+      {tab === "personal" && <MyEquipmentAssignmentsPanel lang={lang} />}
     </div>
   );
 }

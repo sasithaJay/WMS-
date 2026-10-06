@@ -27,6 +27,7 @@ import type { DivisionDashboardSummary } from "../../types/dashboard";
 import { VatRateRequestForm } from "../../components/requests/VatRateRequestForm";
 import { MyVatRequestsTable } from "../../components/inventory/MyVatRequestsTable";
 import { getCurrentVatRate } from "../../../services/vatRateService";
+import { EquipmentReturnsPanel } from "../../components/inventory/EquipmentReturnsPanel";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [division, setDivision] = useState<DivisionDashboardSummary | null>(null);
@@ -146,6 +147,7 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
       )}
 
       {activeNav === "issue" && <StockIssueForm lang={lang} />}
+      {activeNav === "equipment-returns" && <EquipmentReturnsPanel lang={lang} />}
 
       {activeNav === "inventory" && (
         <InventoryPage lang={lang} userRole={role} />

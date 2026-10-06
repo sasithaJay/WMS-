@@ -16,6 +16,7 @@ const NAV_TITLES: Record<string, { en: string; si: string }> = {
   recommend: { en: "Recommend Queue", si: "නිර්දේශ පෝලිම" },
   approve: { en: "Approve Queue", si: "අනුමත පෝලිම" },
   issue: { en: "Issue Goods", si: "භාණ්ඩ ගිලිහීම" },
+  "equipment-returns": { en: "Equipment Returns", si: "උපකරණ ආපසු ලබාගැනීම" },
   inventory: { en: "Inventory", si: "තොග ලැයිස්තුව" },
   receipts: { en: "Stock Receipts", si: "ගබඩා රිසිට්" },
   reports: { en: "Reports", si: "වාර්තා" },
