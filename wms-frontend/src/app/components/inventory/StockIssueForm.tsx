@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Package, AlertCircle, Loader2, CheckCircle2, Scan } from "lucide-react";
+import { Package, AlertCircle, Loader2, CheckCircle2, User } from "lucide-react";
 import {
   getPendingIssuance,
   issueStockRequest,
@@ -23,12 +23,18 @@ function formatDate(value: string | null): string {
 type IssueDraft = Record<number, Record<number, string>>;
 
 function remainingApproved(item: {
-  quantity_approved: string | null;
-  quantity_issued: string | null;
+  quantity_approved: number | string | null;
+  quantity_issued: number | string | null;
 }): number {
   const approved = Number(item.quantity_approved ?? 0);
   const issued = Number(item.quantity_issued ?? 0);
   return Math.max(0, approved - issued);
+}
+
+function issueableItems(request: StockRequest): NonNullable<StockRequest["items"]> {
+  return (request.items ?? []).filter(
+    (item) => item.approval_status === "approved" && remainingApproved(item) > 0
+  );
 }
 
 export function StockIssueForm({ lang }: { lang: Lang }) {
@@ -193,13 +199,18 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
       if (updated.status === "ISSUED") {
         setRequests((current) => current.filter((r) => r.id !== request.id));
       } else {
+        const updatedItems = issueableItems(updated);
         setRequests((current) =>
-          current.map((r) => (r.id === request.id ? updated : r))
+          updatedItems.length === 0
+            ? current.filter((r) => r.id !== request.id)
+            : current.map((r) =>
+                r.id === request.id ? { ...updated, items: updatedItems } : r
+              )
         );
         setDrafts((current) => ({
           ...current,
           [request.id]: Object.fromEntries(
-            (updated.items ?? []).map((it) => [
+            updatedItems.map((it) => [
               it.item_id,
               String(remainingApproved(it)),
             ])
@@ -236,7 +247,7 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
   if (!loading && requests.length === 0 && !error) {
     return (
       <EmptyState
-        icon={<Package className="w-9 h-9 text-emerald-500" />}
+        icon={<Package className="w-10 h-10 text-emerald-500" />}
         title={t(lang, "All goods issued", "සියලු භාණ්ඩ නිකුත් කර ඇත")}
         subtitle={t(
           lang,
@@ -258,8 +269,8 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
       )}
 
       {/* HEADER BAR & BARCODE VERIFICATION */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs">
+        <p className="text-xs font-bold text-slate-700 flex items-center gap-2">
           <Package className="w-4 h-4 text-slate-400 shrink-0" />
           <span>
             {requests.length}{" "}
@@ -290,254 +301,153 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
         </div>
       </div>
 
-      {/* PENDING REQUEST CARDS GRID */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* PENDING REQUEST CARDS */}
+      <div className="space-y-4">
         {requests.map((r) => {
           const hasBackorder = (r.items ?? []).some(
             (it) =>
               Number(it.quantity_issued ?? 0) > 0 && remainingApproved(it) > 0
           );
+          const requesterName = r.requester?.name ?? `#${r.requester_id}`;
+          const roleLabel = r.requester?.role_label;
 
           return (
-            <div
+            <section
               key={r.id}
-              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4 hover:shadow-md transition-all flex flex-col justify-between"
+              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4"
             >
-              <div className="space-y-3">
-                {/* Card Header Info */}
-                <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
-                        {r.request_number}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                        {t(lang, "Approved", "අනුමත")}
-                      </span>
-                      {hasBackorder && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80">
-                          {t(lang, "Partially Issued", "අර්ධ වශයෙන් නිකුත් කර ඇත")}
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="text-sm font-bold text-slate-900 mt-1">
-                      {r.requester?.name ?? `#${r.requester_id}`}
-                    </h4>
-                  </div>
-                  <span className="text-[11px] font-medium text-slate-400 shrink-0">
-                    {formatDate(r.submitted_at)}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 gap-2 flex-wrap">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="font-mono text-xs font-bold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60 text-slate-800">
+                    {r.request_number}
                   </span>
-                </div>
-
-                {/* DESKTOP TABLE VIEW (md+) */}
-                <div className="hidden md:block overflow-hidden rounded-xl border border-slate-200/80">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      <tr>
-                        <th className="px-3 py-2.5">{t(lang, "Item", "භාණ්ඩය")}</th>
-                        <th className="px-3 py-2.5 text-center">{t(lang, "Approved", "අනුමත")}</th>
-                        <th className="px-3 py-2.5 text-center">{t(lang, "Issued", "නිකුත් කළ")}</th>
-                        <th className="px-3 py-2.5 text-center w-28">{t(lang, "Issue Now", "දැන් නිකුත් කරන්න")}</th>
-                        <th className="px-3 py-2.5 text-center">{t(lang, "Available", "ලබාගත හැකි")}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                      {(r.items ?? []).map((it) => {
-                        const remaining = remainingApproved(it);
-                        const balance = balances[it.item_id];
-                        const issuingQty = Number(drafts[r.id]?.[it.item_id] ?? 0);
-                        const short = balance !== undefined && issuingQty > balance.available;
-                        const key = rowKey(r.id, it.item_id);
-                        const isHighlighted = highlightedKey === key;
-
-                        return (
-                          <tr
-                            key={it.id}
-                            className={`transition-colors ${
-                              isHighlighted ? "bg-blue-50/80" : "hover:bg-slate-50/50"
-                            }`}
-                          >
-                            <td className="px-3 py-2.5 font-bold text-slate-900">
-                              <span className="font-mono text-slate-500 font-semibold mr-1">
-                                {it.item.item_code}
-                              </span>
-                              — {it.item.name_en}
-                            </td>
-                            <td className="px-3 py-2.5 text-center font-mono font-semibold text-slate-600">
-                              {Number(it.quantity_approved)}
-                            </td>
-                            <td className="px-3 py-2.5 text-center font-mono font-semibold text-slate-600">
-                              {Number(it.quantity_issued ?? 0)}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {remaining > 0 ? (
-                                <input
-                                  ref={(el) => {
-                                    issueInputRefs.current[key] = el;
-                                  }}
-                                  type="number"
-                                  min={0}
-                                  max={remaining}
-                                  value={drafts[r.id]?.[it.item_id] ?? ""}
-                                  onChange={(e) =>
-                                    setDraftQuantity(r.id, it.item_id, e.target.value)
-                                  }
-                                  className={`w-full h-8 px-2 rounded-lg border bg-white text-center font-mono font-bold text-xs outline-none transition-all ${
-                                    isHighlighted
-                                      ? "border-blue-500 ring-2 ring-blue-500/20"
-                                      : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                                  }`}
-                                />
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-[11px] justify-center w-full">
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  {t(lang, "Complete", "සම්පූර්ණයි")}
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              {balance !== undefined ? (
-                                <span
-                                  className={`font-mono text-[11px] font-bold ${
-                                    short ? "text-rose-600" : "text-slate-500"
-                                  }`}
-                                >
-                                  {balance.available}
-                                </span>
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* MOBILE CARD VIEW (<md) */}
-                <div className="block md:hidden divide-y divide-slate-100 rounded-xl border border-slate-200/80 overflow-hidden bg-slate-50/40">
-                  {(r.items ?? []).map((it) => {
-                    const remaining = remainingApproved(it);
-                    const balance = balances[it.item_id];
-                    const issuingQty = Number(drafts[r.id]?.[it.item_id] ?? 0);
-                    const short = balance !== undefined && issuingQty > balance.available;
-                    const key = rowKey(r.id, it.item_id);
-                    const isHighlighted = highlightedKey === key;
-
-                    return (
-                      <div
-                        key={it.id}
-                        className={`p-3 space-y-2 bg-white ${
-                          isHighlighted ? "bg-blue-50/60" : ""
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
-                              {it.item.item_code}
-                            </span>
-                            <h5 className="text-xs font-bold text-slate-900 mt-1">
-                              {it.item.name_en}
-                            </h5>
-                          </div>
-                          {balance !== undefined && (
-                            <span
-                              className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-md border ${
-                                short
-                                  ? "bg-rose-50 text-rose-700 border-rose-200/80"
-                                  : "bg-slate-50 text-slate-600 border-slate-200/60"
-                              }`}
-                            >
-                              Stock: {balance.available}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 text-[11px] bg-slate-50/60 p-2 rounded-lg border border-slate-100">
-                          <div>
-                            <span className="text-slate-400 block font-medium">
-                              {t(lang, "Approved", "අනුමත")}
-                            </span>
-                            <span className="font-bold font-mono text-slate-800">
-                              {Number(it.quantity_approved)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block font-medium">
-                              {t(lang, "Issued", "නිකුත් කළ")}
-                            </span>
-                            <span className="font-bold font-mono text-slate-800">
-                              {Number(it.quantity_issued ?? 0)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block font-medium">
-                              {t(lang, "Remaining", "ඉතිරි")}
-                            </span>
-                            <span className="font-bold font-mono text-slate-800">
-                              {remaining}
-                            </span>
-                          </div>
-                        </div>
-
-                        {remaining > 0 ? (
-                          <div className="pt-1 flex items-center justify-between gap-2">
-                            <label className="text-xs font-bold text-slate-700">
-                              {t(lang, "Issue Now", "දැන් නිකුත් කරන්න")}:
-                            </label>
-                            <input
-                              ref={(el) => {
-                                issueInputRefs.current[key] = el;
-                              }}
-                              type="number"
-                              min={0}
-                              max={remaining}
-                              value={drafts[r.id]?.[it.item_id] ?? ""}
-                              onChange={(e) =>
-                                setDraftQuantity(r.id, it.item_id, e.target.value)
-                              }
-                              className={`w-24 h-8 px-2 rounded-lg border bg-white text-center font-mono font-bold text-xs outline-none transition-all ${
-                                isHighlighted
-                                  ? "border-blue-500 ring-2 ring-blue-500/20"
-                                  : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                              }`}
-                            />
-                          </div>
-                        ) : (
-                          <div className="text-center py-1">
-                            <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-xs">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              {t(lang, "Complete", "සම්පූර්ණයි")}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {hasBackorder && (
-                  <div className="flex items-center gap-2 rounded-xl border border-amber-200/80 bg-amber-50 p-3 text-xs font-semibold text-amber-700">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
-                    <span>
-                      {t(
-                        lang,
-                        "Some items are back-ordered — stock will be issued as it becomes available.",
-                        "සමහර භාණ්ඩ තොග නොමැති බැවින් පසුව නිකුත් කෙරේ."
-                      )}
-                    </span>
+                  <div className="flex items-center gap-1.5 text-slate-800 text-xs font-bold">
+                    <User className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{requesterName}</span>
+                    {roleLabel && (
+                      <span className="text-[11px] font-semibold text-slate-500 border border-slate-300 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {roleLabel}
+                      </span>
+                    )}
                   </div>
-                )}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                    {t(lang, "Approved", "අනුමත")}
+                  </span>
+                  {hasBackorder && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80">
+                      {t(lang, "Partially Issued", "අර්ධ වශයෙන් නිකුත් කර ඇත")}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[11px] font-mono font-medium text-slate-400">
+                  {formatDate(r.submitted_at)}
+                </span>
               </div>
 
+              {/* UNIFIED TABLE STRUCTURE */}
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-3">{t(lang, "Item Details", "භාණ්ඩ විස්තර")}</th>
+                      <th className="py-2.5 px-3 text-center">{t(lang, "Approved", "අනුමත")}</th>
+                      <th className="py-2.5 px-3 text-center">{t(lang, "Issued", "නිකුත් කළ")}</th>
+                      <th className="py-2.5 px-3 text-center">{t(lang, "Issue Now", "දැන් නිකුත් කරන්න")}</th>
+                      <th className="py-2.5 px-3 text-center">{t(lang, "Stock Status", "තොග තත්වය")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {(r.items ?? []).map((it) => {
+                      const remaining = remainingApproved(it);
+                      const balance = balances[it.item_id];
+                      const issuingQty = Number(drafts[r.id]?.[it.item_id] ?? 0);
+                      const availableQty = balance?.available ?? 0;
+                      const short = balance !== undefined && issuingQty > availableQty;
+                      const isZeroStock = availableQty === 0;
+                      const key = rowKey(r.id, it.item_id);
+                      const isHighlighted = highlightedKey === key;
+
+                      return (
+                        <tr
+                          key={it.id}
+                          className={`transition-colors ${
+                            isHighlighted ? "bg-blue-50/80" : "hover:bg-slate-50/50"
+                          }`}
+                        >
+                          <td className="py-3 px-3">
+                            <span className="font-mono text-[10px] font-bold text-slate-400 block">{it.item.item_code}</span>
+                            <span className="font-bold text-slate-900">{it.item.name_en}</span>
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono font-bold text-slate-700">
+                            {Number(it.quantity_approved)}
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono font-bold text-slate-600">
+                            {Number(it.quantity_issued ?? 0)}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            {remaining > 0 ? (
+                              <input
+                                ref={(el) => {
+                                  issueInputRefs.current[key] = el;
+                                }}
+                                type="number"
+                                min={0}
+                                max={remaining}
+                                value={drafts[r.id]?.[it.item_id] ?? ""}
+                                onChange={(e) =>
+                                  setDraftQuantity(r.id, it.item_id, e.target.value)
+                                }
+                                className={`w-20 h-8 mx-auto rounded-lg border bg-white text-center font-mono font-bold text-sm outline-none transition-all ${
+                                  isHighlighted
+                                    ? "border-blue-500 ring-4 ring-blue-500/20"
+                                    : "border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                }`}
+                              />
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-[11px] justify-center w-full">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                {t(lang, "Complete", "සම්පූර්ණයි")}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            {balance !== undefined ? (
+                              <span className={`inline-block font-bold px-2 py-0.5 rounded-md text-[11px] ${
+                                isZeroStock || short ? "bg-rose-100 text-rose-800 border border-rose-300" : "text-green-800 bg-green-200 border border-green-400/50"
+                              }`}>
+                                {isZeroStock ? t(lang, "Out of stock (0)", "තොග නොමැත (0)") : `${availableQty} ${t(lang, "in stock", "තොගයේ ඇත")}`}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {hasBackorder && (
+                <div className="flex items-center gap-2 rounded-xl border border-amber-200/80 bg-amber-50 p-3 text-xs font-semibold text-amber-700">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span>
+                    {t(
+                      lang,
+                      "Some items are back-ordered — stock will be issued as it becomes available.",
+                      "සමහර භාණ්ඩ තොග නොමැති බැවින් පසුව නිකුත් කෙරේ."
+                    )}
+                  </span>
+                </div>
+              )}
+
               {/* CARD FOOTER ACTION */}
-              <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <div className="pt-2 flex justify-end">
                 <button
                   type="button"
                   onClick={() => handleIssue(r)}
                   disabled={busyId === r.id}
-                  className="w-full sm:w-auto h-9 px-5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="h-9 px-5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
                   {busyId === r.id ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -551,7 +461,7 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
                   </span>
                 </button>
               </div>
-            </div>
+            </section>
           );
         })}
       </div>

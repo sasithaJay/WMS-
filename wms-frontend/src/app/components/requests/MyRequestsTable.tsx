@@ -305,7 +305,7 @@ export function MyRequestsTable({
                         <div className="flex flex-wrap gap-1">
                           {(r.items ?? []).map((it) => (
                             <div key={it.id} className="space-y-1">
-                              <ItemChip label={it.item.item_code} />
+                              <ItemChip label={it.item.name_en} />
                               <div className="text-[10px] text-slate-500">
                                 {t(lang, "Requested", "ඉල්ලූ")}: {it.quantity_requested}
                                 {it.quantity_approved !== null && ` | ${t(lang, "Approved", "අනුමත")}: ${it.quantity_approved}`}
@@ -405,7 +405,7 @@ export function MyRequestsTable({
                   <div className="flex flex-wrap gap-1">
                     {(r.items ?? []).map((it) => (
                       <div key={it.id} className="space-y-1">
-                        <ItemChip label={it.item.item_code} />
+                        <ItemChip label={it.item.name_en} />
                         <div className="text-[10px] text-slate-500">
                           {t(lang, "Requested", "ඉල්ලූ")}: {it.quantity_requested}
                           {it.quantity_approved !== null && ` | ${t(lang, "Approved", "අනුමත")}: ${it.quantity_approved}`}

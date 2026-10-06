@@ -115,7 +115,7 @@ class StockRequestService
     {
         $updated = DB::transaction(function () use ($request, $data) {
 
-            $this->assertStage($request, 'APPROVAL');
+            $this->assertApprovalStage($request);
             $this->assertEligibleApprover($request);
 
             $this->applyQuantities($request, $data['items'] ?? [], 'quantity_approved', 'quantity_recommended');
@@ -164,7 +164,7 @@ class StockRequestService
             $requestItem = StockRequestItem::whereKey($requestItem->id)->lockForUpdate()->firstOrFail();
             $request = StockRequest::whereKey($requestItem->stock_request_id)->lockForUpdate()->firstOrFail();
 
-            $this->assertStage($request, 'APPROVAL');
+            $this->assertApprovalStage($request);
             $this->assertEligibleApprover($request);
 
             if ($requestItem->approval_status !== 'pending') {
@@ -223,7 +223,7 @@ class StockRequestService
             $requestItem = StockRequestItem::whereKey($requestItem->id)->lockForUpdate()->firstOrFail();
             $request = StockRequest::whereKey($requestItem->stock_request_id)->lockForUpdate()->firstOrFail();
 
-            $this->assertStage($request, 'APPROVAL');
+            $this->assertApprovalStage($request);
             $this->assertEligibleApprover($request);
             if ($requestItem->approval_status !== 'pending') {
                 throw ValidationException::withMessages(['item' => 'This item has already been processed.']);
@@ -260,7 +260,7 @@ class StockRequestService
 
         if ($pending > 0) {
             $status = ($approved > 0 || $rejected > 0) ? 'PARTIALLY_PROCESSED' : 'PENDING_APPROVAL';
-            $stage = 'APPROVAL';
+            $stage = $approved > 0 ? 'ISSUANCE' : 'APPROVAL';
         } elseif ($allApproved) {
             $status = 'APPROVED';
             $stage = 'ISSUANCE';
@@ -368,15 +368,22 @@ class StockRequestService
     {
         $updated = DB::transaction(function () use ($request, $data) {
 
-            $this->assertStage($request, 'ISSUANCE');
+            $this->assertIssuanceStage($request);
             $this->assertEligibleIssuer($request);
 
             $overridesByItemId = collect($data['items'] ?? [])->keyBy('item_id');
             $allFullyIssued = true;
+            $hasPendingApproval = false;
 
             foreach ($request->items as $requestItem) {
                 $alreadyIssued = (float) ($requestItem->quantity_issued ?? 0);
                 $remainingApproved = (float) $requestItem->quantity_approved - $alreadyIssued;
+
+                if ($requestItem->approval_status === 'pending') {
+                    $hasPendingApproval = true;
+                    $allFullyIssued = false;
+                    continue;
+                }
 
                 if ($remainingApproved <= 0) {
                     continue;
@@ -437,8 +444,10 @@ class StockRequestService
             ]);
 
             $request->update([
-                'status'        => $allFullyIssued ? 'ISSUED' : 'APPROVED',
-                'current_stage' => $allFullyIssued ? null : 'ISSUANCE',
+                'status'        => $allFullyIssued
+                    ? ($hasPendingApproval ? 'PARTIALLY_PROCESSED' : 'ISSUED')
+                    : ($hasPendingApproval ? 'PARTIALLY_PROCESSED' : 'APPROVED'),
+                'current_stage' => $allFullyIssued && ! $hasPendingApproval ? null : 'ISSUANCE',
             ]);
 
             return $request->fresh(['requester.staffProfile', 'requester.organization', 'items.item', 'actions']);
@@ -558,6 +567,24 @@ class StockRequestService
         if ($request->current_stage !== $expected) {
             throw ValidationException::withMessages([
                 'stage' => "This request is not currently pending {$expected}.",
+            ]);
+        }
+    }
+
+    private function assertApprovalStage(StockRequest $request): void
+    {
+        if (! in_array($request->current_stage, ['APPROVAL', 'ISSUANCE'], true)) {
+            throw ValidationException::withMessages([
+                'stage' => 'This request is not currently pending approval.',
+            ]);
+        }
+    }
+
+    private function assertIssuanceStage(StockRequest $request): void
+    {
+        if (! in_array($request->current_stage, ['APPROVAL', 'ISSUANCE'], true)) {
+            throw ValidationException::withMessages([
+                'stage' => 'This request is not currently pending issuance.',
             ]);
         }
     }

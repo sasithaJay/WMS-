@@ -56,7 +56,7 @@ class StockRequestController extends Controller
         $isCommissioner = $user->staffProfile?->role?->code === 'COMMISSIONER';
 
         $query = StockRequest::with(['requester.staffProfile', 'requester.organization', 'items.item'])
-            ->where('current_stage', 'APPROVAL')
+            ->whereIn('current_stage', ['APPROVAL', 'ISSUANCE'])
             ->latest();
 
         if (! $isCommissioner) {
@@ -68,11 +68,27 @@ class StockRequestController extends Controller
         // column we can filter with SQL directly.
         $allCandidates = $query->get();
 
-        $eligible = $allCandidates->filter(
-            fn (StockRequest $r) => app(\App\Services\RequestWorkflowService::class)
+        $eligible = $allCandidates->filter(function (StockRequest $r) use ($roleId) {
+            $isEligible = app(\App\Services\RequestWorkflowService::class)
                 ->resolveApprovalRoleIds($r)
-                ->contains($roleId)
-        )->values();
+                ->contains($roleId);
+
+            if (! $isEligible) {
+                return false;
+            }
+
+            $pendingItems = $r->items
+                ->where('approval_status', 'pending')
+                ->values();
+
+            if ($pendingItems->isEmpty()) {
+                return false;
+            }
+
+            $r->setRelation('items', $pendingItems);
+
+            return true;
+        })->values();
 
         $perPage = $request->integer('per_page', 15);
         $page = $request->integer('page', 1);
@@ -172,17 +188,42 @@ class StockRequestController extends Controller
             'Only Store Keepers can view the issuance queue.'
         );
 
-        $requests = StockRequest::with([
+        $candidates = StockRequest::with([
                 'requester.staffProfile',
                 'requester.organization',
                 'dsOffice',
                 'organization',
                 'items.item',
             ])
-            ->where('current_stage', 'ISSUANCE')
+            ->whereIn('current_stage', ['APPROVAL', 'ISSUANCE'])
             ->where('division_id', $profile->division_id)
             ->latest()
-            ->paginate($request->integer('per_page', 50));
+            ->get();
+
+        $eligible = $candidates->filter(function (StockRequest $stockRequest) {
+            $approvedItems = $stockRequest->items->filter(
+                fn ($item) => $item->approval_status === 'approved'
+                    && (float) $item->quantity_approved > (float) ($item->quantity_issued ?? 0)
+            )->values();
+
+            if ($approvedItems->isEmpty()) {
+                return false;
+            }
+
+            $stockRequest->setRelation('items', $approvedItems);
+            return true;
+        })->values();
+
+        $perPage = $request->integer('per_page', 50);
+        $page = $request->integer('page', 1);
+        $paged = $eligible->slice(($page - 1) * $perPage, $perPage)->values();
+        $requests = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paged,
+            $eligible->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         return response()->json($requests);
     }

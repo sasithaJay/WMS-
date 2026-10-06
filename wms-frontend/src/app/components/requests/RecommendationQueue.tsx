@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, User, X } from "lucide-react";
 import {
   getPendingRecommendation,
   recommendStockRequest,
@@ -17,7 +17,6 @@ function formatDate(value: string | null): string {
   return new Date(value).toLocaleDateString();
 }
 
-// requestId -> itemId -> quantity string (as typed in the input)
 type QuantityDraft = Record<number, Record<number, string>>;
 
 export function RecommendationQueue({ lang }: { lang: Lang }) {
@@ -34,71 +33,68 @@ export function RecommendationQueue({ lang }: { lang: Lang }) {
   const [balances, setBalances] = useState<Record<number, InventoryBalanceInfo>>({});
   const [sessionCommitted, setSessionCommitted] = useState<Record<number, number>>({});
 
+  const loadQueue = useCallback(async (showLoading = false) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      setError("");
+      const response = await getPendingRecommendation({ per_page: 50 });
+      setRequests(response.data);
 
-const loadQueue = useCallback(async (showLoading = false) => {
-  try {
-    if (showLoading) {
-      setLoading(true);
-    }
-
-    setError("");
-    const response = await getPendingRecommendation({ per_page: 50 });
-    setRequests(response.data);
-
-    // seed drafts with the originally requested quantities
-    setDrafts((current) => {
-      const next = { ...current };
-      response.data.forEach((r) => {
-        if (!next[r.id]) {
-          next[r.id] = {};
-          (r.items ?? []).forEach((it) => {
-            next[r.id][it.item_id] = String(Number(it.quantity_requested));
-          });
-        }
+      setDrafts((current) => {
+        const next = { ...current };
+        response.data.forEach((r) => {
+          if (!next[r.id]) {
+            next[r.id] = {};
+            (r.items ?? []).forEach((it) => {
+              next[r.id][it.item_id] = String(Number(it.quantity_requested));
+            });
+          }
+        });
+        return next;
       });
-      return next;
-    });
-  } catch (err) {
-    console.error(err);
-    setError(
-      t(lang, "Unable to load the recommendation queue.", "නිර්දේශ පෝලිම පූරණය කළ නොහැක."),
-    );
-  } finally {
-    if (showLoading) {
-      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setError(
+        t(lang, "Unable to load the recommendation queue.", "නිර්දේශ පෝලිම පූරණය කළ නොහැක."),
+      );
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  }
-}, [lang]);
+  }, [lang]);
 
   useEffect(() => {
-    loadQueue(true); // Show loading spinner on initial load
-  }, []);
+    loadQueue(true);
+  }, [loadQueue]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-        if (document.visibilityState === "visible") {
-            loadQueue(false); // No loading spinner
-        }
+      if (document.visibilityState === "visible") {
+        loadQueue(false);
+      }
     }, 5000);
 
     return () => clearInterval(interval);
-}, [loadQueue]);
+  }, [loadQueue]);
 
   useEffect(() => {
-  const allItemIds = Array.from(
-    new Set(requests.flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
-  );
-  if (allItemIds.length > 0) {
-    getInventoryBalances(allItemIds).then(setBalances);
-  }
-}, [requests]);
+    const allItemIds = Array.from(
+      new Set(requests.flatMap((r) => (r.items ?? []).map((it) => it.item_id))),
+    );
+    if (allItemIds.length > 0) {
+      getInventoryBalances(allItemIds).then(setBalances);
+    }
+  }, [requests]);
 
-function liveAvailable(itemId: number): number | null {
-  const base = balances[itemId]?.available;
-  if (base === undefined) return null;
-  const committed = sessionCommitted[itemId] ?? 0;
-  return Math.max(0, base - committed);
-}
+  function liveAvailable(itemId: number): number | null {
+    const base = balances[itemId]?.available;
+    if (base === undefined) return null;
+    const committed = sessionCommitted[itemId] ?? 0;
+    return Math.max(0, base - committed);
+  }
 
   function setDraftQuantity(requestId: number, itemId: number, value: string) {
     setDrafts((current) => ({
@@ -115,10 +111,6 @@ function liveAvailable(itemId: number): number | null {
       return requester.name;
     }
     return `#${requester?.id ?? fallbackId}`;
-  }
-
-  function getRequesterRoleLabel(requester: StockRequestUser | undefined): string | null {
-    return requester?.role_label ?? null;
   }
 
   function isDraftValid(request: StockRequest): boolean {
@@ -189,16 +181,17 @@ function liveAvailable(itemId: number): number | null {
 
   if (loading) {
     return (
-      <p className="text-sm text-gray-500">
-        {t(lang, "Loading queue…", "පූරණය වෙමින්…")}
-      </p>
+      <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2.5 bg-white rounded-2xl border border-slate-200/80">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+        <p className="text-xs font-semibold">{t(lang, "Loading queue…", "පූරණය වෙමින්…")}</p>
+      </div>
     );
   }
 
   if (!loading && requests.length === 0 && !error) {
     return (
       <EmptyState
-        icon={<CheckCircle className="w-9 h-9 text-green-400" />}
+        icon={<CheckCircle2 className="w-10 h-10 text-emerald-500" />}
         title={t(lang, "Queue is empty", "පෝලිම හිස්")}
         subtitle={t(lang, "All recommendation requests have been processed.", "සියලු නිර්දේශ ඉල්ලීම් සකස් කර ඇත.")}
       />
@@ -206,182 +199,199 @@ function liveAvailable(itemId: number): number | null {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 sm:space-y-6">
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          {error}
+        <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 text-xs font-semibold text-rose-700 flex items-center gap-2.5">
+          <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <p className="text-sm text-gray-500">
-        {requests.length} {t(lang, "request(s) awaiting your recommendation", "ඉල්ලීමක් ඔබගේ නිර්දේශය බලා සිටී")}
-      </p>
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex items-center justify-between">
+        <p className="text-xs font-bold text-slate-700">
+          {requests.length} {t(lang, "request(s) awaiting your recommendation", "ඉල්ලීමක් ඔබගේ නිර්දේශය බලා සිටී")}
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {requests.map((r) => (
-          <div
-            key={r.id}
-            className="flex h-full flex-col rounded-xl border border-gray-100 bg-white p-5 transition-shadow hover:shadow-sm"
-          >
-            {/* Content */}
-            <div className="flex-1">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-gray-600">
-                      {r.request_number}
-                    </span>
+      <div className="space-y-4">
+        {requests.map((r) => {
+          const requesterName = getRequesterName(r.requester, r.requester_id);
+          const roleLabel = r.requester?.role_label;
 
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                      {t(lang, "Pending Recommendation", "නිර්දේශ අපේක්ෂිත")}
-                    </span>
-
-                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-                      {r.request_context}
-                    </span>
-                  </div>
-
-                  <div className="text-sm font-semibold text-gray-900">
-                    {getRequesterName(r.requester, r.requester_id)}
-                    {r.requester?.role_label && (
-                      <span className="ml-1.5 text-xs font-normal text-gray-400">
-                        ({r.requester.role_label})
+          return (
+            <section
+              key={r.id}
+              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 gap-2 flex-wrap">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="font-mono text-xs font-bold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60 text-slate-800">
+                    {r.request_number}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-slate-800 text-xs font-bold">
+                    <User className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{requesterName}</span>
+                    {roleLabel && (
+                      <span className="text-[11px] font-semibold text-slate-500 border border-slate-300 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {roleLabel}
                       </span>
                     )}
                   </div>
-
-                  <div className="mb-3 text-xs text-gray-400">
-                    {formatDate(r.submitted_at)}
-                  </div>
-
-                  {r.notes && (
-                    <p className="mb-3 text-xs italic text-gray-500">
-                      "{r.notes}"
-                    </p>
-                  )}
-
-                  <div className="overflow-hidden rounded-lg border border-gray-100">
-                    <table className="w-full text-xs">
-                      <thead className="bg-gray-50 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                        <tr>
-                          <th className="px-3 py-2">
-                            {t(lang, "Item", "භාණ්ඩය")}
-                          </th>
-                          <th className="w-24 px-3 py-2 text-center">
-                            {t(lang, "Requested", "ඉල්ලූ")}
-                          </th>
-                          <th className="w-28 px-3 py-2 text-center">
-                            {t(lang, "Recommend", "නිර්දේශ")}
-                          </th>
-                          <th className="w-28 px-3 py-2 text-center">
-                            {t(lang, "Available", "ලබාගත හැකි")}
-                          </th>
-                        </tr>
-                      </thead>
-
-                      <tbody className="divide-y divide-gray-50">
-                        {(r.items ?? []).map((it) => (
-                          <tr key={it.id}>
-                            <td className="px-3 py-2 text-gray-800">
-                              {it.item.item_code} — {it.item.name_en}
-                            </td>
-
-                            <td className="px-3 py-2 text-center text-gray-500">
-                              {Number(it.quantity_requested)}
-                            </td>
-
-                            <td className="px-3 py-2">
-                              <input
-                                type="number"
-                                min={1}
-                                value={drafts[r.id]?.[it.item_id] ?? ""}
-                                onChange={(e) => setDraftQuantity(r.id, it.item_id, e.target.value)}
-                                className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-center text-sm outline-none focus:border-[#4295D9] focus:ring-2 focus:ring-[#4295D9]/20"
-                              />
-                        
-                            </td>
-                            <td>
-                              {(() => {
-                                const avail = liveAvailable(it.item_id);
-                                if (avail === null) return null;
-                                const requestedQty = Number(drafts[r.id]?.[it.item_id] ?? 0);
-                                const short = requestedQty > avail;
-                                return (
-                                  <p className={`mt-1 text-[12px] text-center ${short ? "text-red-500 font-semibold" : "text-gray-400 font-semibold"}`}>
-                                    {t(lang, `${avail} in stock`, `තොගයේ ${avail}`)}
-                                  </p>
-                                );
-                              })()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                    {t(lang, "Pending Recommendation", "නිර්දේශ අපේක්ෂිත")}
+                  </span>
+                  <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                    {r.request_context}
+                  </span>
                 </div>
+                <span className="text-[11px] font-mono font-medium text-slate-400">{formatDate(r.submitted_at)}</span>
               </div>
-            </div>
 
-            {/* Footer Buttons */}
-            <div className="mt-5 border-t border-gray-100 pt-5">
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              {r.notes && (
+                <p className="text-xs italic text-slate-500 bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
+                  "{r.notes}"
+                </p>
+              )}
+
+              {/* Table Structure */}
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-3">{t(lang, "Item Details", "භාණ්ඩ විස්තර")}</th>
+                      <th className="py-2.5 px-3 text-center">{t(lang, "Stock Status", "තොග තත්වය")}</th>
+                      <th className="py-2.5 px-3 text-center">{t(lang, "Requested", "ඉල්ලූ")}</th>
+                      <th className="py-2.5 px-3 text-center">{t(lang, "Recommend Qty", "නිර්දේශිත ප්‍රමාණය")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {(r.items ?? []).map((it) => {
+                      const avail = liveAvailable(it.item_id);
+                      const requestedQty = Number(drafts[r.id]?.[it.item_id] ?? 0);
+                      const short = avail !== null && requestedQty > avail;
+                      const isZeroStock = avail === 0;
+
+                      return (
+                        <tr key={it.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3 px-3">
+                            <span className="font-mono text-[10px] font-bold text-slate-400 block">{it.item.item_code}</span>
+                            <span className="font-bold text-slate-900">{it.item.name_en}</span>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            {avail !== null ? (
+                              <span className={`inline-block font-bold px-2 py-0.5 rounded-md text-[11px] ${
+                                isZeroStock || short ? "bg-rose-100 text-rose-800 border border-rose-300" : "text-green-800 bg-green-200 border border-green-400/50"
+                              }`}>
+                                {isZeroStock ? t(lang, "Out of stock (0)", "තොග නොමැත (0)") : `${avail} ${t(lang, "in stock", "තොගයේ ඇත")}`}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono font-bold text-slate-700">
+                            {Number(it.quantity_requested)}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <input
+                              type="number"
+                              min={1}
+                              value={drafts[r.id]?.[it.item_id] ?? ""}
+                              onChange={(e) => setDraftQuantity(r.id, it.item_id, e.target.value)}
+                              className="h-8 w-20 mx-auto rounded-lg border border-slate-200 bg-white text-center font-mono font-bold text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setRejectingId(r.id)}
                   disabled={busyId === r.id}
-                  className="w-full rounded-xl border border-red-500 px-5 py-2.5 text-sm font-medium text-red-500 transition hover:bg-red-500 hover:text-white disabled:opacity-50 sm:w-auto"
+                  className="h-9 px-4 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-xs font-bold text-rose-600 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {t(lang, "Reject", "ප්‍රතික්ෂේප")}
                 </button>
-
                 <button
+                  type="button"
                   onClick={() => handleRecommend(r)}
                   disabled={busyId === r.id || !isDraftValid(r)}
-                  className="w-full rounded-xl bg-[#4295D9] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3280C4] disabled:opacity-50 sm:w-auto"
+                  className="h-9 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs"
                 >
-                  {busyId === r.id
-                    ? t(lang, "Processing…", "සකසමින්…")
-                    : t(lang, "Recommend", "නිර්දේශ")}
+                  {busyId === r.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{t(lang, "Recommend", "නිර්දේශ")}</span>
                 </button>
               </div>
-            </div>
-          </div>
-        ))}
+            </section>
+          );
+        })}
       </div>
 
-      {/* Reject dialog with reason */}
+      {/* Reject Modal Dialog */}
       {rejectingId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-lg">
-            <h4 className="text-sm font-semibold text-gray-900">
-              {t(lang, "Reject this request?", "මෙම ඉල්ලීම ප්‍රතික්ෂේප කරන්නද?")}
-            </h4>
-            <label className="mt-3 block text-xs font-medium text-gray-600">
-              {t(lang, "Reason", "හේතුව")}
-              <span className="ml-1 text-red-500">*</span>
-            </label>
-            <textarea
-              rows={3}
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="mt-1 w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#4295D9]"
-              placeholder={t(lang, "Why is this being rejected?", "ප්‍රතික්ෂේප කිරීමට හේතුව?")}
-            />
-            <div className="mt-4 flex justify-end gap-2">
+        <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-[100] grid place-items-center p-4">
+          <div
+            onClick={() => {
+              setRejectingId(null);
+              setRejectReason("");
+            }}
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity"
+          />
+
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200/80 z-10 p-6 space-y-4 my-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                {t(lang, "Reject this request?", "මෙම ඉල්ලීම ප්‍රතික්ෂේප කරන්නද?")}
+              </h3>
               <button
+                type="button"
                 onClick={() => {
                   setRejectingId(null);
                   setRejectReason("");
                 }}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                {t(lang, "Reason", "හේතුව")} <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder={t(lang, "Why is this being rejected?", "ප්‍රතික්ෂේප කිරීමට හේතුව?")}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all placeholder:text-slate-400 resize-none"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectingId(null);
+                  setRejectReason("");
+                }}
+                className="h-9 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all cursor-pointer"
               >
                 {t(lang, "Back", "ආපසු")}
               </button>
               <button
+                type="button"
                 onClick={() => handleReject(rejectingId)}
                 disabled={!rejectReason.trim() || busyId === rejectingId}
-                className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                className="h-9 px-5 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs"
               >
-                {t(lang, "Confirm Rejection", "ප්‍රතික්ෂේපය තහවුරු කරන්න")}
+                {busyId === rejectingId && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{t(lang, "Confirm Rejection", "ප්‍රතික්ෂේපය තහවුරු කරන්න")}</span>
               </button>
             </div>
           </div>

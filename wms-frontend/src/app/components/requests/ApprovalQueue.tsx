@@ -44,7 +44,12 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
       setLoading(requests.length === 0);
       setError("");
       const response = await getPendingApproval({ per_page: 50 });
-      setRequests(response.data);
+      setRequests(response.data
+        .map((request) => ({
+          ...request,
+          items: (request.items ?? []).filter((item) => item.approval_status === "pending"),
+        }))
+        .filter((request) => (request.items ?? []).length > 0));
       setDrafts((current) => {
         const next = { ...current };
         response.data.forEach((request) => (request.items ?? []).forEach((item) => {
@@ -169,13 +174,13 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
           const roleLabel = request.requester?.role_label;
 
           return (
-            <section key={request.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+            <section key={request.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 gap-2 flex-wrap">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="font-mono text-xs font-bold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60 text-slate-800">
                     {request.request_number}
                   </span>
-                  <div className="flex items-center gap-1.5 text-slate-800 text-xs font-bold">
+                  <div className="flex items-center gap-1.5 text-slate-800 text-xs font-bold flex-wrap">
                     <User className="h-3.5 w-3.5 text-slate-400" />
                     <span>{requesterName}</span>
                     {roleLabel && (
@@ -183,106 +188,196 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
                         {roleLabel}
                       </span>
                     )}
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                      {request.request_context}
+                    </span>
                   </div>
                 </div>
                 <span className="text-[11px] font-mono font-medium text-slate-400">{formatDate(request.submitted_at)}</span>
               </div>
 
-              {/* Table Structure */}
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      <th className="py-2.5 px-3">{t(lang, "Item Details", "භාණ්ඩ විස්තර")}</th>
-                      <th className="py-2.5 px-3 text-center">{t(lang, "Stock Status", "තොග තත්වය")}</th>
-                      <th className="py-2.5 px-3 text-center">{t(lang, "Recommended", "නිර්දේශිත")}</th>
-                      <th className="py-2.5 px-3 text-center">{t(lang, "Approve Qty", "අනුමත ප්‍රමාණය")}</th>
-                      <th className="py-2.5 px-3 text-right">{t(lang, "Actions", "ක්‍රියා")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
-                    {(request.items ?? []).map((item) => {
-                      const maximum = baselineQuantity(item);
-                      const balance = balances[item.item_id];
-                      const availableQty = balance?.available ?? 0;
-                      const isZeroStock = availableQty === 0;
-                      const quantity = Number(drafts[item.id]);
-                      const changed = quantity !== maximum;
+              {/* Responsive Layout: Card Stack on Mobile, Table on Desktop */}
+              <div>
+                {/* Desktop/Tablet Table View */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="py-2.5 px-3">{t(lang, "Item Details", "භාණ්ඩ විස්තර")}</th>
+                        <th className="py-2.5 px-3 text-center">{t(lang, "Stock Status", "තොග තත්වය")}</th>
+                        <th className="py-2.5 px-3 text-center">{t(lang, "Recommended", "නිර්දේශිත")}</th>
+                        <th className="py-2.5 px-3 text-center">{t(lang, "Approve Qty", "අනුමත ප්‍රමාණය")}</th>
+                        <th className="py-2.5 px-3 text-right">{t(lang, "Actions", "ක්‍රියා")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {(request.items ?? []).map((item) => {
+                        const maximum = baselineQuantity(item);
+                        const balance = balances[item.item_id];
+                        const availableQty = balance?.available ?? 0;
+                        const isZeroStock = availableQty === 0;
+                        const quantity = Number(drafts[item.id]);
+                        const changed = quantity !== maximum;
 
-                      return (
-                        <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="py-3 px-3">
-                            <span className="font-mono text-[10px] font-bold text-slate-400 block">{item.item.item_code}</span>
-                            <span className="font-bold text-slate-900">{item.item.name_en}</span>
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            {balance ? (
-                              <span className={`inline-block font-bold px-2 py-0.5 rounded-md text-[11px] ${
-                                isZeroStock ? "bg-rose-100 text-rose-800 border border-rose-300" : "text-green-800 bg-green-200 border border-green-400/50"
-                              }`}>
-                                {isZeroStock ? t(lang, "Out of stock (0)", "තොග නොමැත (0)") : `${availableQty} ${t(lang, "in stock", "තොගයේ ඇත")}`}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 text-[11px]">-</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            
-                              <span className='inline-block font-bold px-3 py-1 rounded-md text-[11px] bg-slate-100 text-slate-800 border border-slate-300'>
+                        return (
+                          <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3 px-3">
+                              <span className="font-mono text-[10px] font-bold text-slate-400 block">{item.item.item_code}</span>
+                              <span className="font-bold text-slate-900">{item.item.name_en}</span>
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              {balance ? (
+                                <span className={`inline-block font-bold px-2 py-0.5 rounded-md text-[11px] ${
+                                  isZeroStock ? "bg-rose-100 text-rose-800 border border-rose-300" : "text-green-800 bg-green-200 border border-green-400/50"
+                                }`}>
+                                  {isZeroStock ? t(lang, "Out of stock (0)", "තොග නොමැත (0)") : `${availableQty} ${t(lang, "in stock", "තොගයේ ඇත")}`}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-[11px]">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <span className="inline-block font-bold px-3 py-1 rounded-md text-[11px] bg-slate-100 text-slate-800 border border-slate-300">
                                 {maximum}
                               </span>
-                            
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            <div className="flex flex-col items-center gap-1.5">
-                              <input
-                                type="number"
-                                min={1}
-                                max={maximum}
-                                value={drafts[item.id] ?? ""}
-                                onChange={(event) => updateDraft(item.id, event.target.value)}
-                                className="h-8 w-20 rounded-lg border border-slate-200 bg-white text-center font-mono font-bold text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              />
-                              {changed && (
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <div className="flex flex-col items-center gap-1.5">
                                 <input
-                                  value={comments[item.id] ?? ""}
-                                  onChange={(event) => setComments((current) => ({ ...current, [item.id]: event.target.value }))}
-                                  placeholder={t(lang, "Reason for change", "වෙනස් කිරීමට හේතුව")}
-                                  className="h-7 w-40 rounded-lg border border-amber-200 bg-amber-50/50 px-2 text-[11px] font-medium text-slate-900 outline-none focus:bg-white focus:border-amber-500"
+                                  type="number"
+                                  min={1}
+                                  max={maximum}
+                                  value={drafts[item.id] ?? ""}
+                                  onChange={(event) => updateDraft(item.id, event.target.value)}
+                                  className="h-8 w-20 rounded-lg border border-slate-200 bg-white text-center font-mono font-bold text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
-                              )}
-                              {validationError[item.id] && (
-                                <p className="text-[10px] font-bold text-rose-600 max-w-[150px]">{validationError[item.id]}</p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => { setRejectingItem(item); setRejectReason(""); }}
-                                disabled={busyItemId === item.id}
-                                className="h-8 px-3 rounded-lg border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-xs font-bold text-rose-600 transition-all cursor-pointer disabled:opacity-50"
-                              >
-                                {t(lang, "Reject", "ප්‍රතික්ෂේප")}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void handleApprove(request, item)}
-                                disabled={busyItemId === item.id}
-                                className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-xs font-bold text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                              >
-                                {busyItemId === item.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                                <Check className="h-3 w-3" />
-                                <span>{t(lang, "Approve", "අනුමත")}</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                {changed && (
+                                  <input
+                                    value={comments[item.id] ?? ""}
+                                    onChange={(event) => setComments((current) => ({ ...current, [item.id]: event.target.value }))}
+                                    placeholder={t(lang, "Reason for change", "වෙනස් කිරීමට හේතුව")}
+                                    className="h-7 w-40 rounded-lg border border-amber-200 bg-amber-50/50 px-2 text-[11px] font-medium text-slate-900 outline-none focus:bg-white focus:border-amber-500"
+                                  />
+                                )}
+                                {validationError[item.id] && (
+                                  <p className="text-[10px] font-bold text-rose-600 max-w-[150px]">{validationError[item.id]}</p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => { setRejectingItem(item); setRejectReason(""); }}
+                                  disabled={busyItemId === item.id}
+                                  className="h-8 px-3 rounded-lg border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-xs font-bold text-rose-600 transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                  {t(lang, "Reject", "ප්‍රතික්ෂේප")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleApprove(request, item)}
+                                  disabled={busyItemId === item.id}
+                                  className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-xs font-bold text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                >
+                                  {busyItemId === item.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                                  <Check className="h-3 w-3" />
+                                  <span>{t(lang, "Approve", "අනුමත")}</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View (Optimized for small screens) */}
+                <div className="md:hidden space-y-3">
+                  {(request.items ?? []).map((item) => {
+                    const maximum = baselineQuantity(item);
+                    const balance = balances[item.item_id];
+                    const availableQty = balance?.available ?? 0;
+                    const isZeroStock = availableQty === 0;
+                    const quantity = Number(drafts[item.id]);
+                    const changed = quantity !== maximum;
+
+                    return (
+                      <div key={item.id} className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-mono text-[10px] font-bold text-slate-400 block">{item.item.item_code}</span>
+                            <span className="font-bold text-slate-900 text-xs">{item.item.name_en}</span>
+                          </div>
+                          {balance && (
+                            <span className={`font-bold px-2 py-0.5 rounded-md text-[10px] shrink-0 ${
+                              isZeroStock ? "bg-rose-100 text-rose-800 border border-rose-300" : "text-green-800 bg-green-200 border border-green-400/50"
+                            }`}>
+                              {isZeroStock ? t(lang, "Out of stock (0)", "තොග නොමැත (0)") : `${availableQty} ${t(lang, "in stock", "තොගයේ ඇත")}`}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-200/60">
+                          <div>
+                            <span className="text-[11px] text-slate-500 block">{t(lang, "Recommended", "නිර්දේශිත")}</span>
+                            <span className="font-bold font-mono text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300 inline-block mt-0.5">
+                              {maximum}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-500 block">{t(lang, "Approve Qty", "අනුමත ප්‍රමාණය")}</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={maximum}
+                              value={drafts[item.id] ?? ""}
+                              onChange={(event) => updateDraft(item.id, event.target.value)}
+                              className="h-8 w-full rounded-lg border border-slate-200 bg-white text-center font-mono font-bold text-sm text-slate-900 outline-none focus:border-blue-500 mt-0.5"
+                            />
+                          </div>
+                        </div>
+
+                        {changed && (
+                          <div>
+                            <input
+                              value={comments[item.id] ?? ""}
+                              onChange={(event) => setComments((current) => ({ ...current, [item.id]: event.target.value }))}
+                              placeholder={t(lang, "Reason for change", "වෙනස් කිරීමට හේතුව")}
+                              className="h-7 w-full rounded-lg border border-amber-200 bg-amber-50/50 px-2 text-[11px] font-medium text-slate-900 outline-none focus:bg-white focus:border-amber-500"
+                            />
+                          </div>
+                        )}
+
+                        {validationError[item.id] && (
+                          <p className="text-[10px] font-bold text-rose-600">{validationError[item.id]}</p>
+                        )}
+
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60">
+                          <button
+                            type="button"
+                            onClick={() => { setRejectingItem(item); setRejectReason(""); }}
+                            disabled={busyItemId === item.id}
+                            className="h-8 px-3 rounded-lg border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-xs font-bold text-rose-600 transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            {t(lang, "Reject", "ප්‍රතික්ෂේප")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleApprove(request, item)}
+                            disabled={busyItemId === item.id}
+                            className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-xs font-bold text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            {busyItemId === item.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                            <Check className="h-3 w-3" />
+                            <span>{t(lang, "Approve", "අනුමත")}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </section>
           );

@@ -41,10 +41,10 @@ export interface CreateStockRequestPayload {
 export interface StockRequestItemView {
   id: number;
   item_id: number;
-  quantity_requested: string; // decimal cast -> string, coerce with Number()
-  quantity_recommended: string | null;
-  quantity_approved: string | null;
-  quantity_issued: string | null;
+  quantity_requested: number; // decimal cast -> string, coerce with Number()
+  quantity_recommended: number | null;
+  quantity_approved: number | null;
+  quantity_issued: number | null;
   approval_status: "pending" | "approved" | "rejected";
   approval_remarks: string | null;
   rejection_reason: string | null;
