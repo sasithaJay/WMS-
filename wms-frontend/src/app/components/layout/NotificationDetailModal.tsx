@@ -112,7 +112,7 @@ export function NotificationDetailModal({
                 color="bg-amber-50 text-amber-700 border-amber-200/80"
               />
 
-              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 space-y-1 mt-2">
+              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   {t(lang, "Applicant", "අයදුම්කරු")}
                 </span>

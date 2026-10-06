@@ -13,6 +13,7 @@ import { t } from "../../constants/translations";
 import type { Lang, Role } from "../../types";
 import type {
   StockRequest,
+  StockRequestItemView,
   StockRequestStatus,
 } from "../../types/stockRequests";
 
@@ -24,9 +25,16 @@ function ItemChip({ label }: { label: string }) {
   );
 }
 
+function itemStatusClass(status: StockRequestItemView["approval_status"]): string {
+  if (status === "approved") return "text-emerald-700";
+  if (status === "rejected") return "text-rose-700";
+  return "text-amber-700";
+}
+
 const STATUS_STYLES: Record<StockRequestStatus, string> = {
   PENDING_RECOMMENDATION: "bg-amber-50 text-amber-700 border-amber-200/80",
   PENDING_APPROVAL: "bg-amber-50 text-amber-700 border-amber-200/80",
+  PARTIALLY_PROCESSED: "bg-orange-50 text-orange-700 border-orange-200/80",
   APPROVED: "bg-blue-50 text-blue-700 border-blue-200/80",
   ISSUED: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
   REJECTED: "bg-rose-50 text-rose-700 border-rose-200/80",
@@ -43,6 +51,7 @@ const STATUS_LABELS: Record<
     si: "නිර්දේශය අපේක්ෂිතයි",
   },
   PENDING_APPROVAL: { en: "Pending Approval", si: "අනුමැතිය අපේක්ෂිතයි" },
+  PARTIALLY_PROCESSED: { en: "Partially Processed", si: "කොටසක් සකස් කර ඇත" },
   APPROVED: { en: "Approved", si: "අනුමත" },
   ISSUED: { en: "Issued", si: "නිකුත් කරන ලදී" },
   REJECTED: { en: "Rejected", si: "ප්‍රතික්ෂේප" },
@@ -295,10 +304,15 @@ export function MyRequestsTable({
                       <td className="px-5 py-3.5">
                         <div className="flex flex-wrap gap-1">
                           {(r.items ?? []).map((it) => (
-                            <ItemChip
-                              key={it.id}
-                              label={it.item.item_code}
-                            />
+                            <div key={it.id} className="space-y-1">
+                              <ItemChip label={it.item.item_code} />
+                              <div className="text-[10px] text-slate-500">
+                                {t(lang, "Requested", "ඉල්ලූ")}: {it.quantity_requested}
+                                {it.quantity_approved !== null && ` | ${t(lang, "Approved", "අනුමත")}: ${it.quantity_approved}`}
+                                  {it.approval_status && <span className={`font-bold ${itemStatusClass(it.approval_status)}`}> | {t(lang, it.approval_status, it.approval_status)}</span>}
+                              </div>
+                              {it.rejection_reason && <div className="text-[10px] font-semibold text-rose-600">{it.rejection_reason}</div>}
+                            </div>
                           ))}
                           {r.items_count !== undefined && !r.items && (
                             <span className="text-xs text-slate-400 font-medium">
@@ -390,7 +404,15 @@ export function MyRequestsTable({
                   {/* Items Chip List */}
                   <div className="flex flex-wrap gap-1">
                     {(r.items ?? []).map((it) => (
-                      <ItemChip key={it.id} label={it.item.item_code} />
+                      <div key={it.id} className="space-y-1">
+                        <ItemChip label={it.item.item_code} />
+                        <div className="text-[10px] text-slate-500">
+                          {t(lang, "Requested", "ඉල්ලූ")}: {it.quantity_requested}
+                          {it.quantity_approved !== null && ` | ${t(lang, "Approved", "අනුමත")}: ${it.quantity_approved}`}
+                          {it.approval_status && <span className={`font-bold ${itemStatusClass(it.approval_status)}`}> | {t(lang, it.approval_status, it.approval_status)}</span>}
+                        </div>
+                        {it.rejection_reason && <div className="text-[10px] font-semibold text-rose-600">{it.rejection_reason}</div>}
+                      </div>
                     ))}
                     {r.items_count !== undefined && !r.items && (
                       <span className="text-xs text-slate-400 font-medium">

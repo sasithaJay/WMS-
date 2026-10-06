@@ -17,6 +17,13 @@ class StockRequestItem extends Model
         'quantity_approved',
         'quantity_issued',
         'remarks',
+        'approval_status',
+        'approval_remarks',
+        'rejection_reason',
+        'approved_by',
+        'approved_at',
+        'rejected_by',
+        'rejected_at',
     ];
 
     protected function casts(): array
@@ -26,6 +33,8 @@ class StockRequestItem extends Model
             'quantity_recommended' => 'decimal:3',
             'quantity_approved' => 'decimal:3',
             'quantity_issued' => 'decimal:3',
+            'approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
     }
 
@@ -37,5 +46,15 @@ class StockRequestItem extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 }

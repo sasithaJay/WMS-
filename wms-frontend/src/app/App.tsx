@@ -28,6 +28,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("login");
   const [role, setRole] = useState<Role>("COMMISSIONER");
   const [loading, setLoading] = useState(true);
+  const [activeNav, setActiveNav] = useState("dashboard");
 
   /*
    * Restore authentication after page refresh

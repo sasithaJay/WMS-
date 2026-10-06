@@ -83,3 +83,19 @@ export async function issueStockRequest(
   const response = await api.post(`/stock-requests/${id}/issue`, payload);
   return response.data.data ?? response.data;
 }
+
+export async function approveStockRequestItem(
+  itemId: number,
+  payload: { quantity: number; remarks?: string },
+): Promise<StockRequest> {
+  const response = await api.post(`/stock-request-items/${itemId}/approve`, payload);
+  return response.data.data ?? response.data;
+}
+
+export async function rejectStockRequestItem(
+  itemId: number,
+  reason: string,
+): Promise<StockRequest> {
+  const response = await api.post(`/stock-request-items/${itemId}/reject`, { reason });
+  return response.data.data ?? response.data;
+}

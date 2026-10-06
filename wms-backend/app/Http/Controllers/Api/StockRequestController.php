@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStockRequestRequest;
 use App\Http\Requests\StockRequestActionRequest;
 use App\Http\Requests\StockRequestReasonRequest;
+use App\Http\Requests\StockRequestItemApproveRequest;
+use App\Models\StockRequestItem;
 use App\Models\StockRequest;
 use App\Services\Workflow\StockRequestService;
 use Illuminate\Http\JsonResponse;
@@ -117,11 +119,26 @@ class StockRequestController extends Controller
 
     public function approve(StockRequestActionRequest $request, StockRequest $stockRequest): JsonResponse
     {
-        $updated = $this->service->approve($stockRequest, $request->validated());
+        abort(422, 'Approval must be performed for each stock request item.');
+    }
+
+    public function approveItem(StockRequestItemApproveRequest $request, StockRequestItem $stockRequestItem): JsonResponse
+    {
+        $updated = $this->service->approveItem($stockRequestItem, $request->validated());
 
         return response()->json([
-            'message' => 'Request approved successfully.',
-            'data'    => $updated,
+            'message' => 'Stock request item approved successfully.',
+            'data' => $updated,
+        ]);
+    }
+
+    public function rejectItem(StockRequestReasonRequest $request, StockRequestItem $stockRequestItem): JsonResponse
+    {
+        $updated = $this->service->rejectItem($stockRequestItem, $request->validated()['reason']);
+
+        return response()->json([
+            'message' => 'Stock request item rejected.',
+            'data' => $updated,
         ]);
     }
 

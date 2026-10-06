@@ -342,6 +342,13 @@ Route::middleware('auth:sanctum')->group(function () {
         );
     });
 
+    Route::post('/stock-request-items/{stockRequestItem}/approve', [
+        StockRequestController::class, 'approveItem'
+    ]);
+    Route::post('/stock-request-items/{stockRequestItem}/reject', [
+        StockRequestController::class, 'rejectItem'
+    ]);
+
     // routes/api.php
     Route::get('/inventory-balances', [InventoryBalanceController::class, 'index']);
 

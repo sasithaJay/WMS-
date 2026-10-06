@@ -9,6 +9,7 @@ export type StockRequestContext =
 export type StockRequestStatus =
   | "PENDING_RECOMMENDATION"
   | "PENDING_APPROVAL"
+  | "PARTIALLY_PROCESSED"
   | "APPROVED"
   | "REJECTED"
   | "RETURNED"
@@ -44,6 +45,13 @@ export interface StockRequestItemView {
   quantity_recommended: string | null;
   quantity_approved: string | null;
   quantity_issued: string | null;
+  approval_status: "pending" | "approved" | "rejected";
+  approval_remarks: string | null;
+  rejection_reason: string | null;
+  approved_by: number | null;
+  approved_at: string | null;
+  rejected_by: number | null;
+  rejected_at: string | null;
   remarks: string | null;
   item: {
     id: number;
