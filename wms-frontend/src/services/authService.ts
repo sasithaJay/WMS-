@@ -68,6 +68,16 @@ export async function register(
   return response.data;
 }
 
+export async function requestRegistrationOtp(payload: Record<string, unknown>): Promise<{ verification_id: number; phone: string; message: string }> {
+  const response = await api.post("/register/request-otp", payload);
+  return response.data;
+}
+
+export async function verifyRegistrationOtp(verificationId: number, otp: string): Promise<{ verification_token: string; message: string }> {
+  const response = await api.post("/register/verify-otp", { verification_id: verificationId, otp });
+  return response.data;
+}
+
 export async function getCurrentUser(): Promise<User> {
   const response = await api.get<User>("/user");
 

@@ -10,6 +10,15 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  const publicRegistrationRequest =
+    config.url === "/register" ||
+    config.url === "/register/request-otp" ||
+    config.url === "/register/verify-otp";
+
+  if (publicRegistrationRequest) {
+    return config;
+  }
+
   const token = 
     localStorage.getItem("auth_token") ??
     sessionStorage.getItem("auth_token");

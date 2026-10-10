@@ -34,11 +34,17 @@ Route::post('/register', [
     RegisterController::class,
     'register',
 ]);
+Route::post('/register/request-otp', [RegisterController::class, 'requestOtp'])->middleware('throttle:5,10');
+Route::post('/register/verify-otp', [RegisterController::class, 'verifyOtp'])->middleware('throttle:10,10');
 
 Route::post('/login', [
     LoginController::class,
     'login',
 ]);
+
+Route::get('/login', function () {
+    return response()->json(['message' => 'Unauthenticated.'], 401);
+})->name('login');
 
 Route::post('/forgot-password', [
     ForgotPasswordController::class,

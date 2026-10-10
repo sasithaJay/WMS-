@@ -27,6 +27,8 @@ import {
   getRegistrationOptions,
   getSections,
   register,
+  requestRegistrationOtp,
+  verifyRegistrationOtp,
 } from "../../services/authService";
 
 import { t } from "../constants/translations";
@@ -82,6 +84,9 @@ export function RegisterPage({
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [loadingSections, setLoadingSections] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [verificationId, setVerificationId] = useState<number | null>(null);
+  const [verificationToken, setVerificationToken] = useState("");
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -91,6 +96,7 @@ export function RegisterPage({
     t(lang, "Account Type", "ගිණුම් වර්ගය"),
     t(lang, "Details", "විස්තර"),
     t(lang, "Credentials", "අක්තපත්‍ර"),
+    t(lang, "Verify Phone", "දුරකථනය සත්‍යාපනය"),
   ];
 
   // selected role
@@ -369,6 +375,11 @@ export function RegisterPage({
       }
     }
 
+    if (step === 4 && !/^\d{6}$/.test(otp)) {
+      setError(t(lang, "Enter the 6-digit verification code.", "අංක 6ක සත්‍යාපන කේතය ඇතුළත් කරන්න."));
+      return false;
+    }
+
     return true;
   };
 
@@ -376,7 +387,7 @@ export function RegisterPage({
     if (!validateCurrentStep()) {
       return;
     }
-    setStep((current) => Math.min(3, current + 1));
+    setStep((current) => Math.min(4, current + 1));
   };
 
   const handleSubmit = async () => {
@@ -426,7 +437,20 @@ export function RegisterPage({
         };
       }
 
-      const data = await register(payload);
+      if (step === 3) {
+        const otpResponse = await requestRegistrationOtp(payload);
+        setVerificationId(otpResponse.verification_id);
+        setStep(4);
+        setSuccess(otpResponse.message);
+        return;
+      }
+
+      if (!verificationId) {
+        throw new Error("Phone verification session is missing.");
+      }
+      const verified = await verifyRegistrationOtp(verificationId, otp);
+      setVerificationToken(verified.verification_token);
+      const data = await register({ ...payload, verification_token: verified.verification_token });
 
       setSuccess(data.message);
       setForm({});
@@ -434,6 +458,9 @@ export function RegisterPage({
       setAccountType(null);
       setSections([]);
       setStep(0);
+      setVerificationId(null);
+      setVerificationToken("");
+      setOtp("");
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const responseData = error.response?.data;
@@ -1111,6 +1138,28 @@ export function RegisterPage({
                 </div>
               </div>
             )}
+
+            {step === 4 && (
+              <div className="animate-in fade-in duration-300">
+                <div className="mb-6">
+                  <h2 className="text-lg font-bold text-white">
+                    {t(lang, "Verify your phone number", "ඔබගේ දුරකථන අංකය සත්‍යාපනය කරන්න")}
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {t(lang, "Enter the 6-digit code sent by SMS. Your account will be created after verification.", "SMS මගින් එවූ අංක 6ක කේතය ඇතුළත් කරන්න. සත්‍යාපනයෙන් පසු ඔබගේ ගිණුම සාදනු ලැබේ.")}
+                  </p>
+                </div>
+                <input
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  placeholder="000000"
+                  className="w-full h-12 rounded-xl border border-slate-700 bg-slate-900 px-4 text-center text-xl font-mono tracking-[0.4em] text-white outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
           </div>
 
           {/* Feedback Messages */}
@@ -1175,7 +1224,7 @@ export function RegisterPage({
                 </>
               ) : (
                 <>
-                  <span>{t(lang, "Create Account", "ගිණුම සාදන්න")}</span>
+                  <span>{step === 3 ? t(lang, "Send Verification Code", "සත්‍යාපන කේතය යවන්න") : t(lang, "Create Account", "ගිණුම සාදන්න")}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
