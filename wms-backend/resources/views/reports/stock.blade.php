@@ -15,6 +15,7 @@
 </style>
 </head>
 <body>
+    @include('reports._department-header')
     <h1>Current Stock Report</h1>
     <div class="meta">Generated: {{ $generatedAt->format('F j, Y g:i A') }}</div>
     <table>

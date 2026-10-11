@@ -56,6 +56,11 @@ class StockMovement extends Model
         );
     }
 
+    public function stockRequest(): BelongsTo
+    {
+        return $this->belongsTo(StockRequest::class, 'reference_id');
+    }
+
     public function isIncoming(): bool
     {
         return in_array($this->movement_type, [

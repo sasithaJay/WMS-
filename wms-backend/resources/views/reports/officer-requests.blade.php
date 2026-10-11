@@ -15,8 +15,8 @@
 </style>
 </head>
 <body>
-    <h1>Social Welfare, Probation & Child Care Department</h1>
-    <h2>Officer / DS Office Request Report</h2>
+    @include('reports._department-header')
+    <h1>Officer / Institutions / DS Office Request Report</h1>
     <div class="meta">
         Period: {{ $from ?? 'All time' }} — {{ $to ?? 'Present' }} ·
         Generated: {{ $generatedAt->format('F j, Y g:i A') }}
@@ -25,10 +25,11 @@
     <div class="officer-block">
         <div class="officer-header">{{ $group['officer_name'] }} ({{ $group['division_name'] }})</div>
         <table>
-            <thead><tr><th>Request No.</th><th>Context</th><th>Status</th><th>Date</th><th>Items Count</th><th>Items</th></tr></thead>
+            <thead><tr><th>Division</th><th>Request No.</th><th>Context</th><th>Status</th><th>Date</th><th>Items Count</th><th>Items</th></tr></thead>
             <tbody>
                 @foreach ($group['requests'] as $r)
                 <tr>
+                    <td>{{ $r['division_name'] }}</td>
                     <td>{{ $r['request_number'] }}</td>
                     <td>{{ $r['request_context'] }}</td>
                     <td>{{ $r['status'] }}</td>

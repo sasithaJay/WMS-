@@ -34,7 +34,7 @@ export function AccountantDashboard({ lang, setLang, onLogout }: { lang: Lang; s
         }} />}
       {activeNav === "approve" && <ApprovalQueue lang={lang} />}
       {activeNav === "vat-approve" && <VatRateApprovalQueue lang={lang} />}
-      {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "reports" && <ReportsPanel lang={lang} role={role} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

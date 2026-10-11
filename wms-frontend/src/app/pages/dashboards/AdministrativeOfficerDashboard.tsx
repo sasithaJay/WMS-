@@ -36,7 +36,7 @@ export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { la
         }} />}
       {activeNav === "recommend" && <RecommendationQueue lang={lang} />}
       {activeNav === "item-updates" && <PendingItemUpdateRequestsQueue lang={lang} />}
-      {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "reports" && <ReportsPanel lang={lang} role={role} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

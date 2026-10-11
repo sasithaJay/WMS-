@@ -9,9 +9,11 @@ use App\Models\StockMovement;
 use App\Models\StockReceipt;
 use App\Models\StockRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class ReportController extends Controller
@@ -58,9 +60,13 @@ class ReportController extends Controller
 
     private function buildStockReportData(Request $request): \Illuminate\Support\Collection
     {
+        $request->validate([
+            'status' => ['sometimes', 'nullable', Rule::in(['OUT', 'LOW', 'NORMAL'])],
+        ]);
+
         $divisionIds = $this->resolveDivisionIds($request);
 
-        return Item::query()
+        $rows = Item::query()
             ->with(['category', 'unit', 'division', 'balance'])
             ->whereIn('division_id', $divisionIds)
             ->where('is_active', true)
@@ -75,8 +81,14 @@ class ReportController extends Controller
                 'unit' => $item->unit?->name_en,
                 'quantity_on_hand' => (float) ($item->balance?->quantity_on_hand ?? 0),
                 'reorder_level' => $item->reorder_level,
-                'status' => $this->stockStatus((float) ($item->balance?->quantity_on_hand ?? 0), $item->reorder_level),
+            'status' => $this->stockStatus((float) ($item->balance?->quantity_on_hand ?? 0), $item->reorder_level),
             ]);
+
+        if ($request->filled('status')) {
+            return $rows->where('status', $request->input('status'))->values();
+        }
+
+        return $rows;
     }
 
     private function stockStatus(float $quantity, int $reorderLevel): string
@@ -110,9 +122,12 @@ class ReportController extends Controller
 
     private function buildIssueReportData(Request $request): \Illuminate\Support\Collection
     {
+        $request->validate([
+            'requester' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
         $divisionIds = $this->resolveDivisionIds($request);
 
-        $query = StockMovement::with(['item', 'performer'])
+        $query = StockMovement::with(['item', 'division', 'performer', 'stockRequest.requester.staffProfile.role', 'stockRequest.requester.organization'])
             ->whereIn('division_id', $divisionIds)
             ->where('movement_type', 'ISSUE')
             ->latest();
@@ -123,14 +138,29 @@ class ReportController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->input('date_to'));
         }
+        if ($request->filled('requester')) {
+            $search = trim($request->input('requester'));
+            $query->where('reference_type', 'STOCK_REQUEST');
+            $query->whereHas('stockRequest.requester', function ($requesterQuery) use ($search) {
+                $requesterQuery->where('username', 'like', "%{$search}%")
+                    ->orWhereHas('staffProfile', fn ($profileQuery) => $profileQuery->where('full_name', 'like', "%{$search}%"))
+                    ->orWhereHas('organization', fn ($organizationQuery) => $organizationQuery->where('name', 'like', "%{$search}%"));
+            });
+        }
 
         return $query->get()->map(fn (StockMovement $m) => [
             'date' => $m->created_at->toDateString(),
+            'division_name' => $m->division?->name_en ?? '-',
             'item_code' => $m->item->item_code,
             'item_name' => $m->item->name_en,
             'quantity' => (float) $m->quantity,
             'reference_number' => $m->reference_number,
             'performed_by' => $m->performer->name ?? $m->performer->username,
+            'requester_name' => $m->stockRequest?->requester?->name ?? '-',
+            'requester_position' => $m->stockRequest?->requester?->staffProfile?->role?->name_en
+                ?? $m->stockRequest?->requester?->organization?->organization_kind
+                ?? $m->stockRequest?->requester?->account_type
+                ?? '-',
         ]);
     }
 
@@ -160,7 +190,7 @@ class ReportController extends Controller
     {
         $divisionIds = $this->resolveDivisionIds($request);
 
-        $query = StockReceipt::with(['items.item'])
+        $query = StockReceipt::with(['division', 'items.item'])
             ->whereIn('division_id', $divisionIds)
             ->where('status', 'CONFIRMED')
             ->latest('confirmed_at');
@@ -174,6 +204,7 @@ class ReportController extends Controller
 
         return $query->get()->map(fn (StockReceipt $r) => [
             'grn_number' => $r->grn_number,
+            'division_name' => $r->division?->name_en ?? '-',
             'supplier_name' => $r->supplier_name,
             'received_date' => $r->received_date,
             'confirmed_at' => $r->confirmed_at?->toDateString(),
@@ -199,9 +230,24 @@ class ReportController extends Controller
     public function monthlyPdf(Request $request): Response
     {
         $data = $this->buildMonthlyReportData($request);
+        $filters = $request->validate([
+            'month' => ['required', 'integer', 'between:1,12'],
+            'year' => ['required', 'integer', 'between:1900,2200'],
+            'division_id' => ['sometimes', 'nullable', 'integer', 'exists:divisions,id'],
+        ]);
+        $visibleDivisionIds = $this->resolveDivisionIds($request);
+        $selectedDivisionId = $request->filled('division_id')
+            && $visibleDivisionIds->contains((int) $filters['division_id'])
+                ? (int) $filters['division_id']
+                : ($visibleDivisionIds->count() === 1 ? (int) $visibleDivisionIds->first() : null);
         $pdf = Pdf::loadView('reports.monthly', [
-            'rows' => $data,
-            'year' => $request->integer('year', now()->year),
+            'divisions' => $data,
+            'month' => (int) $filters['month'],
+            'year' => (int) $filters['year'],
+            'monthName' => CarbonImmutable::create((int) $filters['year'], (int) $filters['month'], 1)->format('F'),
+            'divisionName' => $selectedDivisionId
+                ? Division::find($selectedDivisionId)?->name_en
+                : 'All divisions',
             'generatedAt' => now(),
         ]);
 
@@ -210,43 +256,159 @@ class ReportController extends Controller
 
     private function buildMonthlyReportData(Request $request): array
     {
+        $filters = $request->validate([
+            'month' => ['required', 'integer', 'between:1,12'],
+            'year' => ['required', 'integer', 'between:1900,2200'],
+            'division_id' => ['sometimes', 'nullable', 'integer', 'exists:divisions,id'],
+        ]);
+        $month = (int) $filters['month'];
+        $year = (int) $filters['year'];
+        $from = CarbonImmutable::create($year, $month, 1)->startOfDay();
+        $until = $from->addMonth();
+        return $this->buildInventoryTransactionReportData($request, $from, $until);
+    }
+
+    private function buildInventoryTransactionReportData(
+        Request $request,
+        CarbonImmutable $from,
+        CarbonImmutable $until,
+    ): array {
         $divisionIds = $this->resolveDivisionIds($request);
-        $year = $request->integer('year', now()->year);
+        $groups = [];
 
-        $movementRows = StockMovement::whereIn('division_id', $divisionIds)
-            ->whereYear('created_at', $year)
-            ->selectRaw("MONTH(created_at) as m, movement_type, SUM(quantity) as total")
-            ->groupBy('m', 'movement_type')
+        $receipts = StockReceipt::query()
+            ->with(['division:id,name_en', 'items.item:id,item_code,name_en,unit_id', 'items.item.unit:id,name_en,symbol'])
+            ->whereIn('division_id', $divisionIds)
+            ->where('status', 'CONFIRMED')
+            ->where('received_date', '>=', $from->toDateString())
+            ->where('received_date', '<', $until->toDateString())
+            ->orderBy('received_date')
+            ->orderBy('id')
             ->get();
 
-        $requestRows = StockRequest::whereIn('division_id', $divisionIds)
-            ->whereYear('created_at', $year)
-            ->selectRaw("MONTH(created_at) as m, status, COUNT(*) as total")
-            ->groupBy('m', 'status')
-            ->get();
+        foreach ($receipts as $receipt) {
+            if ($receipt->items->isEmpty()) {
+                continue;
+            }
 
-        $incomingTypes = ['RECEIPT', 'RETURN', 'ADJUSTMENT_IN'];
-        $outgoingTypes = ['ISSUE', 'ADJUSTMENT_OUT'];
-        $pendingStatuses = ['PENDING_RECOMMENDATION', 'PENDING_APPROVAL'];
-
-        $months = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $received = $movementRows->where('m', $m)->whereIn('movement_type', $incomingTypes)->sum('total');
-            $issued = $movementRows->where('m', $m)->whereIn('movement_type', $outgoingTypes)->sum('total');
-            $pending = $requestRows->where('m', $m)->whereIn('status', $pendingStatuses)->sum('total');
-            $rejected = $requestRows->where('m', $m)->where('status', 'REJECTED')->sum('total');
-
-            $months[] = [
-                'month' => $m,
-                'month_name' => now()->setDate($year, $m, 1)->translatedFormat('F Y'),
-                'received' => (float) $received,
-                'issued' => (float) $issued,
-                'pending' => (int) $pending,
-                'rejected' => (int) $rejected,
+            $groups[$receipt->division_id] ??= [
+                'division_id' => $receipt->division_id,
+                'division_name' => $receipt->division?->name_en ?? '-',
+                'received_items' => [],
+                'issued_items' => [],
+                'received_totals' => [],
+                'issued_totals' => [],
+                'receipt_subtotal' => 0,
+                'receipt_vat' => 0,
+                'receipt_total_with_vat' => 0,
             ];
+
+            $calculatedSubtotal = $receipt->items->sum(
+                fn ($line) => (float) $line->quantity_received * (float) ($line->unit_cost ?? 0)
+            );
+            $receiptSubtotal = (float) $receipt->subtotal;
+            if ($receiptSubtotal <= 0 && $calculatedSubtotal > 0) {
+                $receiptSubtotal = round($calculatedSubtotal, 2);
+            }
+            $receiptVat = (float) $receipt->vat_amount;
+            if ($receiptVat <= 0 && $receiptSubtotal > 0 && (float) $receipt->vat_percentage > 0) {
+                $receiptVat = round($receiptSubtotal * ((float) $receipt->vat_percentage / 100), 2);
+            }
+            $receiptTotal = (float) $receipt->total_with_vat;
+            if ($receiptTotal <= 0 && ($receiptSubtotal > 0 || $receiptVat > 0)) {
+                $receiptTotal = round($receiptSubtotal + $receiptVat, 2);
+            }
+            $groups[$receipt->division_id]['receipt_subtotal'] += $receiptSubtotal;
+            $groups[$receipt->division_id]['receipt_vat'] += $receiptVat;
+            $groups[$receipt->division_id]['receipt_total_with_vat'] += $receiptTotal;
+
+            $vatRemaining = $receiptVat;
+            $lastPricedReceiptItemId = $receipt->items->whereNotNull('unit_cost')->last()?->id;
+            foreach ($receipt->items as $receiptItem) {
+                $item = $receiptItem->item;
+                $unit = $item?->unit;
+                $unitKey = $item?->unit_id ?? 'unknown';
+                $unitName = $unit?->symbol ?: ($unit?->name_en ?? 'Unit not specified');
+                $lineSubtotal = (float) $receiptItem->quantity_received * (float) ($receiptItem->unit_cost ?? 0);
+                $lineVat = 0;
+                if ($receiptItem->unit_cost !== null && $receiptSubtotal > 0) {
+                    $lineVat = $receiptItem->id === $lastPricedReceiptItemId
+                        ? $vatRemaining
+                        : round($receiptVat * ($lineSubtotal / $receiptSubtotal), 2);
+                    $vatRemaining -= $lineVat;
+                }
+                $groups[$receipt->division_id]['received_items'][] = [
+                    'item_code' => $item?->item_code ?? '-',
+                    'item_name' => $item?->name_en ?? '-',
+                    'supplier_name' => $receipt->supplier_name,
+                    'reference_number' => $receipt->grn_number,
+                    'date' => $receipt->received_date?->toDateString(),
+                    'quantity' => (float) $receiptItem->quantity_received,
+                    'unit' => $unitName,
+                    'total_amount_with_vat' => $receiptItem->unit_cost === null
+                        ? null
+                        : round($lineSubtotal + $lineVat, 2),
+                ];
+                $groups[$receipt->division_id]['received_totals'][$unitKey] ??= [
+                    'unit' => $unitName,
+                    'quantity' => 0,
+                ];
+                $groups[$receipt->division_id]['received_totals'][$unitKey]['quantity'] += (float) $receiptItem->quantity_received;
+            }
         }
 
-        return $months;
+        $issues = StockMovement::query()
+            ->with(['division:id,name_en', 'item:id,item_code,name_en,unit_id', 'item.unit:id,name_en,symbol', 'stockRequest:id,request_number'])
+            ->whereIn('division_id', $divisionIds)
+            ->where('movement_type', 'ISSUE')
+            ->where('created_at', '>=', $from)
+            ->where('created_at', '<', $until)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($issues as $movement) {
+            $groups[$movement->division_id] ??= [
+                'division_id' => $movement->division_id,
+                'division_name' => $movement->division?->name_en ?? '-',
+                'received_items' => [],
+                'issued_items' => [],
+                'received_totals' => [],
+                'issued_totals' => [],
+                'receipt_subtotal' => 0,
+                'receipt_vat' => 0,
+                'receipt_total_with_vat' => 0,
+            ];
+            $item = $movement->item;
+            $unit = $item?->unit;
+            $unitKey = $item?->unit_id ?? 'unknown';
+            $unitName = $unit?->symbol ?: ($unit?->name_en ?? 'Unit not specified');
+            $groups[$movement->division_id]['issued_items'][] = [
+                'item_code' => $item?->item_code ?? '-',
+                'item_name' => $item?->name_en ?? '-',
+                'quantity' => (float) $movement->quantity,
+                'unit' => $unitName,
+                'date' => $movement->created_at?->toDateString(),
+                'reference_number' => $movement->reference_number
+                    ?? ($movement->reference_type === 'STOCK_REQUEST' ? $movement->stockRequest?->request_number : null),
+            ];
+            $groups[$movement->division_id]['issued_totals'][$unitKey] ??= [
+                'unit' => $unitName,
+                'quantity' => 0,
+            ];
+            $groups[$movement->division_id]['issued_totals'][$unitKey]['quantity'] += (float) $movement->quantity;
+        }
+
+        foreach ($groups as &$group) {
+            $group['received_totals'] = array_values($group['received_totals']);
+            $group['issued_totals'] = array_values($group['issued_totals']);
+        }
+        unset($group);
+
+        $groups = array_values($groups);
+        usort($groups, fn (array $left, array $right) => strcasecmp($left['division_name'], $right['division_name']));
+
+        return $groups;
     }
 
     // ------------------------------------------------------------------
@@ -261,50 +423,37 @@ class ReportController extends Controller
     public function annualPdf(Request $request): Response
     {
         $data = $this->buildAnnualReportData($request);
-        $pdf = Pdf::loadView('reports.annual', ['rows' => $data, 'generatedAt' => now()]);
+        $filters = $request->validate([
+            'year' => ['required', 'integer', 'between:1900,2200'],
+            'division_id' => ['sometimes', 'nullable', 'integer', 'exists:divisions,id'],
+        ]);
+        $visibleDivisionIds = $this->resolveDivisionIds($request);
+        $selectedDivisionId = $request->filled('division_id')
+            && $visibleDivisionIds->contains((int) $filters['division_id'])
+                ? (int) $filters['division_id']
+                : ($visibleDivisionIds->count() === 1 ? (int) $visibleDivisionIds->first() : null);
+        $pdf = Pdf::loadView('reports.annual', [
+            'divisions' => $data,
+            'year' => (int) $filters['year'],
+            'divisionName' => $selectedDivisionId
+                ? Division::find($selectedDivisionId)?->name_en
+                : 'All divisions',
+            'generatedAt' => now(),
+        ]);
 
         return $pdf->download('annual-report-' . now()->format('Y-m-d') . '.pdf');
     }
 
     private function buildAnnualReportData(Request $request): array
     {
-        $divisionIds = $this->resolveDivisionIds($request);
+        $filters = $request->validate([
+            'year' => ['required', 'integer', 'between:1900,2200'],
+            'division_id' => ['sometimes', 'nullable', 'integer', 'exists:divisions,id'],
+        ]);
+        $from = CarbonImmutable::create((int) $filters['year'], 1, 1)->startOfDay();
+        $until = $from->addYear();
 
-        $fromYear = $request->integer('from_year', now()->year - 2);
-        $toYear = $request->integer('to_year', now()->year);
-
-        $incomingTypes = ['RECEIPT', 'RETURN', 'ADJUSTMENT_IN'];
-        $outgoingTypes = ['ISSUE', 'ADJUSTMENT_OUT'];
-
-        $movementRows = StockMovement::whereIn('division_id', $divisionIds)
-            ->whereBetween(DB::raw('YEAR(created_at)'), [$fromYear, $toYear])
-            ->selectRaw('YEAR(created_at) as y, movement_type, SUM(quantity) as total')
-            ->groupBy('y', 'movement_type')
-            ->get();
-
-        $requestRows = StockRequest::whereIn('division_id', $divisionIds)
-            ->whereBetween(DB::raw('YEAR(created_at)'), [$fromYear, $toYear])
-            ->selectRaw('YEAR(created_at) as y, status, COUNT(*) as total')
-            ->groupBy('y', 'status')
-            ->get();
-
-        $years = [];
-        for ($y = $toYear; $y >= $fromYear; $y--) {
-            $totalReceived = $movementRows->where('y', $y)->whereIn('movement_type', $incomingTypes)->sum('total');
-            $totalIssued = $movementRows->where('y', $y)->whereIn('movement_type', $outgoingTypes)->sum('total');
-            $totalRequests = $requestRows->where('y', $y)->sum('total');
-            $fulfilled = $requestRows->where('y', $y)->where('status', 'ISSUED')->sum('total');
-
-            $years[] = [
-                'year' => $y,
-                'total_received' => (float) $totalReceived,
-                'total_issued' => (float) $totalIssued,
-                'total_requests' => (int) $totalRequests,
-                'fulfilled' => (int) $fulfilled,
-            ];
-        }
-
-        return $years;
+        return $this->buildInventoryTransactionReportData($request, $from, $until);
     }
 
     // ------------------------------------------------------------------
@@ -333,7 +482,7 @@ class ReportController extends Controller
     {
         $divisionIds = $this->resolveDivisionIds($request);
 
-        $query = StockRequest::with(['requester.staffProfile', 'requester.organization', 'dsOffice', 'items.item'])
+        $query = StockRequest::with(['division', 'requester.staffProfile', 'requester.organization', 'dsOffice', 'items.item'])
             ->whereIn('division_id', $divisionIds)
             ->latest();
 
@@ -350,16 +499,19 @@ class ReportController extends Controller
         $requests = $query->get();
 
         return $requests
-            ->groupBy(fn (StockRequest $r) => $r->dsOffice?->name_en
-                ?? $r->requester->organization?->name
-                ?? $r->requester->name
-                ?? $r->requester->username)
-            ->map(function ($group, $officerName) {
+            ->groupBy(fn (StockRequest $r) => $r->division_id . '-' . $r->requester_id)
+            ->map(function ($group) {
+                $first = $group->first();
+                $officerName = $first->dsOffice?->name_en
+                    ?? $first->requester->organization?->name
+                    ?? $first->requester->name
+                    ?? $first->requester->username;
                 return [
                     'officer_name' => $officerName,
-                    'division_name' => $group->first()->division->name_en ?? null,
+                    'division_name' => $first->division?->name_en,
                     'requests' => $group->map(fn (StockRequest $r) => [
                         'request_number' => $r->request_number,
+                        'division_name' => $r->division?->name_en,
                         'request_context' => $r->request_context,
                         'status' => $r->status,
                         'submitted_at' => $r->submitted_at?->toDateString(),

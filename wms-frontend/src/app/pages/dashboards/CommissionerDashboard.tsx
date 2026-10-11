@@ -42,7 +42,7 @@ export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang;
       )}
       {activeNav === "approve" && <ApprovalQueue lang={lang} />}
       
-      {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "reports" && <ReportsPanel lang={lang} role={role} />}
       {activeNav === "users" && (
         <div className="space-y-6">
           <UserVerificationTable lang={lang} />

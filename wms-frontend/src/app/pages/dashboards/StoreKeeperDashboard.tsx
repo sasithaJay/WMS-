@@ -203,7 +203,7 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
         </div>
       )}
 
-      {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "reports" && <ReportsPanel lang={lang} role={role} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

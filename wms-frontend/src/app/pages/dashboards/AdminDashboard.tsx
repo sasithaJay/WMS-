@@ -84,7 +84,7 @@ export function AdminDashboard({
         </div>
       )}
       {activeNav === "commissioners" && <CommissionerAccounts lang={lang} />}
-      {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "reports" && <ReportsPanel lang={lang} role={role} />}
       {activeNav === "backups" && <BackupSettingsPanel lang={lang} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
