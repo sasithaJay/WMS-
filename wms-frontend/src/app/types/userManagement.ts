@@ -27,6 +27,7 @@ export interface AdminUser {
   account_status: "ACTIVE" | "SUSPENDED";
   staff_profile?: {
     full_name: string;
+    nic_number?: string;
     phone?: string | null;
     role?: AdminUserRole;
     division?: AdminUserDivision;
@@ -56,6 +57,7 @@ export interface AdminStats {
 
 export interface UpdateUserPayload {
   full_name?: string;
+  nic_number?: string;
   email?: string | null;
   phone?: string | null;
   role_id?: number;

@@ -98,6 +98,7 @@ export function RegisterPage({
     t(lang, "Credentials", "අක්තපත්‍ර"),
     t(lang, "Verify Phone", "දුරකථනය සත්‍යාපනය"),
   ];
+  const progressPercent = Math.round(((step + 1) / steps.length) * 100);
 
   // selected role
   const selectedRole = useMemo(
@@ -554,7 +555,7 @@ export function RegisterPage({
         <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl">
           {/* Progress Stepper Bar */}
           <div className="p-6 sm:p-8 border-b border-slate-800 bg-slate-950/40">
-            <div className="grid grid-cols-4 gap-2 relative">
+            <div className="grid grid-cols-5 gap-2 relative">
               {steps.map((stepLabel, index) => {
                 const completed = index < step;
                 const active = index === step;
@@ -578,7 +579,7 @@ export function RegisterPage({
                     </div>
 
                     <span
-                      className={`mt-2 text-[11px] font-semibold text-center hidden sm:block ${
+                      className={`mt-2 text-[10px] sm:text-[11px] font-semibold text-center whitespace-nowrap hidden sm:block ${
                         active
                           ? "text-blue-400"
                           : completed
@@ -599,18 +600,18 @@ export function RegisterPage({
                 <span className="text-slate-400">
                   {t(
                     lang,
-                    `Step ${step + 1} of 4`,
-                    `පියවර ${step + 1} / 4`,
+                    `Step ${step + 1} of ${steps.length}`,
+                    `පියවර ${step + 1} / ${steps.length}`,
                   )}
                 </span>
                 <span className="text-blue-400">
-                  {Math.round(((step + 1) / 4) * 100)}%
+                  {progressPercent}%
                 </span>
               </div>
               <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
-                  style={{ width: `${((step + 1) / 4) * 100}%` }}
+                  style={{ width: `${progressPercent}%` }}
                 />
               </div>
             </div>

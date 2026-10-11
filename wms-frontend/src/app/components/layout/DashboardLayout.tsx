@@ -21,6 +21,7 @@ const NAV_TITLES: Record<string, { en: string; si: string }> = {
   receipts: { en: "Stock Receipts", si: "ගබඩා රිසිට්" },
   reports: { en: "Reports", si: "වාර්තා" },
   users: { en: "User Management", si: "පරිශීලක කළමනාකරණය" },
+  commissioners: { en: "Commissioner Accounts", si: "කොමසාරිස් ගිණුම්" },
   settings: { en: "Settings", si: "සැකසීම්" },
 };
 

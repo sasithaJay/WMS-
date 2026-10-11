@@ -19,12 +19,16 @@ return new class extends Migration
 
         // Backfill existing rows using each item's own division_id,
         // since that's the only signal we have for pre-existing data.
-        DB::statement('
-            UPDATE inventory_balances ib
-            JOIN items i ON i.id = ib.item_id
-            SET ib.division_id = i.division_id
-            WHERE ib.division_id IS NULL
-        ');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('UPDATE inventory_balances SET division_id = (SELECT items.division_id FROM items WHERE items.id = inventory_balances.item_id) WHERE division_id IS NULL');
+        } else {
+            DB::statement('
+                UPDATE inventory_balances ib
+                JOIN items i ON i.id = ib.item_id
+                SET ib.division_id = i.division_id
+                WHERE ib.division_id IS NULL
+            ');
+        }
 
         Schema::table('inventory_balances', function (Blueprint $table) {
             $table->foreignId('division_id')->nullable(false)->change();

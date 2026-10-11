@@ -13,6 +13,8 @@ class UserManagementController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $isAdmin = $request->user()?->account_type === 'STAFF'
+            && $request->user()?->staffProfile?->role?->code === 'ADMIN';
         $query = User::query()
             ->whereIn('account_status', ['ACTIVE', 'SUSPENDED'])
             ->with([
@@ -21,6 +23,10 @@ class UserManagementController extends Controller
                 'staffProfile.section',
                 'organization.division',
             ]);
+
+        if (! $isAdmin) {
+            $query->whereDoesntHave('staffProfile.role', fn ($roles) => $roles->where('code', 'COMMISSIONER'));
+        }
 
         if ($request->filled('type')) {
             match ($request->input('type')) {
@@ -53,6 +59,16 @@ class UserManagementController extends Controller
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $data = $request->validated();
+        $isAdmin = $request->user()?->account_type === 'STAFF'
+            && $request->user()?->staffProfile?->role?->code === 'ADMIN';
+
+        if ($user->staffProfile?->role?->code === 'COMMISSIONER' && ! $isAdmin) {
+            abort(403, 'Only Admin users can manage Commissioner accounts.');
+        }
+
+        if (array_key_exists('role_id', $data) && ! $isAdmin) {
+            abort(403, 'Only Admin users can change staff roles.');
+        }
 
         if (array_key_exists('email', $data)) {
             $user->update(['email' => $data['email']]);
@@ -65,6 +81,7 @@ class UserManagementController extends Controller
         if ($user->account_type === 'STAFF' && $user->staffProfile) {
             $user->staffProfile->update(array_filter([
                 'full_name' => $data['full_name'] ?? null,
+                'nic_number' => $data['nic_number'] ?? null,
                  'phone' => array_key_exists('phone', $data) ? $data['phone'] : null,
                 'role_id' => $data['role_id'] ?? null,
                 'division_id' => $data['division_id'] ?? null,

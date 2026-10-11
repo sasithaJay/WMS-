@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ItemLabelController;
 use App\Http\Controllers\Api\VatRateController;
 use App\Http\Controllers\Api\Admin\BackupController;
+use App\Http\Controllers\Api\Admin\CommissionerAccountController;
 
 //Public Routes
 
@@ -88,6 +89,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/stats', [AdminStatsController::class, 'index']);
         Route::get('/admin/users', [UserManagementController::class, 'index']);
         Route::patch('/admin/users/{user}', [UserManagementController::class, 'update']);
+        Route::get('/admin/commissioners', [CommissionerAccountController::class, 'index']);
+        Route::post('/admin/commissioners', [CommissionerAccountController::class, 'store']);
+        Route::patch('/admin/commissioners/{user}', [CommissionerAccountController::class, 'update']);
     });
 
     Route::put('/user/password', [PasswordController::class, 'update']);
