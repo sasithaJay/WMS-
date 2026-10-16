@@ -105,7 +105,15 @@ export function LoginPage({
         const rejectionReason =
           error.response?.data?.rejection_reason;
 
-        if (rejectionReason) {
+        if (error.response?.status === 503) {
+          setError(
+            t(
+              lang,
+              "The system is currently under maintenance. Please try again later.",
+              "පද්ධතිය මේ වන විට නඩත්තු කටයුතු සඳහා වසා ඇත. කරුණාකර පසුව නැවත උත්සාහ කරන්න.",
+            ),
+          );
+        } else if (rejectionReason) {
           setError(`${message} ${rejectionReason}`);
         } else {
           setError(
