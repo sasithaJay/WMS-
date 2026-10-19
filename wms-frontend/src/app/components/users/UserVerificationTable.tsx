@@ -9,6 +9,7 @@ import {
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import { UserDetailModal } from "./UserDetailModal";
+import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
 
 function displayInfo(u: PendingRegistration, lang: Lang): { name: string; subtitle: string } {
   if (u.staff_profile) {
@@ -40,6 +41,7 @@ function displayInfo(u: PendingRegistration, lang: Lang): { name: string; subtit
 }
 
 export function UserVerificationTable({ lang }: { lang: Lang }) {
+  const { triggerBadgeRefresh } = useBadgeRefresh();
   const [registrations, setRegistrations] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -75,6 +77,7 @@ export function UserVerificationTable({ lang }: { lang: Lang }) {
       setError("");
       await approveRegistration(id);
       setRegistrations((current) => current.filter((u) => u.id !== id));
+      triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
       setError(
@@ -93,6 +96,7 @@ export function UserVerificationTable({ lang }: { lang: Lang }) {
       setError("");
       await rejectRegistration(id, rejectReason);
       setRegistrations((current) => current.filter((u) => u.id !== id));
+      triggerBadgeRefresh();
       setRejectingId(null);
       setRejectReason("");
     } catch (err) {

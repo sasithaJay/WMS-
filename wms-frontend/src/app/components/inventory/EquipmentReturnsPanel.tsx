@@ -3,10 +3,12 @@ import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { confirmEquipmentReturn, getPendingEquipmentReturns, type EquipmentAssignment } from "../../../services/equipmentAssignmentService";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
+import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
 
 const conditions: NonNullable<EquipmentAssignment["return_condition"]>[] = ["GOOD", "DAMAGED", "MALFUNCTIONED", "BEYOND_REPAIR"];
 
 export function EquipmentReturnsPanel({ lang }: { lang: Lang }) {
+  const { triggerBadgeRefresh } = useBadgeRefresh();
   const [assignments, setAssignments] = useState<EquipmentAssignment[]>([]);
   const [condition, setCondition] = useState<EquipmentAssignment["return_condition"]>("GOOD");
   const [remarks, setRemarks] = useState("");
@@ -25,6 +27,7 @@ export function EquipmentReturnsPanel({ lang }: { lang: Lang }) {
     try {
       await confirmEquipmentReturn(id, { condition, remarks: remarks.trim() || undefined });
       setAssignments((current) => current.filter((assignment) => assignment.id !== id));
+      triggerBadgeRefresh();
       setSelectedId(null); setRemarks(""); setCondition("GOOD");
     } catch (err) { console.error(err); setError(t(lang, "Unable to confirm this return.", "ආපසු ලබාගැනීම තහවුරු කළ නොහැක.")); }
   }

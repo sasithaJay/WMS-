@@ -35,7 +35,6 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
       label: "User Management",
       labelSi: "පරිශීලක කළමනාකරණය",
       icon: Users,
-      badge: 5,
     },
     { id: "commissioners", label: "Commissioner Accounts", labelSi: "කොමසාරිස් ගිණුම්", icon: Users },
     {

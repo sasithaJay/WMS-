@@ -14,6 +14,7 @@ import type { Lang } from "../../types";
 import type { StockRequest } from "../../types/stockRequests";
 import { lookupItemByCode } from "../../../services/ItemService";
 import { BarcodeScannerInput } from "../ui/BarcodeScannerInput";
+import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
 
 function formatDate(value: string | null): string {
   if (!value) return "-";
@@ -38,6 +39,7 @@ function issueableItems(request: StockRequest): NonNullable<StockRequest["items"
 }
 
 export function StockIssueForm({ lang }: { lang: Lang }) {
+  const { triggerBadgeRefresh } = useBadgeRefresh();
   const [requests, setRequests] = useState<StockRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -195,6 +197,7 @@ export function StockIssueForm({ lang }: { lang: Lang }) {
       setBusyId(request.id);
       setError("");
       const updated = await issueStockRequest(request.id, { items });
+      triggerBadgeRefresh();
 
       if (updated.status === "ISSUED") {
         setRequests((current) => current.filter((r) => r.id !== request.id));

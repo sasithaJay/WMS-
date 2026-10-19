@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { DashboardChart } from "../../components/dashboard/DashboardChart";
 import { RecentActivityTable } from "../../components/dashboard/RecentActivityTable";
@@ -32,7 +33,7 @@ import { EquipmentReturnsPanel } from "../../components/inventory/EquipmentRetur
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
   const [division, setDivision] = useState<DivisionDashboardSummary | null>(null);
   const [loadingDivision, setLoadingDivision] = useState(true);
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav("STORE_KEEPER");
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [dashTab, setDashTab] = useState<DashTab>("personal");
   const [editingReceipt, setEditingReceipt] = useState<StockReceipt | null>(null);

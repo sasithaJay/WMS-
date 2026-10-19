@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "./hooks/useLanguage";
 
 import { LoginPage } from "./pages/LoginPage";
@@ -21,6 +21,7 @@ import { DivisionalSecretariatDashboard } from "./pages/dashboards/DivisionalSec
 import type { Screen, Role } from "./types";
 import { getCurrentUser } from "../services/authService";
 import type { User } from "./types/auth";
+import { clearPersistentActiveNav } from "./hooks/usePersistentActiveNav";
 
 export default function App() {
   const { lang, setLang } = useLanguage();
@@ -61,6 +62,7 @@ export default function App() {
 
         sessionStorage.removeItem("auth_token");
         sessionStorage.removeItem("auth_user");
+        clearPersistentActiveNav();
 
         setScreen("login");
       })
@@ -101,15 +103,47 @@ export default function App() {
   /*
    * Logout
    */
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user");
 
     sessionStorage.removeItem("auth_token");
     sessionStorage.removeItem("auth_user");
+    clearPersistentActiveNav();
 
     setScreen("login");
-  };
+  }, []);
+
+  useEffect(() => {
+    if (screen !== "dashboard") return;
+
+    const idleTimeoutMs = 30 * 60 * 1000;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const resetIdleTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(logout, idleTimeoutMs);
+    };
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      "pointerdown",
+      "keydown",
+      "touchstart",
+      "wheel",
+    ];
+
+    resetIdleTimeout();
+    activityEvents.forEach((eventName) =>
+      window.addEventListener(eventName, resetIdleTimeout, { passive: true }),
+    );
+
+    return () => {
+      clearTimeout(timeoutId);
+      activityEvents.forEach((eventName) =>
+        window.removeEventListener(eventName, resetIdleTimeout),
+      );
+    };
+  }, [screen, logout]);
 
   /*
    * Prevent login page from flashing while checking token

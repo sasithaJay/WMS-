@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { DashboardOverview } from "../../components/dashboard/DashboardOverview";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
@@ -14,7 +15,7 @@ import { VatRateApprovalQueue } from "../../components/requests/VatRateApprovalQ
 
 
 export function CommissionerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav("COMMISSIONER");
   const [dashTab, setDashTab] = useState<DashTab>("personal");
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);

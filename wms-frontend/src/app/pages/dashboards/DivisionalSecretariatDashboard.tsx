@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { MonthlyRequestStatus } from "../../components/requests/MonthlyRequestStatus";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
@@ -9,7 +10,7 @@ import { ShieldCheck } from "lucide-react";
 import type { Lang } from "../../types";
 
 export function DivisionalSecretariatDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav("DIVISIONAL_SECRETARIAT");
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
   const role = "DIVISIONAL_SECRETARIAT" as const;
 

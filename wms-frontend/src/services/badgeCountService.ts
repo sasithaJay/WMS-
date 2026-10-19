@@ -2,6 +2,9 @@
 
 import { getPendingApproval } from "./stockRequestService";
 import { getPendingRecommendation } from "./stockRequestService";
+import { getPendingIssuance } from "./stockRequestService";
+import { getPendingRegistrations } from "./userService";
+import { getPendingEquipmentReturns } from "./equipmentAssignmentService";
 
 export async function getNavBadgeCounts(): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
@@ -18,6 +21,27 @@ export async function getNavBadgeCounts(): Promise<Record<string, number>> {
     counts.recommend = recommendation.total;
   } catch {
     // silently skip
+  }
+
+  try {
+    const registrations = await getPendingRegistrations();
+    counts.users = registrations.count;
+  } catch {
+    // Some roles do not have access to account verification.
+  }
+
+  try {
+    const issuance = await getPendingIssuance({ per_page: 1 });
+    counts.issue = issuance.total;
+  } catch {
+    // Only Store Keepers can view the issuance queue.
+  }
+
+  try {
+    const returns = await getPendingEquipmentReturns();
+    counts["equipment-returns"] = returns.length;
+  } catch {
+    // Only Store Keepers can view equipment returns.
   }
 
   return counts;

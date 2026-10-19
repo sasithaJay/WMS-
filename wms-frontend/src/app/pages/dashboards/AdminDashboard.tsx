@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { UserVerificationTable } from "../../components/users/UserVerificationTable";
 import { ReportsPanel } from "../../components/reports/ReportsPanel";
@@ -22,7 +23,7 @@ export function AdminDashboard({
   setLang: (l: Lang) => void;
   onLogout: () => void;
 }) {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav("ADMIN");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const role = "ADMIN" as const;
 

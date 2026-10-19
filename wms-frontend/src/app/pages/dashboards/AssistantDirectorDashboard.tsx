@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { DashboardOverview } from "../../components/dashboard/DashboardOverview";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
@@ -11,7 +12,7 @@ import { DashboardMyView } from "../../components/dashboard/DashboardMyView";
 import { UserVerificationTable } from "../../components/users/UserVerificationTable";
 
 export function AssistantDirectorDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav("ASSISTANT_DIRECTOR");
   const [dashTab, setDashTab] = useState<DashTab>("personal");
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
