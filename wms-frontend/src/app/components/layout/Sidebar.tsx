@@ -9,7 +9,7 @@ import { NAV_ITEMS } from "../../constants/menuItems";
 import { t } from "../../constants/translations";
 import type { Lang, Role } from "../../types";
 import { User } from "../../types/auth";
-import { getCurrentUser } from "../../../services/authService";
+import { getCurrentUser, getProfilePicture } from "../../../services/authService";
 import logo from "../../resources/logo.jpeg";
 
 function getDisplayName(user: User | null): string {
@@ -68,14 +68,53 @@ export function Sidebar({
 }) {
   const nav = NAV_ITEMS[role] ?? [];
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
 
   const userName = getDisplayName(currentUser);
   const roleLabel = getDisplayRole(currentUser, lang);
 
   useEffect(() => {
-    getCurrentUser()
-      .then(setCurrentUser)
-      .catch((err) => console.error(err));
+    let mounted = true;
+    let activePictureUrl: string | null = null;
+
+    const loadProfile = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!mounted) return;
+        setCurrentUser(user);
+
+        try {
+          const picture = await getProfilePicture();
+          const nextUrl = URL.createObjectURL(picture);
+          if (!mounted) {
+            URL.revokeObjectURL(nextUrl);
+            return;
+          }
+          if (activePictureUrl) URL.revokeObjectURL(activePictureUrl);
+          activePictureUrl = nextUrl;
+          setProfilePictureUrl(nextUrl);
+        } catch (error) {
+          if ((error as { response?: { status?: number } }).response?.status === 404) {
+            if (activePictureUrl) URL.revokeObjectURL(activePictureUrl);
+            activePictureUrl = null;
+            setProfilePictureUrl(null);
+          } else {
+            console.error(error);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    window.addEventListener("wms-profile-updated", loadProfile);
+    void loadProfile();
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("wms-profile-updated", loadProfile);
+      if (activePictureUrl) URL.revokeObjectURL(activePictureUrl);
+    };
   }, []);
 
   const initials = userName
@@ -277,8 +316,10 @@ export function Sidebar({
               ${collapsed ? "justify-center" : "gap-3 p-2 bg-slate-900/60 border border-slate-800/80"}
             `}
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">
-              {initials}
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md overflow-hidden">
+              {profilePictureUrl ? (
+                <img src={profilePictureUrl} alt={t(lang, "Profile picture", "පැතිකඩ පින්තූරය")} className="h-full w-full object-cover" />
+              ) : initials}
             </div>
 
             {!collapsed && (

@@ -19,6 +19,7 @@ class User extends Authenticatable
     protected $fillable = [
         'username',
         'email',
+        'profile_photo_path',
         'password',
         'account_type',
         'account_status',
@@ -30,6 +31,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'profile_photo_path',
     ];
 
     protected function casts(): array

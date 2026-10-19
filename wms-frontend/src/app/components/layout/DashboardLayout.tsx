@@ -89,7 +89,22 @@ export function DashboardLayout({
   };
 
   useEffect(() => {
-    getCurrentUser().then(setCurrentUser).catch((err) => console.error(err));
+    let mounted = true;
+    const refreshCurrentUser = () => {
+      getCurrentUser()
+        .then((user) => {
+          if (mounted) setCurrentUser(user);
+        })
+        .catch((err) => console.error(err));
+    };
+
+    window.addEventListener("wms-profile-updated", refreshCurrentUser);
+    refreshCurrentUser();
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("wms-profile-updated", refreshCurrentUser);
+    };
   }, []);
 
   const loadBadges = useCallback(async () => {

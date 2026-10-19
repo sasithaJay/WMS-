@@ -8,10 +8,13 @@ import {
   CheckCircle2,
   Loader2,
   ShieldAlert,
+  Camera,
+  Save,
 } from "lucide-react";
 import { AxiosError } from "axios";
-import { getCurrentUser, updatePassword } from "../../../services/authService";
+import { getCurrentUser, getProfilePicture, updatePassword, updateProfile } from "../../../services/authService";
 import type { User } from "../../types/auth";
+import { ProfilePictureCropper } from "./ProfilePictureCropper";
 import { t } from "../../constants/translations";
 import type { Lang, Role } from "../../types";
 
@@ -30,6 +33,14 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
   const [saved, setSaved] = useState(false);
   const [pwError, setPwError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [selectedPicture, setSelectedPicture] = useState<File | null>(null);
+  const [savedPictureUrl, setSavedPictureUrl] = useState<string | null>(null);
+  const [picturePreview, setPicturePreview] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState("");
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [pictureToCrop, setPictureToCrop] = useState<File | null>(null);
 
   useEffect(() => {
     loadUser();
@@ -40,12 +51,33 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
       setLoadingUser(true);
       const data = await getCurrentUser();
       setUser(data);
+      setProfileName(data.staff_profile?.full_name ?? data.organization?.name ?? data.name ?? "");
+      try {
+        const picture = await getProfilePicture();
+        setSavedPictureUrl(URL.createObjectURL(picture));
+      } catch (pictureError) {
+        if ((pictureError as AxiosError).response?.status !== 404) console.error(pictureError);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingUser(false);
     }
   }
+
+  useEffect(() => {
+    if (!selectedPicture) {
+      setPicturePreview(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(selectedPicture);
+    setPicturePreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [selectedPicture]);
+
+  useEffect(() => () => {
+    if (savedPictureUrl) URL.revokeObjectURL(savedPictureUrl);
+  }, [savedPictureUrl]);
 
   const profile = user?.staff_profile;
   const organization = user?.organization;
@@ -156,8 +188,52 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
     }
   }
 
+  async function handleUpdateProfile() {
+    if (!profileName.trim()) return;
+
+    const formData = new FormData();
+    formData.append("name", profileName.trim());
+    if (selectedPicture) formData.append("profile_picture", selectedPicture);
+
+    try {
+      setProfileSubmitting(true);
+      setProfileError("");
+      setProfileSaved(false);
+      const response = await updateProfile(formData);
+      setUser(response.user);
+      setProfileName(response.user.staff_profile?.full_name ?? response.user.organization?.name ?? response.user.name ?? "");
+      if (selectedPicture) {
+        setSavedPictureUrl(URL.createObjectURL(selectedPicture));
+      }
+      setSelectedPicture(null);
+      window.dispatchEvent(new Event("wms-profile-updated"));
+      setProfileSaved(true);
+      window.setTimeout(() => setProfileSaved(false), 3000);
+    } catch (err) {
+      const axiosErr = err as AxiosError<LaravelValidationErrorBody>;
+      const validationMessage = Object.values(axiosErr.response?.data?.errors ?? {}).flat()[0];
+      setProfileError(
+        validationMessage ?? axiosErr.response?.data?.message ??
+          t(lang, "Unable to update your profile. Please try again.", "ඔබගේ පැතිකඩ යාවත්කාලීන කළ නොහැක. නැවත උත්සාහ කරන්න."),
+      );
+    } finally {
+      setProfileSubmitting(false);
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 items-stretch">
+      {pictureToCrop && (
+        <ProfilePictureCropper
+          file={pictureToCrop}
+          lang={lang}
+          onCancel={() => setPictureToCrop(null)}
+          onCrop={(croppedFile) => {
+            setSelectedPicture(croppedFile);
+            setPictureToCrop(null);
+          }}
+        />
+      )}
       {/* ACCOUNT INFORMATION CARD */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden h-full flex flex-col justify-between">
         <div>
@@ -187,17 +263,48 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
               ))}
             </div>
           ) : (
-            <div className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-              {accountFields.map((f) => (
-                <div key={f.label} className="space-y-0.5">
-                  <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
-                    {f.label}
-                  </div>
-                  <div className="text-xs font-bold text-slate-800 break-words">
-                    {f.value}
-                  </div>
+            <div className="p-5 sm:p-6 space-y-5">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-500">
+                  {picturePreview || savedPictureUrl ? (
+                    <img src={picturePreview ?? savedPictureUrl ?? undefined} alt={t(lang, "Profile picture", "පැතිකඩ පින්තූරය")} className="h-full w-full object-cover" />
+                  ) : (
+                    profileName.trim().charAt(0).toUpperCase() || <User2Icon className="h-6 w-6" />
+                  )}
                 </div>
-              ))}
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
+                  <Camera className="h-4 w-4 text-blue-600" />
+                  {t(lang, "Choose profile picture", "පැතිකඩ පින්තූරය තෝරන්න")}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) setPictureToCrop(file); event.target.value = ""; }} />
+                </label>
+                <span className="text-[11px] text-slate-400">{t(lang, "JPG, PNG or WebP, up to 5 MB", "JPG, PNG හෝ WebP, උපරිම 5 MB")}</span>
+              </div>
+
+              <div className="max-w-xl space-y-1.5">
+                <label htmlFor="profile-name" className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                  {profile ? t(lang, "Full Name", "සම්පූර්ණ නම") : t(lang, "Organization Name", "ආයතන නාමය")}
+                </label>
+                <input id="profile-name" value={profileName} onChange={(event) => setProfileName(event.target.value)} maxLength={255} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" />
+              </div>
+
+              {profileError && <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700"><AlertCircle className="h-4 w-4 shrink-0" />{profileError}</div>}
+              {profileSaved && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800"><CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />{t(lang, "Profile updated successfully.", "පැතිකඩ සාර්ථකව යාවත්කාලීන කරන ලදී.")}</div>}
+
+              <div className="flex justify-end">
+                <button type="button" onClick={handleUpdateProfile} disabled={profileSubmitting || !profileName.trim()} className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
+                  {profileSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {profileSubmitting ? t(lang, "Saving…", "සුරකිමින්…") : t(lang, "Save Profile", "පැතිකඩ සුරකින්න")}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-x-6 gap-y-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
+                {accountFields.slice(1).map((f) => (
+                  <div key={f.label} className="space-y-0.5">
+                    <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{f.label}</div>
+                    <div className="text-xs font-bold text-slate-800 break-words">{f.value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -209,7 +316,7 @@ export function SettingsScreen({ lang, role }: { lang: Lang; role: Role }) {
             <span>
               {t(
                 lang,
-                "To update account details, contact your divisional administrator.",
+                "You can update your profile name and picture above.",
                 "ගිණුම් තොරතුරු යාවත්කාලීන කිරීමට ඔබගේ දිව්‍යංශ පරිපාලක සම්බන්ධ කරගන්න."
               )}
             </span>

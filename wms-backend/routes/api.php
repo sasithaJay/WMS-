@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\ItemLabelController;
 use App\Http\Controllers\Api\VatRateController;
 use App\Http\Controllers\Api\Admin\BackupController;
 use App\Http\Controllers\Api\Admin\CommissionerAccountController;
+use App\Http\Controllers\Api\ProfileController;
 
 //Public Routes
 
@@ -95,6 +96,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::put('/user/password', [PasswordController::class, 'update']);
+    Route::post('/user/profile', [ProfileController::class, 'update']);
+    Route::get('/user/profile-picture', [ProfileController::class, 'picture']);
 
     // routes/api.php — inside auth:sanctum group
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);

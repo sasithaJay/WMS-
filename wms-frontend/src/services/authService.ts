@@ -84,6 +84,24 @@ export async function getCurrentUser(): Promise<User> {
   return response.data;
 }
 
+export async function updateProfile(formData: FormData): Promise<{ message: string; user: User }> {
+  const response = await api.post<{ message: string; user: User }>(
+    "/user/profile",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+
+  return response.data;
+}
+
+export async function getProfilePicture(): Promise<Blob> {
+  const response = await api.get<Blob>("/user/profile-picture", {
+    responseType: "blob",
+  });
+
+  return response.data;
+}
+
 export async function updatePassword(
   currentPassword: string,
   newPassword: string,
