@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
 import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
-import { DashboardChart } from "../../components/dashboard/DashboardChart";
-import { RecentActivityTable } from "../../components/dashboard/RecentActivityTable";
-import { ReorderLevelTable } from "../../components/inventory/ReorderLevelTable";
 import { StockIssueForm } from "../../components/inventory/StockIssueForm";
 import { StockReceivingForm } from "../../components/inventory/StockReceivingForm";
 import { StockMovementTable } from "../../components/inventory/StockMovementTable";
 import { BarcodeScannerPanel } from "../../components/inventory/BarcodeScannerPanel";
 import { ReportsPanel } from "../../components/reports/ReportsPanel";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
-import { StatCard } from "../../components/common/StatCard";
-import { Package, AlertTriangle, ArrowDownToLine, Warehouse } from "lucide-react";
 import { t } from "../../constants/translations";
 import type { Lang } from "../../types";
 import { DashTab } from "../../types";
@@ -23,16 +18,13 @@ import { getStockReceipt } from "../../../services/stockReceiptService";
 import { RequestForm } from "../../components/requests/RequestForm";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
 import { DashboardOverview } from "../../components/dashboard/DashboardOverview";
-import { getDashboardOverview } from "../../../services/dashboardService";
-import type { DivisionDashboardSummary } from "../../types/dashboard";
+import { DashboardMyView } from "../../components/dashboard/DashboardMyView";
 import { VatRateRequestForm } from "../../components/requests/VatRateRequestForm";
 import { MyVatRequestsTable } from "../../components/inventory/MyVatRequestsTable";
 import { getCurrentVatRate } from "../../../services/vatRateService";
 import { EquipmentReturnsPanel } from "../../components/inventory/EquipmentReturnsPanel";
 
 export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
-  const [division, setDivision] = useState<DivisionDashboardSummary | null>(null);
-  const [loadingDivision, setLoadingDivision] = useState(true);
   const [activeNav, setActiveNav] = usePersistentActiveNav("STORE_KEEPER");
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [dashTab, setDashTab] = useState<DashTab>("personal");
@@ -51,30 +43,6 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
     getCurrentVatRate().then((res) => setCurrentVat(res.data.percentage));
   }, [vatRefreshSignal]);
 
-
-  useEffect(() => {
-    loadDivisionSummary();
-  }, []);
-
-  // Refresh the personal-tab stats whenever a stock-affecting action happens
-  // elsewhere on this page (receipt confirmed, request issued, etc.)
-  useEffect(() => {
-    if (stockActivityKey > 0) {
-      loadDivisionSummary();
-    }
-  }, [stockActivityKey]);
-
-  async function loadDivisionSummary() {
-    try {
-      setLoadingDivision(true);
-      const response = await getDashboardOverview();
-      setDivision(response.data[0] ?? null);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingDivision(false);
-    }
-  }
 
   async function handleEditReceipt(receipt: StockReceipt) {
     try {
@@ -114,25 +82,7 @@ export function StoreKeeperDashboard({ lang, setLang, onLogout }: { lang: Lang; 
       {activeNav === "dashboard" && (
         dashTab === "summary"
           ? <DashboardOverview lang={lang} />
-          : loadingDivision ? (
-              <p className="text-sm text-gray-500">{t(lang, "Loading…", "පූරණය වෙමින්…")}</p>
-            ) : !division ? (
-              <p className="text-sm text-gray-400">{t(lang, "No data available.", "දත්ත නොමැත.")}</p>
-            ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <StatCard label={t(lang, "Items to Issue", "ගිලිහිය යුතු")} value={String(division.pending_issuance_count)} color="amber" bgColor="bgAmber" icon={<Package className="w-5 h-5" />} />
-                  <StatCard label={t(lang, "Low Stock Alerts", "අඩු තොග")} value={String(division.low_stock_count)} color="red" bgColor="bgRed" icon={<AlertTriangle className="w-5 h-5" />} />
-                  <StatCard label={t(lang, "Month Receipts", "මාසේ රිසිට්")} value={String(division.receipts_this_month_count)} color="green" bgColor="bgGreen" icon={<ArrowDownToLine className="w-5 h-5" />} />
-                  <StatCard label={t(lang, "Total SKUs", "මුළු SKU")} value={String(division.total_items)} color="blue" bgColor="bgBlue" icon={<Warehouse className="w-5 h-5" />} />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                  <div className="lg:col-span-3"><DashboardChart lang={lang} data={division.monthly_chart} /></div>
-                  <div className="lg:col-span-2"><RecentActivityTable lang={lang} movements={division.recent_movements} /></div>
-                </div>
-                <ReorderLevelTable lang={lang} />
-              </div>
-            )
+          : <DashboardMyView lang={lang} role={role} onNavigate={setActiveNav} />
       )}
 
       {activeNav === "requests" && !showNewRequest && (

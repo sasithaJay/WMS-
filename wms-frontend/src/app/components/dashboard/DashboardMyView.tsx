@@ -119,7 +119,6 @@ export function DashboardMyView({
       {/* Recent Activity */}
       <RecentActivityTable
         lang={lang}
-        movements={summary.recent_movements}
       />
     </div>
   );

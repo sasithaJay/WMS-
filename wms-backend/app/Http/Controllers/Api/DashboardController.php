@@ -149,16 +149,6 @@ class DashboardController extends Controller
 
         // Recent movements — Commissioner sees both divisions combined,
         // everyone else sees only their own.
-        $movementsQuery = StockMovement::with(['item', 'performer'])->latest()->limit(8);
-
-        if (! $isCommissioner) {
-            $movementsQuery->where('division_id', $divisionId);
-        }
-
-        $recentMovements = $isCommissioner || $divisionId
-            ? $movementsQuery->get()
-            : collect();
-
         return response()->json([
             'data' => [
                 'my_requests_this_month_count' => $myRequestsThisMonth,
@@ -166,7 +156,6 @@ class DashboardController extends Controller
                 'my_issued_this_month_count' => $myIssuedThisMonth,
                 'action_required_count' => $recommendCount + $approveCount + $issueCount + $itemUpdateCount,
                 'action_required_items' => $actionItems,
-                'recent_movements' => $recentMovements,
             ],
         ]);
     }

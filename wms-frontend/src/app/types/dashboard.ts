@@ -55,5 +55,4 @@ export interface MyViewSummary {
   my_issued_this_month_count: number;
   action_required_count: number;
   action_required_items: ActionRequiredItem[];
-  recent_movements: StockMovement[];
 }

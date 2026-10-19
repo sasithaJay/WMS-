@@ -80,12 +80,17 @@ class VatRateController extends Controller
      */
     public function pending(): JsonResponse
     {
-        $rates = VatRate::with(['requester.staffProfile'])
+        $rates = VatRate::with([
+            'requester.staffProfile.role',
+            'requester.staffProfile.division',
+        ])
             ->where('status', 'PENDING')
             ->latest()
             ->paginate(15);
 
-        return response()->json($rates);
+        return response()->json(array_merge($rates->toArray(), [
+            'current_percentage' => VatRate::currentPercentage(),
+        ]));
     }
 
     public function approve(Request $request, VatRate $vatRate): JsonResponse

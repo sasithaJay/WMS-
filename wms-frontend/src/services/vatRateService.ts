@@ -1,6 +1,7 @@
 
 
 import api from "../api/axios";
+import type { VatRate } from "../app/types/vatRate";
 
 export async function getCurrentVatRate(): Promise<{ data: { percentage: number } }> {
   const response = await api.get("/vat-rates/current");
@@ -16,7 +17,7 @@ export async function submitVatRateChange(percentage: number): Promise<void> {
   await api.post("/vat-rates", { percentage });
 }
 
-export async function getPendingVatRates(): Promise<{ data: any[] }> {
+export async function getPendingVatRates(): Promise<{ data: VatRate[]; current_percentage: number }> {
   const response = await api.get("/vat-rates/pending");
   return response.data;
 }
