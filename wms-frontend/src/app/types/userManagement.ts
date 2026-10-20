@@ -53,6 +53,20 @@ export interface AdminStats {
   pending_users: number;
   active_roles: number;
   suspended_users: number;
+  latest_backup: { created_at: string; type: string; exists: boolean } | null;
+  system_status: {
+    database: "online" | "offline";
+    maintenance_mode: boolean;
+    low_stock_scheduler_configured: boolean;
+  };
+  recent_activity: Array<{
+    id: number;
+    action: string;
+    details: Record<string, unknown> | null;
+    actor: string;
+    target: string;
+    created_at: string;
+  }>;
 }
 
 export interface UpdateUserPayload {

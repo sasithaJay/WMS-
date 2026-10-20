@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\AdminActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -72,6 +73,11 @@ class AccountApprovalController extends Controller
         });
 
         $user->notify(new \App\Notifications\AccountStatusChanged('ACTIVE', null, $request->user()));
+        AdminActivityLog::create([
+            'actor_id' => $request->user()->id,
+            'target_user_id' => $user->id,
+            'action' => 'ACCOUNT_APPROVED',
+        ]);
 
         return response()->json([
             'message' => 'Account approved successfully.',
@@ -124,6 +130,11 @@ class AccountApprovalController extends Controller
         });
 
         $user->notify(new \App\Notifications\AccountStatusChanged('REJECTED', $validated['rejection_reason'], $request->user()));
+        AdminActivityLog::create([
+            'actor_id' => $request->user()->id,
+            'target_user_id' => $user->id,
+            'action' => 'ACCOUNT_REJECTED',
+        ]);
 
         return response()->json([
             'message' => 'Account rejected successfully.',

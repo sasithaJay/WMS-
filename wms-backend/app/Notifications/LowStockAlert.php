@@ -2,55 +2,49 @@
 
 namespace App\Notifications;
 
-use Illuminate\Support\Collection;
 use App\Notifications\Channels\SmsChannel;
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Collection;
 
 class LowStockAlert extends Notification
 {
-    use Queueable;
-
     public function __construct(
-        protected Collection $items, // collection of Item models below reorder level
+        protected Collection $items,
+        protected string $divisionName,
     ) {
     }
 
     public function via($notifiable): array
     {
-        return ['database', 'mail', SmsChannel::class];
+        return ['database', SmsChannel::class];
     }
 
     public function toArray($notifiable): array
     {
         return [
             'type' => 'low_stock_alert',
+            'division_name' => $this->divisionName,
             'item_count' => $this->items->count(),
             'item_codes' => $this->items->pluck('item_code')->values(),
+            'items' => $this->items->map(fn ($item) => [
+                'item_code' => $item->item_code,
+                'name' => $item->name_en,
+                'quantity_on_hand' => (float) $item->quantity_on_hand,
+                'reorder_level' => (float) $item->reorder_level,
+                'status' => (float) $item->quantity_on_hand <= 0 ? 'out_of_stock' : 'low_stock',
+            ])->values(),
         ];
-    }
-
-    public function toMail($notifiable): MailMessage
-    {
-        $mail = (new MailMessage)
-            ->subject("{$this->items->count()} item(s) are low on stock")
-            ->greeting('Low Stock Alert')
-            ->line('The following items are at or below their reorder level:');
-
-        foreach ($this->items->take(15) as $item) {
-            $mail->line("- {$item->item_code}: {$item->name_en}");
-        }
-
-        if ($this->items->count() > 15) {
-            $mail->line('...and ' . ($this->items->count() - 15) . ' more.');
-        }
-
-        return $mail->line('Please review stock levels and initiate receiving as needed.');
     }
 
     public function toSms($notifiable): string
     {
-        return "WMS: {$this->items->count()} item(s) are at or below reorder level. Check dashboard.";
+        $items = $this->items->map(fn ($item) => sprintf(
+            '%s %s (%s)',
+            $item->item_code,
+            $item->name_en,
+            (float) $item->quantity_on_hand <= 0 ? 'OUT' : 'LOW'
+        ));
+
+        return "WMS {$this->divisionName}: " . $items->implode('; ');
     }
 }

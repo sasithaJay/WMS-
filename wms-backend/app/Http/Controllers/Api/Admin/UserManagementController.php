@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\AdminActivityLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -75,10 +76,20 @@ class UserManagementController extends Controller
         }
 
         if (array_key_exists('account_status', $data)) {
+            $previousStatus = $user->account_status;
             $user->update(['account_status' => $data['account_status']]);
+            if ($previousStatus !== $user->account_status) {
+                AdminActivityLog::create([
+                    'actor_id' => $request->user()->id,
+                    'target_user_id' => $user->id,
+                    'action' => 'ACCOUNT_STATUS_CHANGED',
+                    'details' => ['from' => $previousStatus, 'to' => $user->account_status],
+                ]);
+            }
         }
 
         if ($user->account_type === 'STAFF' && $user->staffProfile) {
+            $previousRoleId = $user->staffProfile->role_id;
             $user->staffProfile->update(array_filter([
                 'full_name' => $data['full_name'] ?? null,
                 'nic_number' => $data['nic_number'] ?? null,
@@ -87,6 +98,14 @@ class UserManagementController extends Controller
                 'division_id' => $data['division_id'] ?? null,
                 'section_id' => array_key_exists('section_id', $data) ? $data['section_id'] : null,
             ], fn ($v) => $v !== null));
+            if (array_key_exists('role_id', $data) && $previousRoleId !== $user->staffProfile->role_id) {
+                AdminActivityLog::create([
+                    'actor_id' => $request->user()->id,
+                    'target_user_id' => $user->id,
+                    'action' => 'USER_ROLE_CHANGED',
+                    'details' => ['from_role_id' => $previousRoleId, 'to_role_id' => $user->staffProfile->role_id],
+                ]);
+            }
         } elseif (in_array($user->account_type, ['INSTITUTION', 'DS_OFFICE']) && $user->organization) {
             $user->organization->update(array_filter([
                 'name' => $data['full_name'] ?? null,

@@ -27,6 +27,16 @@ const STAGE_LABELS: Record<
     si: "යාවත්කාලීන සමාලෝචනය",
     style: "bg-teal-50 text-teal-700 border-teal-200/80",
   },
+  VAT_APPROVAL: {
+    en: "Approve VAT",
+    si: "VAT අනුමත කරන්න",
+    style: "bg-rose-50 text-rose-700 border-rose-200/80",
+  },
+  USER_VERIFICATION: {
+    en: "Verify User",
+    si: "පරිශීලකයා සත්‍යාපනය කරන්න",
+    style: "bg-violet-50 text-violet-700 border-violet-200/80",
+  },
 };
 
 const STAGE_TO_NAV: Record<ActionRequiredItem["stage"], string> = {
@@ -34,6 +44,8 @@ const STAGE_TO_NAV: Record<ActionRequiredItem["stage"], string> = {
   APPROVAL: "approve",
   ISSUANCE: "issue",
   ITEM_UPDATE: "item-updates",
+  VAT_APPROVAL: "vat-approve",
+  USER_VERIFICATION: "users",
 };
 
 function formatDate(value: string | null): string {

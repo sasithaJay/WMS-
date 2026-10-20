@@ -115,6 +115,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    window.addEventListener("auth:unauthorized", logout);
+    return () => window.removeEventListener("auth:unauthorized", logout);
+  }, [logout]);
+
+  useEffect(() => {
     if (screen !== "dashboard") return;
 
     const idleTimeoutMs = 30 * 60 * 1000;
@@ -127,9 +132,11 @@ export default function App() {
 
     const activityEvents: Array<keyof WindowEventMap> = [
       "pointerdown",
+      "mousemove",
       "keydown",
       "touchstart",
       "wheel",
+      "scroll",
     ];
 
     resetIdleTimeout();
