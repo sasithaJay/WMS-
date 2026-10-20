@@ -5,6 +5,7 @@ import { DashboardOverview } from "../../components/dashboard/DashboardOverview"
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
 import { RequestForm } from "../../components/requests/RequestForm";
 import { RecommendationQueue } from "../../components/requests/RecommendationQueue";
+import { ApprovalQueue } from "../../components/requests/ApprovalQueue";
 import { PendingItemUpdateRequestsQueue } from "../../components/inventory/PendingItemUpdateRequestsQueue";
 import { ReportsPanel } from "../../components/reports/ReportsPanel";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
@@ -36,6 +37,7 @@ export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { la
           setShowNewRequest(false);
         }} />}
       {activeNav === "recommend" && <RecommendationQueue lang={lang} />}
+      {activeNav === "approve" && <ApprovalQueue lang={lang} />}
       {activeNav === "item-updates" && <PendingItemUpdateRequestsQueue lang={lang} />}
       {activeNav === "reports" && <ReportsPanel lang={lang} role={role} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
