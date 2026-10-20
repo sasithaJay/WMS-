@@ -12,6 +12,7 @@ export interface User {
   id: number;
   username: string;
   email: string;
+  name?: string;
   account_type: AccountType;
   account_status: AccountStatus;
   role: string | null;

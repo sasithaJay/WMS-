@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { DashboardOverview } from "../../components/dashboard/DashboardOverview";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
@@ -8,9 +9,10 @@ import { ReportsPanel } from "../../components/reports/ReportsPanel";
 import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang, DashTab } from "../../types";
 import { DashboardMyView } from "../../components/dashboard/DashboardMyView";
+import { VatRateApprovalQueue } from "../../components/requests/VatRateApprovalQueue";
 
 export function AccountantDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav("ACCOUNTANT");
   const [dashTab, setDashTab] = useState<DashTab>("personal");
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
@@ -32,7 +34,8 @@ export function AccountantDashboard({ lang, setLang, onLogout }: { lang: Lang; s
           setShowNewRequest(false);
         }} />}
       {activeNav === "approve" && <ApprovalQueue lang={lang} />}
-      {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "vat-approve" && <VatRateApprovalQueue lang={lang} />}
+      {activeNav === "reports" && <ReportsPanel lang={lang} role={role} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

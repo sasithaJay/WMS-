@@ -9,6 +9,8 @@ use App\Models\StockMovement;
 use App\Models\StockRequest;
 use App\Models\StockReceipt;
 use App\Models\ItemUpdateRequest;
+use App\Models\VatRate;
+use App\Models\User;
 use App\Services\RequestWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,6 +88,59 @@ class DashboardController extends Controller
 
         $itemUpdateCount = 0;
         $itemUpdateList = collect();
+        $vatApprovalCount = 0;
+        $vatApprovalList = collect();
+
+        $userVerificationCount = 0;
+        $userVerificationList = collect();
+        if (in_array($roleCode, ['COMMISSIONER', 'ASSISTANT_COMMISSIONER', 'ASSISTANT_DIRECTOR'], true)) {
+            $pendingUsersQuery = User::with(['staffProfile.role', 'staffProfile.division', 'organization.division'])
+                ->where('account_status', 'PENDING');
+
+            if (in_array($roleCode, ['ASSISTANT_COMMISSIONER', 'ASSISTANT_DIRECTOR'], true)) {
+                $pendingUsersQuery->where(function ($query) use ($divisionId) {
+                    $query->whereHas('staffProfile', fn ($staff) => $staff->where('division_id', $divisionId))
+                        ->orWhereHas('organization', fn ($organization) => $organization->where('division_id', $divisionId));
+                });
+            }
+
+            $pendingUsers = $pendingUsersQuery->latest()->get();
+            $userVerificationCount = $pendingUsers->count();
+            $userVerificationList = $pendingUsers->map(fn ($pendingUser) => [
+                'id' => $pendingUser->id,
+                'request_number' => 'USR-' . $pendingUser->id,
+                'requester_name' => $pendingUser->staffProfile?->full_name
+                    ?? $pendingUser->organization?->name
+                    ?? $pendingUser->username,
+                'request_context' => 'USER_VERIFICATION',
+                'stage' => 'USER_VERIFICATION',
+                'submitted_at' => $pendingUser->created_at,
+                'item_summary' => trim(implode(' · ', array_filter([
+                    $pendingUser->staffProfile?->role?->name_en,
+                    $pendingUser->staffProfile?->division?->name_en ?? $pendingUser->organization?->division?->name_en,
+                ]))) ?: 'Account registration',
+            ]);
+        }
+
+        if ($roleCode === 'ACCOUNTANT') {
+            $vatApprovals = VatRate::with('requester.staffProfile')
+                ->where('status', 'PENDING')
+                ->latest()
+                ->get();
+
+            $vatApprovalCount = $vatApprovals->count();
+            $vatApprovalList = $vatApprovals->map(fn ($rate) => [
+                'id' => $rate->id,
+                'request_number' => 'VAT-' . $rate->id,
+                'requester_name' => $rate->requester?->staffProfile?->full_name
+                    ?? $rate->requester?->username
+                    ?? 'Store Keeper',
+                'request_context' => 'VAT_RATE',
+                'stage' => 'VAT_APPROVAL',
+                'submitted_at' => $rate->created_at,
+                'item_summary' => 'VAT rate change: ' . $rate->percentage . '%',
+            ]);
+        }
 
         if ($divisionId) {
             $itemUpdateQuery = ItemUpdateRequest::with(['item', 'requester.staffProfile'])
@@ -142,31 +197,20 @@ class DashboardController extends Controller
                 ->map(fn ($r) => $this->toActionItem($r, 'ISSUANCE'));
         }
 
-        $actionItems = $recommendList->concat($approveList)->concat($issueList)->concat($itemUpdateList)
+        $actionItems = $recommendList->concat($approveList)->concat($issueList)->concat($itemUpdateList)->concat($vatApprovalList)->concat($userVerificationList)
             ->sortByDesc('submitted_at')
             ->take(5)
             ->values();
 
         // Recent movements — Commissioner sees both divisions combined,
         // everyone else sees only their own.
-        $movementsQuery = StockMovement::with(['item', 'performer'])->latest()->limit(8);
-
-        if (! $isCommissioner) {
-            $movementsQuery->where('division_id', $divisionId);
-        }
-
-        $recentMovements = $isCommissioner || $divisionId
-            ? $movementsQuery->get()
-            : collect();
-
         return response()->json([
             'data' => [
                 'my_requests_this_month_count' => $myRequestsThisMonth,
                 'my_pending_issuance_count' => $myPendingIssuance,
                 'my_issued_this_month_count' => $myIssuedThisMonth,
-                'action_required_count' => $recommendCount + $approveCount + $issueCount + $itemUpdateCount,
+                'action_required_count' => $recommendCount + $approveCount + $issueCount + $itemUpdateCount + $vatApprovalCount + $userVerificationCount,
                 'action_required_items' => $actionItems,
-                'recent_movements' => $recentMovements,
             ],
         ]);
     }

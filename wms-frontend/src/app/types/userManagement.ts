@@ -27,6 +27,7 @@ export interface AdminUser {
   account_status: "ACTIVE" | "SUSPENDED";
   staff_profile?: {
     full_name: string;
+    nic_number?: string;
     phone?: string | null;
     role?: AdminUserRole;
     division?: AdminUserDivision;
@@ -52,10 +53,25 @@ export interface AdminStats {
   pending_users: number;
   active_roles: number;
   suspended_users: number;
+  latest_backup: { created_at: string; type: string; exists: boolean } | null;
+  system_status: {
+    database: "online" | "offline";
+    maintenance_mode: boolean;
+    low_stock_scheduler_configured: boolean;
+  };
+  recent_activity: Array<{
+    id: number;
+    action: string;
+    details: Record<string, unknown> | null;
+    actor: string;
+    target: string;
+    created_at: string;
+  }>;
 }
 
 export interface UpdateUserPayload {
   full_name?: string;
+  nic_number?: string;
   email?: string | null;
   phone?: string | null;
   role_id?: number;

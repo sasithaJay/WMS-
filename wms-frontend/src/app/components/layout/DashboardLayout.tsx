@@ -16,10 +16,12 @@ const NAV_TITLES: Record<string, { en: string; si: string }> = {
   recommend: { en: "Recommend Queue", si: "නිර්දේශ පෝලිම" },
   approve: { en: "Approve Queue", si: "අනුමත පෝලිම" },
   issue: { en: "Issue Goods", si: "භාණ්ඩ ගිලිහීම" },
+  "equipment-returns": { en: "Equipment Returns", si: "උපකරණ ආපසු ලබාගැනීම" },
   inventory: { en: "Inventory", si: "තොග ලැයිස්තුව" },
   receipts: { en: "Stock Receipts", si: "ගබඩා රිසිට්" },
   reports: { en: "Reports", si: "වාර්තා" },
   users: { en: "User Management", si: "පරිශීලක කළමනාකරණය" },
+  commissioners: { en: "Commissioner Accounts", si: "කොමසාරිස් ගිණුම්" },
   settings: { en: "Settings", si: "සැකසීම්" },
 };
 
@@ -87,7 +89,22 @@ export function DashboardLayout({
   };
 
   useEffect(() => {
-    getCurrentUser().then(setCurrentUser).catch((err) => console.error(err));
+    let mounted = true;
+    const refreshCurrentUser = () => {
+      getCurrentUser()
+        .then((user) => {
+          if (mounted) setCurrentUser(user);
+        })
+        .catch((err) => console.error(err));
+    };
+
+    window.addEventListener("wms-profile-updated", refreshCurrentUser);
+    refreshCurrentUser();
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("wms-profile-updated", refreshCurrentUser);
+    };
   }, []);
 
   const loadBadges = useCallback(async () => {

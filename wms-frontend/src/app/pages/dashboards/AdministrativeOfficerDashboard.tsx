@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { DashboardOverview } from "../../components/dashboard/DashboardOverview";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
@@ -13,7 +14,7 @@ import { UserVerificationTable } from "../../components/users/UserVerificationTa
 import { DashboardMyView } from "../../components/dashboard/DashboardMyView";
 
 export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav("ADMINISTRATIVE_OFFICER");
   const [dashTab, setDashTab] = useState<DashTab>("personal");
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
@@ -36,7 +37,7 @@ export function AdministrativeOfficerDashboard({ lang, setLang, onLogout }: { la
         }} />}
       {activeNav === "recommend" && <RecommendationQueue lang={lang} />}
       {activeNav === "item-updates" && <PendingItemUpdateRequestsQueue lang={lang} />}
-      {activeNav === "reports" && <ReportsPanel lang={lang} />}
+      {activeNav === "reports" && <ReportsPanel lang={lang} role={role} />}
       {activeNav === "settings" && <SettingsScreen lang={lang} role={role} />}
     </DashboardLayout>
   );

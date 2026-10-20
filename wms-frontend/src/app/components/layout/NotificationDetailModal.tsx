@@ -112,7 +112,7 @@ export function NotificationDetailModal({
                 color="bg-amber-50 text-amber-700 border-amber-200/80"
               />
 
-              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 space-y-1 mt-2">
+              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   {t(lang, "Applicant", "අයදුම්කරු")}
                 </span>
@@ -328,20 +328,22 @@ export function NotificationDetailModal({
                 <p className="font-semibold leading-relaxed">
                   {t(
                     lang,
-                    `${d.item_codes?.length ?? 0} item(s) are at or below reorder level:`,
+                    `${d.division_name ? `${d.division_name}: ` : ""}${d.item_count ?? d.item_codes?.length ?? 0} low or out-of-stock item(s):`,
                     `භාණ්ඩ ${d.item_codes?.length ?? 0}ක් නැවත ඇණවුම් මට්ටමට වඩා පහළින්:`
                   )}
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                {d.item_codes?.map((code) => (
-                  <span
-                    key={code}
-                    className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200/80"
-                  >
-                    {code}
-                  </span>
+              <div className="space-y-1.5">
+                {d.items?.length ? d.items.map((item: any) => (
+                  <div key={item.item_code} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs">
+                    <span><strong className="font-mono">{item.item_code}</strong> · {item.name}</span>
+                    <span className={item.status === "out_of_stock" ? "font-semibold text-rose-700" : "font-semibold text-amber-700"}>
+                      {item.status === "out_of_stock" ? "Out of stock" : "Low stock"} · {item.quantity_on_hand} on hand / {item.reorder_level} reorder
+                    </span>
+                  </div>
+                )) : d.item_codes?.map((code: string) => (
+                  <span key={code} className="inline-flex mr-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200/80">{code}</span>
                 ))}
               </div>
             </div>

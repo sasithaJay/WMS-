@@ -5,9 +5,11 @@
 namespace App\Services\Workflow;
 
 use App\Models\InventoryBalance;
+use App\Models\EquipmentAssignment;
 use App\Models\Organization;
 use App\Models\StockMovement;
 use App\Models\StockRequest;
+use App\Models\StockRequestItem;
 use App\Models\Store;
 use App\Models\User;
 use App\Notifications\RequestNeedsAction;
@@ -114,7 +116,7 @@ class StockRequestService
     {
         $updated = DB::transaction(function () use ($request, $data) {
 
-            $this->assertStage($request, 'APPROVAL');
+            $this->assertApprovalStage($request);
             $this->assertEligibleApprover($request);
 
             $this->applyQuantities($request, $data['items'] ?? [], 'quantity_approved', 'quantity_recommended');
@@ -157,6 +159,129 @@ class StockRequestService
         return $updated;
     }
 
+    public function approveItem(StockRequestItem $requestItem, array $data): StockRequest
+    {
+        $updated = DB::transaction(function () use ($requestItem, $data) {
+            $requestItem = StockRequestItem::whereKey($requestItem->id)->lockForUpdate()->firstOrFail();
+            $request = StockRequest::whereKey($requestItem->stock_request_id)->lockForUpdate()->firstOrFail();
+
+            $this->assertApprovalStage($request);
+            $this->assertEligibleApprover($request);
+
+            if ($requestItem->approval_status !== 'pending') {
+                throw ValidationException::withMessages(['item' => 'This item has already been processed.']);
+            }
+
+            $quantity = (float) $data['quantity'];
+            $maximum = (float) ($requestItem->quantity_recommended ?? $requestItem->quantity_requested);
+            if ($quantity > $maximum) {
+                throw ValidationException::withMessages(['quantity' => 'Approved quantity cannot exceed the recommended quantity.']);
+            }
+
+            $baseline = (float) ($requestItem->quantity_recommended ?? $requestItem->quantity_requested);
+            $remarks = trim((string) ($data['remarks'] ?? ''));
+            if ($quantity !== $baseline && $remarks === '') {
+                throw ValidationException::withMessages(['remarks' => 'A reason is required when changing the quantity.']);
+            }
+
+            $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
+                ['item_id' => $requestItem->item_id, 'division_id' => $request->division_id],
+                ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
+            );
+            $available = (float) $balance->quantity_on_hand - (float) $balance->reserved_quantity;
+            if ($quantity > $available) {
+                throw ValidationException::withMessages(['quantity' => 'Approved quantity exceeds available stock.']);
+            }
+
+            $requestItem->update([
+                'quantity_approved' => $quantity,
+                'approval_status' => 'approved',
+                'approval_remarks' => $remarks !== '' ? $remarks : null,
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+            $balance->increment('reserved_quantity', $quantity);
+
+            $request->actions()->create([
+                'stage' => 'APPROVAL', 'actor_id' => auth()->id(), 'action' => 'APPROVED',
+                'remarks' => $remarks !== '' ? $remarks : null, 'acted_at' => now(),
+            ]);
+
+            return $this->refreshApprovalState($request);
+        });
+
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'ITEM_APPROVED', null, auth()->user()));
+        if ($updated->current_stage === 'ISSUANCE') {
+            $this->notifyStoreKeepers($updated);
+        }
+
+        return $updated;
+    }
+
+    public function rejectItem(StockRequestItem $requestItem, string $reason): StockRequest
+    {
+        $updated = DB::transaction(function () use ($requestItem, $reason) {
+            $requestItem = StockRequestItem::whereKey($requestItem->id)->lockForUpdate()->firstOrFail();
+            $request = StockRequest::whereKey($requestItem->stock_request_id)->lockForUpdate()->firstOrFail();
+
+            $this->assertApprovalStage($request);
+            $this->assertEligibleApprover($request);
+            if ($requestItem->approval_status !== 'pending') {
+                throw ValidationException::withMessages(['item' => 'This item has already been processed.']);
+            }
+
+            $requestItem->update([
+                'approval_status' => 'rejected', 'rejection_reason' => $reason,
+                'rejected_by' => auth()->id(), 'rejected_at' => now(),
+            ]);
+            $request->actions()->create([
+                'stage' => 'APPROVAL', 'actor_id' => auth()->id(), 'action' => 'REJECTED',
+                'remarks' => $reason, 'acted_at' => now(),
+            ]);
+
+            return $this->refreshApprovalState($request);
+        });
+
+        $updated->requester?->notify(new RequestStatusChanged($updated, 'ITEM_REJECTED', $reason, auth()->user()));
+        if ($updated->current_stage === 'ISSUANCE') {
+            $this->notifyStoreKeepers($updated);
+        }
+
+        return $updated;
+    }
+
+    private function refreshApprovalState(StockRequest $request): StockRequest
+    {
+        $items = $request->items()->get();
+        $pending = $items->where('approval_status', 'pending')->count();
+        $approved = $items->where('approval_status', 'approved')->count();
+        $rejected = $items->where('approval_status', 'rejected')->count();
+        $allApproved = $approved === $items->count();
+        $allRejected = $rejected === $items->count();
+
+        if ($pending > 0) {
+            $status = ($approved > 0 || $rejected > 0) ? 'PARTIALLY_PROCESSED' : 'PENDING_APPROVAL';
+            $stage = $approved > 0 ? 'ISSUANCE' : 'APPROVAL';
+        } elseif ($allApproved) {
+            $status = 'APPROVED';
+            $stage = 'ISSUANCE';
+        } elseif ($allRejected) {
+            $status = 'REJECTED';
+            $stage = null;
+        } else {
+            $status = 'PARTIALLY_PROCESSED';
+            $stage = 'ISSUANCE';
+        }
+
+        $request->update([
+            'status' => $status,
+            'current_stage' => $stage,
+            'approver_id' => auth()->id(),
+        ]);
+
+        return $request->fresh(['requester.staffProfile', 'requester.organization', 'items.item', 'items.approvedBy', 'items.rejectedBy', 'actions']);
+    }
+
     /**
      * Reject a request at whichever stage it's currently in.
      */
@@ -169,7 +294,9 @@ class StockRequestService
             if ($stage === 'RECOMMENDATION') {
                 $this->assertRecommender($request);
             } elseif ($stage === 'APPROVAL') {
-                $this->assertEligibleApprover($request);
+                throw ValidationException::withMessages([
+                    'stage' => 'Approval must be performed for each stock request item.',
+                ]);
             } else {
                 abort(422, 'This request cannot be rejected at its current stage.');
             }
@@ -242,15 +369,22 @@ class StockRequestService
     {
         $updated = DB::transaction(function () use ($request, $data) {
 
-            $this->assertStage($request, 'ISSUANCE');
+            $this->assertIssuanceStage($request);
             $this->assertEligibleIssuer($request);
 
             $overridesByItemId = collect($data['items'] ?? [])->keyBy('item_id');
             $allFullyIssued = true;
+            $hasPendingApproval = false;
 
             foreach ($request->items as $requestItem) {
                 $alreadyIssued = (float) ($requestItem->quantity_issued ?? 0);
                 $remainingApproved = (float) $requestItem->quantity_approved - $alreadyIssued;
+
+                if ($requestItem->approval_status === 'pending') {
+                    $hasPendingApproval = true;
+                    $allFullyIssued = false;
+                    continue;
+                }
 
                 if ($remainingApproved <= 0) {
                     continue;
@@ -269,6 +403,24 @@ class StockRequestService
                 if ($issueQty <= 0) {
                     $allFullyIssued = false;
                     continue;
+                }
+
+                if ($requestItem->item->category?->is_returnable) {
+                    $hasActiveAssignment = EquipmentAssignment::where('item_id', $requestItem->item_id)
+                        ->where('assigned_to', $request->requester_id)
+                        ->where(function ($query) use ($requestItem) {
+                            $query->whereNull('stock_request_item_id')
+                                ->orWhere('stock_request_item_id', '!=', $requestItem->id);
+                        })
+                        ->whereIn('status', ['ASSIGNED', 'RETURN_REQUIRED', 'RETURN_PENDING'])
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($hasActiveAssignment) {
+                        throw ValidationException::withMessages([
+                            'item' => 'This returnable item cannot be issued until the previously assigned item is returned.',
+                        ]);
+                    }
                 }
 
                 $before = (float) $balance->quantity_on_hand;
@@ -297,6 +449,19 @@ class StockRequestService
                     'quantity_issued' => $alreadyIssued + $issueQty,
                 ]);
 
+                if ($requestItem->item->category?->is_returnable) {
+                    for ($unit = 0; $unit < (int) floor($issueQty); $unit++) {
+                        EquipmentAssignment::create([
+                            'item_id' => $requestItem->item_id,
+                            'stock_request_item_id' => $requestItem->id,
+                            'assigned_to' => $request->requester_id,
+                            'issued_by' => auth()->id(),
+                            'issued_at' => now(),
+                            'status' => 'ASSIGNED',
+                        ]);
+                    }
+                }
+
                 if (($alreadyIssued + $issueQty) < (float) $requestItem->quantity_approved) {
                     $allFullyIssued = false;
                 }
@@ -311,8 +476,10 @@ class StockRequestService
             ]);
 
             $request->update([
-                'status'        => $allFullyIssued ? 'ISSUED' : 'APPROVED',
-                'current_stage' => $allFullyIssued ? null : 'ISSUANCE',
+                'status'        => $allFullyIssued
+                    ? ($hasPendingApproval ? 'PARTIALLY_PROCESSED' : 'ISSUED')
+                    : ($hasPendingApproval ? 'PARTIALLY_PROCESSED' : 'PARTIALLY_ISSUED'),
+                'current_stage' => $allFullyIssued && ! $hasPendingApproval ? null : 'ISSUANCE',
             ]);
 
             return $request->fresh(['requester.staffProfile', 'requester.organization', 'items.item', 'actions']);
@@ -432,6 +599,24 @@ class StockRequestService
         if ($request->current_stage !== $expected) {
             throw ValidationException::withMessages([
                 'stage' => "This request is not currently pending {$expected}.",
+            ]);
+        }
+    }
+
+    private function assertApprovalStage(StockRequest $request): void
+    {
+        if (! in_array($request->current_stage, ['APPROVAL', 'ISSUANCE'], true)) {
+            throw ValidationException::withMessages([
+                'stage' => 'This request is not currently pending approval.',
+            ]);
+        }
+    }
+
+    private function assertIssuanceStage(StockRequest $request): void
+    {
+        if (! in_array($request->current_stage, ['APPROVAL', 'ISSUANCE'], true)) {
+            throw ValidationException::withMessages([
+                'stage' => 'This request is not currently pending issuance.',
             ]);
         }
     }

@@ -17,6 +17,7 @@ interface OptionItem {
 
 interface EditForm {
   full_name: string;
+  nic_number: string;
   email: string;
   phone: string;
   role_id: string;
@@ -41,6 +42,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({
     full_name: "",
+    nic_number: "",
     role_id: "",
     division_id: "",
     section_id: "",
@@ -132,6 +134,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
     setEditError("");
     setEditForm({
       full_name: displayName(user),
+      nic_number: user.staff_profile?.nic_number ?? "",
       email: user.email ?? "",
       phone: user.staff_profile?.phone ?? user.organization?.contact_number ?? "",
       role_id: user.staff_profile?.role ? String(user.staff_profile.role.id) : "",
@@ -178,6 +181,7 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
         full_name: editForm.full_name.trim(),
         email: editForm.email.trim() || null,
         phone: editForm.phone.trim() || null,
+        ...(editingUser.account_type === "STAFF" ? { nic_number: editForm.nic_number.trim() } : {}),
       };
 
       if (isAdminUser) {
@@ -564,6 +568,20 @@ export function UserManagementTable({ lang }: { lang: Lang }) {
                     className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
                   />
                 </div>
+
+                {editingUser.account_type === "STAFF" && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {t(lang, "NIC Number", "ජාතික හැඳුනුම්පත් අංකය")}
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.nic_number}
+                      onChange={(e) => setEditForm((f) => ({ ...f, nic_number: e.target.value }))}
+                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    />
+                  </div>
+                )}
 
                 {isRegularStaff && (
                   <>

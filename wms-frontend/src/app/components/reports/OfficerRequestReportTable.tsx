@@ -8,15 +8,19 @@ export function OfficerRequestReportTable({ lang, groups }: { lang: Lang; groups
   return (
     <div className="space-y-4 max-h-[420px] overflow-y-auto">
       {groups.map((group) => (
-        <div key={group.officer_name} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div key={`${group.division_name ?? "division"}-${group.officer_name}`} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-100">
             <span className="font-semibold text-sm text-gray-900">{group.officer_name}</span>
             {group.division_name && <span className="text-xs text-gray-400 ml-2">{group.division_name}</span>}
           </div>
           <table className="w-full text-sm">
+            <thead><tr className="bg-gray-50 border-b border-gray-100">
+              {["Division", "Request", "Context", "Status", "Date", "Items", "Details"].map((header) => <th key={header} className="text-left px-5 py-2 text-xs font-semibold text-gray-500">{t(lang, header, header === "Division" ? "අංශය" : header)}</th>)}
+            </tr></thead>
             <tbody className="divide-y divide-gray-50">
               {group.requests.map((r) => (
                 <tr key={r.request_number}>
+                  <td className="px-5 py-2 text-gray-500 text-xs">{r.division_name ?? group.division_name ?? "-"}</td>
                   <td className="px-5 py-2 font-mono text-xs text-gray-500">{r.request_number}</td>
                   <td className="px-5 py-2 text-gray-500 text-xs">{r.request_context}</td>
                   <td className="px-5 py-2 text-gray-500 text-xs">{r.status}</td>

@@ -47,6 +47,7 @@ return new class extends Migration
             $table->enum('status', [
                 'PENDING_RECOMMENDATION',
                 'PENDING_APPROVAL',
+                'PARTIALLY_PROCESSED',
                 'APPROVED',
                 'REJECTED',
                 'RETURNED',

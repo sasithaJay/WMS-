@@ -97,7 +97,7 @@ const REPORT_CARDS: {
     icon: FileStack,
     title: "Annual Report",
     titleSi: "වාර්ෂික වාර්තාව",
-    desc: "Multi-year comprehensive report for audit purposes.",
+    desc: "Received and issued item transactions for the selected year.",
     descSi: "විගණන අරමුණු සඳහා වාර්ෂික සාරාංශය.",
     color: "bg-rose-50 text-rose-600 border-rose-100",
   },
@@ -121,14 +121,15 @@ const STATUS_OPTIONS = [
   "RETURNED",
   "CANCELLED",
 ];
+const STOCK_STATUS_OPTIONS = ["OUT", "LOW", "NORMAL"];
 
 function defaultFiltersFor(id: ReportId): ReportFilters {
   const now = new Date();
   switch (id) {
     case "monthly":
-      return { year: now.getFullYear() };
+      return { month: now.getMonth() + 1, year: now.getFullYear() };
     case "annual":
-      return { from_year: now.getFullYear() - 2, to_year: now.getFullYear() };
+      return { year: now.getFullYear() };
     default:
       return {};
   }
@@ -142,7 +143,7 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
 
   const [filters, setFilters] = useState<ReportFilters>({});
   const [divisions, setDivisions] = useState<DivisionOption[]>([]);
-  const isCommissioner = role === "COMMISSIONER";
+  const canSelectDivision = role === "COMMISSIONER" || role === "ADMIN";
 
   const [stockData, setStockData] = useState<Awaited<ReturnType<typeof getStockReport>>["data"]>([]);
   const [issueData, setIssueData] = useState<Awaited<ReturnType<typeof getIssueReport>>["data"]>([]);
@@ -152,13 +153,13 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
   const [officerData, setOfficerData] = useState<Awaited<ReturnType<typeof getOfficerRequestsReport>>["data"]>([]);
 
   useEffect(() => {
-    if (isCommissioner) {
+    if (canSelectDivision) {
       api
         .get("/registration-options")
         .then((res) => setDivisions(res.data.divisions))
         .catch((err) => console.error(err));
     }
-  }, [isCommissioner]);
+  }, [canSelectDivision]);
 
   async function fetchReport(id: ReportId, activeFilters: ReportFilters) {
     setLoading(true);
@@ -240,7 +241,8 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
   const labelClass = "block text-xs font-bold text-slate-700 mb-1.5";
 
   const hasFilterFields =
-    isCommissioner ||
+    canSelectDivision ||
+    previewing === "stock" ||
     previewing === "issue" ||
     previewing === "receipt" ||
     previewing === "officer" ||
@@ -368,7 +370,7 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    {isCommissioner && (
+                    {canSelectDivision && (
                       <div>
                         <label className={labelClass}>
                           {t(lang, "Division", "අංශය")}
@@ -386,7 +388,7 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
                           className={inputClass}
                         >
                           <option value="">
-                            {t(lang, "Both Divisions", "අංශ දෙකම")}
+                            {t(lang, "All Divisions", "සියලුම අංශ")}
                           </option>
                           {divisions.map((d) => (
                             <option key={d.id} value={d.id}>
@@ -436,6 +438,19 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
                       </>
                     )}
 
+                    {previewing === "issue" && (
+                      <div>
+                        <label className={labelClass}>{t(lang, "Requester", "ඉල්ලුම්කරු")}</label>
+                        <input
+                          type="search"
+                          value={filters.requester ?? ""}
+                          onChange={(e) => setFilters((f) => ({ ...f, requester: e.target.value || undefined }))}
+                          placeholder={t(lang, "Name or username", "නම හෝ පරිශීලක නාමය")}
+                          className={inputClass}
+                        />
+                      </div>
+                    )}
+
                     {previewing === "officer" && (
                       <div>
                         <label className={labelClass}>
@@ -463,66 +478,71 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
                       </div>
                     )}
 
-                    {previewing === "monthly" && (
+                    {previewing === "stock" && (
                       <div>
                         <label className={labelClass}>
-                          {t(lang, "Year", "වර්ෂය")}
+                          {t(lang, "Stock Status", "තොග තත්ත්වය")}
                         </label>
-                        <input
-                          type="number"
-                          value={filters.year ?? ""}
+                        <select
+                          value={filters.status ?? ""}
                           onChange={(e) =>
                             setFilters((f) => ({
                               ...f,
-                              year: e.target.value
-                                ? Number(e.target.value)
-                                : undefined,
+                              status: e.target.value || undefined,
                             }))
                           }
                           className={inputClass}
-                        />
+                        >
+                          <option value="">{t(lang, "All Statuses", "සියලු තත්ත්ව")}</option>
+                          {STOCK_STATUS_OPTIONS.map((status) => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
                       </div>
                     )}
 
-                    {previewing === "annual" && (
+                    {previewing === "monthly" && (
                       <>
                         <div>
-                          <label className={labelClass}>
-                            {t(lang, "From Year", "සිට වර්ෂය")}
-                          </label>
-                          <input
-                            type="number"
-                            value={filters.from_year ?? ""}
-                            onChange={(e) =>
-                              setFilters((f) => ({
-                                ...f,
-                                from_year: e.target.value
-                                  ? Number(e.target.value)
-                                  : undefined,
-                              }))
-                            }
+                          <label className={labelClass}>{t(lang, "Month", "මාසය")}</label>
+                          <select
+                            value={filters.month ?? new Date().getMonth() + 1}
+                            onChange={(e) => setFilters((f) => ({ ...f, month: Number(e.target.value) }))}
                             className={inputClass}
-                          />
+                          >
+                            {Array.from({ length: 12 }, (_, index) => {
+                              const month = index + 1;
+                              const label = new Intl.DateTimeFormat(lang === "si" ? "si-LK" : "en", { month: "long" }).format(new Date(2026, index, 1));
+                              return <option key={month} value={month}>{label}</option>;
+                            })}
+                          </select>
                         </div>
                         <div>
-                          <label className={labelClass}>
-                            {t(lang, "To Year", "දක්වා වර්ෂය")}
-                          </label>
+                          <label className={labelClass}>{t(lang, "Year", "වර්ෂය")}</label>
                           <input
                             type="number"
-                            value={filters.to_year ?? ""}
-                            onChange={(e) =>
-                              setFilters((f) => ({
-                                ...f,
-                                to_year: e.target.value
-                                  ? Number(e.target.value)
-                                  : undefined,
-                              }))
-                            }
+                            min={1900}
+                            max={2200}
+                            value={filters.year ?? new Date().getFullYear()}
+                            onChange={(e) => setFilters((f) => ({ ...f, year: e.target.value ? Number(e.target.value) : undefined }))}
                             className={inputClass}
                           />
                         </div>
                       </>
+                    )}
+
+                    {previewing === "annual" && (
+                      <div>
+                        <label className={labelClass}>{t(lang, "Year", "Year")}</label>
+                        <input
+                          type="number"
+                          min={1900}
+                          max={2200}
+                          value={filters.year ?? new Date().getFullYear()}
+                          onChange={(e) => setFilters((f) => ({ ...f, year: e.target.value ? Number(e.target.value) : undefined }))}
+                          className={inputClass}
+                        />
+                      </div>
                     )}
 
                     <div className="flex items-end">
@@ -559,10 +579,29 @@ export function ReportsPanel({ lang, role }: { lang: Lang; role?: Role }) {
                     <ReceiptReportTable lang={lang} rows={receiptData} />
                   )}
                   {previewing === "monthly" && (
-                    <MonthlyReportTable lang={lang} rows={monthlyData} />
+                    <MonthlyReportTable
+                      lang={lang}
+                      rows={monthlyData}
+                      month={filters.month ?? new Date().getMonth() + 1}
+                      year={filters.year ?? new Date().getFullYear()}
+                      divisionLabel={filters.division_id
+                        ? divisions.find((division) => division.id === filters.division_id)?.name_en ?? "Selected division"
+                        : canSelectDivision
+                          ? "All divisions"
+                          : monthlyData[0]?.division_name ?? "Assigned division"}
+                    />
                   )}
                   {previewing === "annual" && (
-                    <AnnualReportTable lang={lang} rows={annualData} />
+                    <AnnualReportTable
+                      lang={lang}
+                      rows={annualData}
+                      year={filters.year ?? new Date().getFullYear()}
+                      divisionLabel={filters.division_id
+                        ? divisions.find((division) => division.id === filters.division_id)?.name_en ?? "Selected division"
+                        : canSelectDivision
+                          ? "All divisions"
+                          : annualData[0]?.division_name ?? "Assigned division"}
+                    />
                   )}
                   {previewing === "officer" && (
                     <OfficerRequestReportTable lang={lang} groups={officerData} />

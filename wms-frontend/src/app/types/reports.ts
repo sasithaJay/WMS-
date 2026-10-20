@@ -13,11 +13,14 @@ export interface StockReportRow {
 
 export interface IssueReportRow {
   date: string;
+  division_name: string;
   item_code: string;
   item_name: string;
   quantity: number;
   reference_number: string | null;
   performed_by: string;
+  requester_name: string;
+  requester_position: string;
 }
 
 export interface ReceiptReportItem {
@@ -28,6 +31,7 @@ export interface ReceiptReportItem {
 
 export interface ReceiptReportRow {
   grn_number: string;
+  division_name: string;
   supplier_name: string;
   received_date: string;
   confirmed_at: string | null;
@@ -37,24 +41,47 @@ export interface ReceiptReportRow {
 }
 
 export interface MonthlyReportRow {
-  month: number;
-  month_name: string;
-  received: number;
-  issued: number;
-  pending: number;
-  rejected: number;
+  division_id: number;
+  division_name: string;
+  received_items: MonthlyReceivedItem[];
+  issued_items: MonthlyIssuedItem[];
+  received_totals: MonthlyUnitTotal[];
+  issued_totals: MonthlyUnitTotal[];
+  receipt_subtotal: number;
+  receipt_vat: number;
+  receipt_total_with_vat: number;
 }
 
-export interface AnnualReportRow {
-  year: number;
-  total_received: number;
-  total_issued: number;
-  total_requests: number;
-  fulfilled: number;
+export interface MonthlyReceivedItem {
+  item_code: string;
+  item_name: string;
+  supplier_name: string;
+  reference_number: string | null;
+  date: string | null;
+  quantity: number;
+  unit: string;
+  total_amount_with_vat: number | null;
 }
+
+export interface MonthlyIssuedItem {
+  item_code: string;
+  item_name: string;
+  quantity: number;
+  unit: string;
+  date: string | null;
+  reference_number: string | null;
+}
+
+export interface MonthlyUnitTotal {
+  unit: string;
+  quantity: number;
+}
+
+export type AnnualReportRow = MonthlyReportRow;
 
 export interface OfficerReportRequest {
   request_number: string;
+  division_name: string | null;
   request_context: string;
   status: string;
   submitted_at: string | null;
@@ -76,8 +103,8 @@ export interface ReportFilters {
   division_id?: number;
   date_from?: string;
   date_to?: string;
+  month?: number;
   year?: number;
-  from_year?: number;
-  to_year?: number;
   status?: string;
+  requester?: string;
 }

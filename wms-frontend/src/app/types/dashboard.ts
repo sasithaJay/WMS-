@@ -44,7 +44,7 @@ export interface ActionRequiredItem {
   request_number: string;
   requester_name: string;
   request_context: string;
-  stage: "RECOMMENDATION" | "APPROVAL" | "ISSUANCE" | "ITEM_UPDATE";
+  stage: "RECOMMENDATION" | "APPROVAL" | "ISSUANCE" | "ITEM_UPDATE" | "VAT_APPROVAL" | "USER_VERIFICATION";
   submitted_at: string | null;
   item_summary: string;
 }
@@ -55,5 +55,4 @@ export interface MyViewSummary {
   my_issued_this_month_count: number;
   action_required_count: number;
   action_required_items: ActionRequiredItem[];
-  recent_movements: StockMovement[];
 }

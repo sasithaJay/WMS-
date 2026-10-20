@@ -1,6 +1,7 @@
 
 
 import { useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { MonthlyRequestStatus } from "../../components/requests/MonthlyRequestStatus";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
@@ -19,7 +20,7 @@ export function GenericStaffDashboard({
   onLogout: () => void;
   role: Role;
 }) {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav(role);
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
 
   return (

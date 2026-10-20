@@ -71,6 +71,11 @@ class Item extends Model
         return $this->hasMany(StockMovement::class);
     }
 
+    public function equipmentAssignments(): HasMany
+    {
+        return $this->hasMany(EquipmentAssignment::class);
+    }
+
     public function inventoryBalance(): HasOne
     {
         return $this->hasOne(InventoryBalance::class);

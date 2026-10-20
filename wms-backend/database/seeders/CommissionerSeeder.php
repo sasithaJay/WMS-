@@ -21,23 +21,18 @@ class CommissionerSeeder extends Seeder
         $salaryNumber = 'comm';
         $username = 'SWPCS-' . $salaryNumber;
 
-        $user = User::updateOrCreate(
-            [
-                'username' => $username,
-            ],
-            [
+        $user = User::firstOrNew(['username' => $username]);
+        if (! $user->exists) {
+            $user->fill([
                 'email' => 'commissioner@wms.gov.lk',
-
                 'password' => Hash::make('12345678'),
-
                 'account_type' => 'STAFF',
                 'account_status' => 'ACTIVE',
-
                 'approved_by' => null,
                 'approved_at' => now(),
                 'rejection_reason' => null,
-            ]
-        );
+            ])->save();
+        }
 
         StaffProfile::updateOrCreate(
             [

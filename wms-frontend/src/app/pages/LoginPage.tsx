@@ -13,7 +13,10 @@ import {
 
 import { LanguageToggle } from "../components/common/LanguageToggle";
 import { t } from "../constants/translations";
-import { login } from "../../services/authService";
+import {
+  login,
+  requestTemporaryPassword,
+} from "../../services/authService";
 
 import type { Lang, Role } from "../types";
 import logo from "../resources/logo.jpeg";
@@ -35,6 +38,11 @@ export function LoginPage({
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetUsername, setResetUsername] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
 
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>,
@@ -97,7 +105,15 @@ export function LoginPage({
         const rejectionReason =
           error.response?.data?.rejection_reason;
 
-        if (rejectionReason) {
+        if (error.response?.status === 503) {
+          setError(
+            t(
+              lang,
+              "The system is currently under maintenance. Please try again later.",
+              "පද්ධතිය මේ වන විට නඩත්තු කටයුතු සඳහා වසා ඇත. කරුණාකර පසුව නැවත උත්සාහ කරන්න.",
+            ),
+          );
+        } else if (rejectionReason) {
           setError(`${message} ${rejectionReason}`);
         } else {
           setError(
@@ -122,6 +138,31 @@ export function LoginPage({
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    setResetError("");
+    setResetMessage("");
+    setResetLoading(true);
+
+    try {
+      const data = await requestTemporaryPassword(resetUsername.trim());
+      setResetMessage(data.message);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setResetError(
+          error.response?.data?.message ??
+            "We could not process your request. Please try again.",
+        );
+      } else {
+        setResetError("We could not process your request. Please try again.");
+      }
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -158,7 +199,7 @@ export function LoginPage({
           {/* Header / Logo */}
           <div className="relative z-10">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-slate-900/80 p-1 ring-1 ring-white/10 shadow-xl backdrop-blur-md flex items-center justify-center">
+              <div className="w-15 h-15 rounded-2xl bg-slate-900/80 p-1 ring-1 ring-white/10 shadow-xl backdrop-blur-md flex items-center justify-center">
                 <img
                   src={logo}
                   alt="Department Logo"
@@ -416,7 +457,7 @@ export function LoginPage({
                       setShowPw((previous) => !previous)
                     }
                     disabled={loading}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    className="absolute cursor-pointer right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                     aria-label={
                       showPw
                         ? "Hide password"
@@ -454,7 +495,13 @@ export function LoginPage({
 
                 <button
                   type="button"
-                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                  onClick={() => {
+                    setResetUsername(username);
+                    setResetError("");
+                    setResetMessage("");
+                    setShowForgotPassword(true);
+                  }}
+                  className="cursor-pointer text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                 >
                   {t(
                     lang,
@@ -484,7 +531,7 @@ export function LoginPage({
                   !username.trim() ||
                   !password
                 }
-                className="group relative w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2 mt-2"
+                className="group relative w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold text-sm cursor-pointer transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2 mt-2"
               >
                 {loading ? (
                   <>
@@ -513,6 +560,72 @@ export function LoginPage({
 
             </form>
 
+            {showForgotPassword && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="forgot-password-title"
+              >
+                <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+                  <h3 id="forgot-password-title" className="text-lg font-bold text-slate-900 dark:text-white">
+                    Forgot password?
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                    Enter your username. If it belongs to an account with a phone number, we will send a temporary password by SMS.
+                  </p>
+
+                  <form onSubmit={handleForgotPassword} className="mt-5 space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="reset-username">
+                        Username
+                      </label>
+                      <input
+                        id="reset-username"
+                        type="text"
+                        value={resetUsername}
+                        onChange={(event) => setResetUsername(event.target.value)}
+                        autoComplete="username"
+                        required
+                        disabled={resetLoading}
+                        className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      />
+                    </div>
+
+                    {resetError && (
+                      <p className="rounded-xl bg-red-50 p-3 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                        {resetError}
+                      </p>
+                    )}
+
+                    {resetMessage && (
+                      <p className="rounded-xl bg-emerald-50 p-3 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                        {resetMessage}
+                      </p>
+                    )}
+
+                    <div className="flex justify-end gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(false)}
+                        disabled={resetLoading}
+                        className="h-10 px-4 text-sm font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={resetLoading || !resetUsername.trim()}
+                        className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {resetLoading ? "Sending..." : "Send temporary password"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
             {/* Register Action */}
             <div className="mt-6 text-center">
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -524,7 +637,7 @@ export function LoginPage({
                 <button
                   type="button"
                   onClick={onRegister}
-                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline transition-all"
+                  className="font-semibold cursor-pointer text-blue-600 dark:text-blue-400 hover:underline transition-all"
                 >
                   {t(
                     lang,

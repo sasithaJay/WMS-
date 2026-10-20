@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Loader2,
   AlertCircle,
+  CheckCircle2,
   X,
   HardDrive,
   Clock,
@@ -37,6 +38,7 @@ export function BackupSettingsPanel({ lang }: { lang: Lang }) {
   const [backups, setBackups] = useState<Backup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
@@ -78,8 +80,16 @@ export function BackupSettingsPanel({ lang }: { lang: Lang }) {
     try {
       setBusyAction("db-backup");
       setError("");
+      setSuccess("");
       await backupDatabase();
       await loadBackups();
+      setSuccess(
+        t(
+          lang,
+          "Database backup created successfully.",
+          "දත්ත සමුදායේ උපස්ථය සාර්ථකව සාදන ලදී."
+        )
+      );
     } catch (err) {
       console.error(err);
       setError(
@@ -201,6 +211,13 @@ export function BackupSettingsPanel({ lang }: { lang: Lang }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {success && (
+        <div className="bg-green-50 border border-green-200/80 rounded-2xl p-4 text-xs font-semibold text-green-700 flex items-center gap-2.5">
+          <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+          <span>{success}</span>
+        </div>
+      )}
+
       {/* ERROR ALERT */}
       {error && (
         <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 text-xs font-semibold text-rose-700 flex items-center gap-2.5">

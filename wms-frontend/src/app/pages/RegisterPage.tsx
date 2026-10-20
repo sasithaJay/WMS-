@@ -27,6 +27,8 @@ import {
   getRegistrationOptions,
   getSections,
   register,
+  requestRegistrationOtp,
+  verifyRegistrationOtp,
 } from "../../services/authService";
 
 import { t } from "../constants/translations";
@@ -82,6 +84,9 @@ export function RegisterPage({
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [loadingSections, setLoadingSections] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [verificationId, setVerificationId] = useState<number | null>(null);
+  const [verificationToken, setVerificationToken] = useState("");
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -91,7 +96,9 @@ export function RegisterPage({
     t(lang, "Account Type", "ගිණුම් වර්ගය"),
     t(lang, "Details", "විස්තර"),
     t(lang, "Credentials", "අක්තපත්‍ර"),
+    t(lang, "Verify Phone", "දුරකථනය සත්‍යාපනය"),
   ];
+  const progressPercent = Math.round(((step + 1) / steps.length) * 100);
 
   // selected role
   const selectedRole = useMemo(
@@ -161,7 +168,7 @@ export function RegisterPage({
             "ලියාපදිංචි විකල්ප පූරණය කළ නොහැක.",
           ),
         );
-      } fontFinally: {
+      } finally {
         setLoadingOptions(false);
       }
     };
@@ -344,7 +351,7 @@ export function RegisterPage({
 
     if (step === 3) {
       const hasUsername =
-        accountType === "staff" ? !!form.salaryNumber : !!form.username;
+        accountType === "staff" ? !!form.salaryNumber : !!form.institutionId;
 
       if (!hasUsername || !form.password || !form.confirmPassword) {
         setError(
@@ -369,6 +376,11 @@ export function RegisterPage({
       }
     }
 
+    if (step === 4 && !/^\d{6}$/.test(otp)) {
+      setError(t(lang, "Enter the 6-digit verification code.", "අංක 6ක සත්‍යාපන කේතය ඇතුළත් කරන්න."));
+      return false;
+    }
+
     return true;
   };
 
@@ -376,7 +388,7 @@ export function RegisterPage({
     if (!validateCurrentStep()) {
       return;
     }
-    setStep((current) => Math.min(3, current + 1));
+    setStep((current) => Math.min(4, current + 1));
   };
 
   const handleSubmit = async () => {
@@ -410,7 +422,7 @@ export function RegisterPage({
       } else {
         payload = {
           account_type: "INSTITUTION",
-          username: form.username,
+          username: `SWPCS-${form.institutionId}`,
           email: form.cpEmail,
           password: form.password,
           password_confirmation: form.confirmPassword,
@@ -426,7 +438,20 @@ export function RegisterPage({
         };
       }
 
-      const data = await register(payload);
+      if (step === 3) {
+        const otpResponse = await requestRegistrationOtp(payload);
+        setVerificationId(otpResponse.verification_id);
+        setStep(4);
+        setSuccess(otpResponse.message);
+        return;
+      }
+
+      if (!verificationId) {
+        throw new Error("Phone verification session is missing.");
+      }
+      const verified = await verifyRegistrationOtp(verificationId, otp);
+      setVerificationToken(verified.verification_token);
+      const data = await register({ ...payload, verification_token: verified.verification_token });
 
       setSuccess(data.message);
       setForm({});
@@ -434,6 +459,9 @@ export function RegisterPage({
       setAccountType(null);
       setSections([]);
       setStep(0);
+      setVerificationId(null);
+      setVerificationToken("");
+      setOtp("");
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const responseData = error.response?.data;
@@ -527,7 +555,7 @@ export function RegisterPage({
         <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl">
           {/* Progress Stepper Bar */}
           <div className="p-6 sm:p-8 border-b border-slate-800 bg-slate-950/40">
-            <div className="grid grid-cols-4 gap-2 relative">
+            <div className="grid grid-cols-5 gap-2 relative">
               {steps.map((stepLabel, index) => {
                 const completed = index < step;
                 const active = index === step;
@@ -551,7 +579,7 @@ export function RegisterPage({
                     </div>
 
                     <span
-                      className={`mt-2 text-[11px] font-semibold text-center hidden sm:block ${
+                      className={`mt-2 text-[10px] sm:text-[11px] font-semibold text-center whitespace-nowrap hidden sm:block ${
                         active
                           ? "text-blue-400"
                           : completed
@@ -572,18 +600,18 @@ export function RegisterPage({
                 <span className="text-slate-400">
                   {t(
                     lang,
-                    `Step ${step + 1} of 4`,
-                    `පියවර ${step + 1} / 4`,
+                    `Step ${step + 1} of ${steps.length}`,
+                    `පියවර ${step + 1} / ${steps.length}`,
                   )}
                 </span>
                 <span className="text-blue-400">
-                  {Math.round(((step + 1) / 4) * 100)}%
+                  {progressPercent}%
                 </span>
               </div>
               <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
-                  style={{ width: `${((step + 1) / 4) * 100}%` }}
+                  style={{ width: `${progressPercent}%` }}
                 />
               </div>
             </div>
@@ -1111,6 +1139,28 @@ export function RegisterPage({
                 </div>
               </div>
             )}
+
+            {step === 4 && (
+              <div className="animate-in fade-in duration-300">
+                <div className="mb-6">
+                  <h2 className="text-lg font-bold text-white">
+                    {t(lang, "Verify your phone number", "ඔබගේ දුරකථන අංකය සත්‍යාපනය කරන්න")}
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {t(lang, "Enter the 6-digit code sent by SMS. Your account will be created after verification.", "SMS මගින් එවූ අංක 6ක කේතය ඇතුළත් කරන්න. සත්‍යාපනයෙන් පසු ඔබගේ ගිණුම සාදනු ලැබේ.")}
+                  </p>
+                </div>
+                <input
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  placeholder="000000"
+                  className="w-full h-12 rounded-xl border border-slate-700 bg-slate-900 px-4 text-center text-xl font-mono tracking-[0.4em] text-white outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
           </div>
 
           {/* Feedback Messages */}
@@ -1175,7 +1225,7 @@ export function RegisterPage({
                 </>
               ) : (
                 <>
-                  <span>{t(lang, "Create Account", "ගිණුම සාදන්න")}</span>
+                  <span>{step === 3 ? t(lang, "Send Verification Code", "සත්‍යාපන කේතය යවන්න") : t(lang, "Create Account", "ගිණුම සාදන්න")}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

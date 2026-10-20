@@ -23,6 +23,12 @@ class UpdateUserRequest extends FormRequest
             ],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'full_name' => ['sometimes', 'string', 'max:255'],
+            'nic_number' => [
+                'sometimes',
+                'string',
+                'max:255',
+                Rule::unique('staff_profiles', 'nic_number')->ignore($this->route('user')?->staffProfile?->id),
+            ],
             'role_id' => ['sometimes', 'exists:roles,id'],
             'division_id' => ['sometimes', 'exists:divisions,id'],
             'section_id' => ['nullable', 'exists:sections,id'],

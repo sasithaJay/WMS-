@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\Auth\LoginController;
+use App\Http\Controllers\Api\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\Auth\RegistrationOptionsController;
 use App\Http\Controllers\Api\Admin\AccountApprovalController;
 use App\Http\Controllers\Api\ItemController;
@@ -26,6 +27,8 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ItemLabelController;
 use App\Http\Controllers\Api\VatRateController;
 use App\Http\Controllers\Api\Admin\BackupController;
+use App\Http\Controllers\Api\Admin\CommissionerAccountController;
+use App\Http\Controllers\Api\ProfileController;
 
 //Public Routes
 
@@ -33,11 +36,22 @@ Route::post('/register', [
     RegisterController::class,
     'register',
 ]);
+Route::post('/register/request-otp', [RegisterController::class, 'requestOtp'])->middleware('throttle:5,10');
+Route::post('/register/verify-otp', [RegisterController::class, 'verifyOtp'])->middleware('throttle:10,10');
 
 Route::post('/login', [
     LoginController::class,
     'login',
 ]);
+
+Route::get('/login', function () {
+    return response()->json(['message' => 'Unauthenticated.'], 401);
+})->name('login');
+
+Route::post('/forgot-password', [
+    ForgotPasswordController::class,
+    'store',
+])->middleware('throttle:5,10');
 
 Route::get('/registration-options', [
     RegistrationOptionsController::class,
@@ -76,9 +90,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/stats', [AdminStatsController::class, 'index']);
         Route::get('/admin/users', [UserManagementController::class, 'index']);
         Route::patch('/admin/users/{user}', [UserManagementController::class, 'update']);
+        Route::get('/admin/commissioners', [CommissionerAccountController::class, 'index']);
+        Route::post('/admin/commissioners', [CommissionerAccountController::class, 'store']);
+        Route::patch('/admin/commissioners/{user}', [CommissionerAccountController::class, 'update']);
     });
 
     Route::put('/user/password', [PasswordController::class, 'update']);
+    Route::post('/user/profile', [ProfileController::class, 'update']);
+    Route::get('/user/profile-picture', [ProfileController::class, 'picture']);
 
     // routes/api.php — inside auth:sanctum group
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
@@ -335,6 +354,18 @@ Route::middleware('auth:sanctum')->group(function () {
             StockRequestController::class, 'issue']
         );
     });
+
+    Route::post('/stock-request-items/{stockRequestItem}/approve', [
+        StockRequestController::class, 'approveItem'
+    ]);
+    Route::post('/stock-request-items/{stockRequestItem}/reject', [
+        StockRequestController::class, 'rejectItem'
+    ]);
+    Route::get('/equipment-assignments/mine', [StockRequestController::class, 'myEquipmentAssignments']);
+    Route::post('/equipment-assignments/{equipmentAssignment}/return-request', [StockRequestController::class, 'requestEquipmentReturn']);
+    Route::get('/equipment-assignments/pending-returns', [StockRequestController::class, 'pendingEquipmentReturns']);
+    Route::post('/equipment-assignments/users/{user}/mark-return-required', [StockRequestController::class, 'markOfficerEquipmentReturnRequired']);
+    Route::post('/equipment-assignments/{equipmentAssignment}/confirm-return', [StockRequestController::class, 'confirmEquipmentReturn']);
 
     // routes/api.php
     Route::get('/inventory-balances', [InventoryBalanceController::class, 'index']);

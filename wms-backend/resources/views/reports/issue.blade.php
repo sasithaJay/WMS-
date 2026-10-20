@@ -12,6 +12,7 @@
 </style>
 </head>
 <body>
+    @include('reports._department-header')
     <h1>Issue Report</h1>
     <div class="meta">
         Period: {{ $from ?? 'All time' }} — {{ $to ?? 'Present' }} ·
@@ -19,16 +20,18 @@
     </div>
     <table>
         <thead>
-            <tr><th>Date</th><th>Item Code</th><th>Item</th><th>Qty</th><th>Reference</th><th>Issued By</th></tr>
+            <tr><th>Date</th><th>Division</th><th>Item Code</th><th>Item</th><th>Qty</th><th>Reference</th><th>Requester</th><th>Issued By</th></tr>
         </thead>
         <tbody>
             @foreach ($rows as $row)
             <tr>
                 <td>{{ $row['date'] }}</td>
+                <td>{{ $row['division_name'] }}</td>
                 <td>{{ $row['item_code'] }}</td>
                 <td>{{ $row['item_name'] }}</td>
                 <td>{{ $row['quantity'] }}</td>
                 <td>{{ $row['reference_number'] }}</td>
+                <td>{{ $row['requester_name'] }}<br><span style="color:#64748b; font-size:9px;">{{ $row['requester_position'] }}</span></td>
                 <td>{{ $row['performed_by'] }}</td>
             </tr>
             @endforeach

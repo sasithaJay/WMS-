@@ -18,6 +18,17 @@ export async function login(
   return response.data;
 }
 
+export async function requestTemporaryPassword(
+  username: string,
+): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>(
+    "/forgot-password",
+    { username },
+  );
+
+  return response.data;
+}
+
 export async function getRegistrationOptions():
   Promise<RegistrationOptionsResponse> {
   const response =
@@ -57,8 +68,36 @@ export async function register(
   return response.data;
 }
 
+export async function requestRegistrationOtp(payload: Record<string, unknown>): Promise<{ verification_id: number; phone: string; message: string }> {
+  const response = await api.post("/register/request-otp", payload);
+  return response.data;
+}
+
+export async function verifyRegistrationOtp(verificationId: number, otp: string): Promise<{ verification_token: string; message: string }> {
+  const response = await api.post("/register/verify-otp", { verification_id: verificationId, otp });
+  return response.data;
+}
+
 export async function getCurrentUser(): Promise<User> {
   const response = await api.get<User>("/user");
+
+  return response.data;
+}
+
+export async function updateProfile(formData: FormData): Promise<{ message: string; user: User }> {
+  const response = await api.post<{ message: string; user: User }>(
+    "/user/profile",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+
+  return response.data;
+}
+
+export async function getProfilePicture(): Promise<Blob> {
+  const response = await api.get<Blob>("/user/profile-picture", {
+    responseType: "blob",
+  });
 
   return response.data;
 }

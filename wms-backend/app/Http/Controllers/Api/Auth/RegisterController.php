@@ -16,6 +16,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use App\Notifications\NewAccountPendingApproval;
+use App\Notifications\Channels\SmsChannel;
+use App\Models\PhoneVerification;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 class RegisterController extends Controller
 {
@@ -35,6 +42,33 @@ class RegisterController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        $request->validate(['verification_token' => ['required', 'string']]);
+        $verification = PhoneVerification::where('verification_token', $request->verification_token)
+            ->whereNotNull('verified_at')->whereNull('token_used_at')->first();
+        abort_unless($verification, 422, 'Phone verification is required before registration.');
+        $request->merge(json_decode(Crypt::decryptString($verification->registration_payload), true, 512, JSON_THROW_ON_ERROR));
+        $request->validate([
+            'account_type' => ['required', Rule::in(['STAFF', 'INSTITUTION', 'DS_OFFICE'])],
+            'username' => ['required', 'string', 'min:4', 'max:50', 'unique:users,username'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $response = match ($request->account_type) {
+            'STAFF' => $this->registerStaff($request),
+            'INSTITUTION' => $this->registerOrganization($request, 'INSTITUTION'),
+            'DS_OFFICE' => $this->registerOrganization($request, 'DS_OFFICE'),
+        };
+        $verification->update(['token_used_at' => now()]);
+        return $response;
+    }
+
+    public function requestOtp(Request $request): JsonResponse
+    {
+        \Log::info('REQUEST OTP ENDPOINT HIT', [
+    'data' => $request->except(['password', 'password_confirmation']),
+]);
+
         $request->validate([
             'account_type' => [
                 'required',
@@ -66,23 +100,78 @@ class RegisterController extends Controller
                 Password::min(8),
             ],
         ]);
+            $phone = $request->account_type === 'STAFF'
+                ? $request->input('phone')
+                : $request->input('contact_person_phone');
 
-        return match ($request->account_type) {
-            'STAFF' => $this->registerStaff($request),
+            $request->validate([
+                'account_type' => ['required', Rule::in(['STAFF', 'INSTITUTION', 'DS_OFFICE'])],
+                'phone' => ['required_if:account_type,STAFF', 'string', 'max:20'],
+                'contact_person_phone' => ['required_unless:account_type,STAFF', 'string', 'max:20'],
+            ]);
 
-            'INSTITUTION' => $this->registerOrganization(
-                $request,
-                'INSTITUTION'
-            ),
+            $otp = (string) random_int(100000, 999999);
+            $verification = PhoneVerification::create([
+                'phone' => $phone,
+                'account_type' => $request->account_type,
+                'registration_payload' => Crypt::encryptString(json_encode($request->except(['verification_token']), JSON_THROW_ON_ERROR)),
+                'otp_hash' => Hash::make($otp),
+                'expires_at' => now()->addMinutes(10),
+            ]);
 
-            'DS_OFFICE' => $this->registerOrganization(
-                $request,
-                'DS_OFFICE'
-            ),
-        };
+            $this->sendOtp($phone, $otp);
 
-    }
+            return response()->json([
+                'message' => 'A verification code was sent to the phone number.',
+                'verification_id' => $verification->id,
+                'phone' => substr($phone, 0, 3) . '****' . substr($phone, -2),
+            ], 201);
+        }
 
+        public function verifyOtp(Request $request): JsonResponse
+        {
+            $data = $request->validate([
+                'verification_id' => ['required', 'integer', 'exists:phone_verifications,id'],
+                'otp' => ['required', 'digits:6'],
+            ]);
+            $verification = PhoneVerification::findOrFail($data['verification_id']);
+            abort_if($verification->verified_at || $verification->token_used_at || $verification->expires_at->isPast() || $verification->attempts >= 5, 422, 'This verification code is no longer valid.');
+            if (! Hash::check($data['otp'], $verification->otp_hash)) {
+                $verification->increment('attempts');
+                abort(422, 'The verification code is incorrect.');
+            }
+            $verification->update([
+                'verified_at' => now(),
+                'verification_token' => Str::random(64),
+            ]);
+            return response()->json(['message' => 'Phone verified successfully.', 'verification_token' => $verification->verification_token]);
+        }
+
+        private function sendOtp(string $phone, string $otp): void
+        {
+            \Log::info('OTP SEND STARTED', [
+                'phone' => $phone,
+                'otp' => $otp,
+            ]);
+
+            $message = "WMS verification code: {$otp}. It expires in 10 minutes.";
+
+            $sent = app(SmsChannel::class)->sendToPhone(
+                $phone,
+                $message
+            );
+
+            \Log::info('OTP SMS RESULT', [
+                'phone' => $phone,
+                'sent' => $sent,
+            ]);
+
+            if (! $sent) {
+                throw new \RuntimeException(
+                    'Unable to send the verification code. Please try again.'
+                );
+            }
+        } 
 
     private function registerStaff(Request $request): JsonResponse
     {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePersistentActiveNav } from "../../hooks/usePersistentActiveNav";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { MonthlyRequestStatus } from "../../components/requests/MonthlyRequestStatus";
 import { MyRequestsTable } from "../../components/requests/MyRequestsTable";
@@ -7,7 +8,7 @@ import { SettingsScreen } from "../../components/settings/SettingsScreen";
 import type { Lang } from "../../types";
 
 export function InstitutionDashboard({ lang, setLang, onLogout }: { lang: Lang; setLang: (l: Lang) => void; onLogout: () => void }) {
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = usePersistentActiveNav("INSTITUTION");
   const [requestsRefreshSignal, setRequestsRefreshSignal] = useState(0);
   const role = "INSTITUTION" as const;
 
