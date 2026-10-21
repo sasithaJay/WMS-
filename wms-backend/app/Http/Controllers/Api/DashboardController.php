@@ -142,7 +142,11 @@ class DashboardController extends Controller
             ]);
         }
 
-        if ($divisionId) {
+        $canReviewItemUpdates = $user->staffProfile?->role?->permissions()
+            ->where('code', 'inventory.update.approve')
+            ->exists() ?? false;
+
+        if ($divisionId && $canReviewItemUpdates) {
             $itemUpdateQuery = ItemUpdateRequest::with(['item', 'requester.staffProfile'])
                 ->where('status', 'PENDING')
                 ->whereHas('item', function ($q) use ($divisionId) {
