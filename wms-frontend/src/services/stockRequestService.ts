@@ -51,6 +51,14 @@ export async function recommendStockRequest(
   return response.data.data ?? response.data;
 }
 
+export async function recommendStockRequestItem(
+  requestItemId: number,
+  payload: { quantity: number; remarks?: string },
+): Promise<StockRequest> {
+  const response = await api.post(`/stock-request-items/${requestItemId}/recommend`, payload);
+  return response.data.data ?? response.data;
+}
+
 export async function approveStockRequest(
   id: number,
   payload: { remarks?: string; items?: { item_id: number; quantity: number }[] },
@@ -79,7 +87,7 @@ export async function getPendingIssuance(params?: {
 
 export async function issueStockRequest(
   id: number,
-  payload: { remarks?: string; items?: { item_id: number; quantity: number }[] },
+  payload: { remarks?: string; items?: { request_item_id?: number; item_id: number; quantity: number }[] },
 ): Promise<StockRequest> {
   const response = await api.post(`/stock-requests/${id}/issue`, payload);
   return response.data.data ?? response.data;

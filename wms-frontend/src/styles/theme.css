@@ -3,42 +3,48 @@
 :root {
   --font-size: 15px;
   --background: #F8FAFC;
-  --foreground: #1E293B;
+  --foreground: #171717;
   --card: #ffffff;
-  --card-foreground: #1E293B;
+  --card-foreground: #171717;
   --popover: #ffffff;
-  --popover-foreground: #1E293B;
-  --primary: #4295D9;
+  --popover-foreground: #171717;
+  --primary: #2563EB;
   --primary-foreground: #ffffff;
-  --secondary: #EBF4FD;
-  --secondary-foreground: #1E5A8A;
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
-  --accent: #DBEAFE;
-  --accent-foreground: #1E40AF;
+  --secondary: #EFF6FF;
+  --secondary-foreground: #1D4ED8;
+  --muted: #F1F2F3;
+  --muted-foreground: #737373;
+  --accent: #EFF6FF;
+  --accent-foreground: #1D4ED8;
   --destructive: #DC2626;
   --destructive-foreground: #ffffff;
-  --border: #E2E8F0;
-  --input: transparent;
-  --input-background: #F8FAFC;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --input-background: #FFFFFF;
   --switch-background: #CBD5E1;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #4295D9;
-  --chart-1: #4295D9;
+  --ring: #2563EB;
+  --chart-1: #2563EB;
   --chart-2: #10B981;
   --chart-3: #F59E0B;
   --chart-4: #EF4444;
   --chart-5: #8B5CF6;
   --radius: 0.75rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1E293B;
-  --sidebar-primary: #4295D9;
+  --sidebar: #E9EAEC;
+  --sidebar-foreground: #525252;
+  --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #EBF4FD;
-  --sidebar-accent-foreground: #1E5A8A;
-  --sidebar-border: #E2E8F0;
-  --sidebar-ring: #4295D9;
+  --sidebar-accent: #FFFFFF;
+  --sidebar-accent-foreground: #2563EB;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #2563EB;
+  --app-shell: #E9EAEC;
+  --page-background: #F8FAFC;
+  --surface: #FFFFFF;
+  --text-primary: #171717;
+  --text-secondary: #525252;
+  --text-muted: #737373;
 }
 
 .dark {
@@ -126,6 +132,37 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    min-width: 320px;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    color: var(--text-primary);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
   }
 
   /**

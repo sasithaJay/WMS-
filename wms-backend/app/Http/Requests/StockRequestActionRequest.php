@@ -18,6 +18,7 @@ class StockRequestActionRequest extends FormRequest
         return [
             'remarks' => ['nullable', 'string'],
             'items' => ['nullable', 'array'],
+            'items.*.request_item_id' => ['sometimes', 'integer', 'exists:stock_request_items,id'],
             'items.*.item_id' => ['required_with:items', 'exists:items,id'],
             'items.*.quantity' => ['required_with:items', 'numeric', 'gt:0'],
         ];

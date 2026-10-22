@@ -5,6 +5,8 @@ import { getPendingRecommendation } from "./stockRequestService";
 import { getPendingIssuance } from "./stockRequestService";
 import { getPendingRegistrations } from "./userService";
 import { getPendingEquipmentReturns } from "./equipmentAssignmentService";
+import { getPendingVatRates } from "./vatRateService";
+import { getPendingItemUpdateRequests } from "./itemUpdateRequestService";
 
 export async function getNavBadgeCounts(): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
@@ -42,6 +44,20 @@ export async function getNavBadgeCounts(): Promise<Record<string, number>> {
     counts["equipment-returns"] = returns.length;
   } catch {
     // Only Store Keepers can view equipment returns.
+  }
+
+  try {
+    const vatRates = await getPendingVatRates();
+    counts["vat-approve"] = vatRates.data.length;
+  } catch {
+    // Only authorized roles can view pending VAT rate approvals.
+  }
+
+  try {
+    const itemUpdates = await getPendingItemUpdateRequests({ per_page: 1 });
+    counts["item-updates"] = itemUpdates.total;
+  } catch {
+    // Only authorized roles can view pending item update requests.
   }
 
   return counts;

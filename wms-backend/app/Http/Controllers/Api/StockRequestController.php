@@ -141,6 +141,16 @@ class StockRequestController extends Controller
         ]);
     }
 
+    public function recommendItem(StockRequestItemApproveRequest $request, StockRequestItem $stockRequestItem): JsonResponse
+    {
+        $updated = $this->service->recommendItem($stockRequestItem, $request->validated());
+
+        return response()->json([
+            'message' => 'Stock request item recommendation saved successfully.',
+            'data' => $updated,
+        ]);
+    }
+
     public function approve(StockRequestActionRequest $request, StockRequest $stockRequest): JsonResponse
     {
         abort(422, 'Approval must be performed for each stock request item.');

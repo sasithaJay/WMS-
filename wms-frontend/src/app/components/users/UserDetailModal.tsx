@@ -182,7 +182,7 @@ export function UserDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="h-9 px-5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+            className="h-9 px-5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
           >
             {t(lang, "Close", "වසා දමන්න")}
           </button>

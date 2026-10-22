@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { CheckCircle2, AlertCircle, Loader2, XCircle, FileEdit } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, XCircle, User, Calendar, Check } from "lucide-react";
 import {
   getPendingItemUpdateRequests,
   approveItemUpdateRequest,
@@ -9,51 +9,37 @@ import { t } from "../../constants/translations";
 import { EmptyState } from "../common/EmptyState";
 import type { Lang } from "../../types";
 import type { ItemUpdateRequest, ItemUpdateRequestValues } from "../../types/itemUpdateRequests";
+import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
 
-const FIELD_LABELS: Record<keyof ItemUpdateRequestValues, { en: string; si: string }> = {
+type DisplayedUpdateField = Exclude<keyof ItemUpdateRequestValues, "barcode">;
+
+const FIELD_LABELS: Record<DisplayedUpdateField, { en: string; si: string }> = {
   category_id: { en: "Category", si: "වර්ගය" },
   unit_id: { en: "Unit", si: "ඒකකය" },
   item_code: { en: "Item Code", si: "භාණ්ඩ කේතය" },
   name_en: { en: "Name", si: "නාමය" },
   description: { en: "Description", si: "විස්තරය" },
-  barcode: { en: "Barcode", si: "බාර්කේතය" },
   reorder_level: { en: "Reorder Level", si: "නැවත ඇණවුම් මට්ටම" },
 };
 
-function DiffRow({
-  label,
-  oldValue,
-  newValue,
-}: {
-  label: string;
-  oldValue: string | number | null;
-  newValue: string | number | null;
-  lang: Lang;
-}) {
-  const changed = String(oldValue ?? "") !== String(newValue ?? "");
-  if (!changed) return null;
-
-  return (
-    <div className="grid grid-cols-3 gap-2 py-2 border-b border-slate-100/80 last:border-b-0 text-xs items-center">
-      <span className="font-bold text-slate-500 truncate">{label}</span>
-      <span className="font-mono text-rose-600 font-semibold bg-rose-50/60 px-2 py-0.5 rounded-md truncate">
-        {oldValue ?? "—"}
-      </span>
-      <span className="font-mono text-emerald-700 font-extrabold bg-emerald-50/60 px-2 py-0.5 rounded-md truncate">
-        {newValue ?? "—"}
-      </span>
-    </div>
-  );
-}
-
 export function PendingItemUpdateRequestsQueue({ lang }: { lang: Lang }) {
+  const { triggerBadgeRefresh } = useBadgeRefresh();
   const [requests, setRequests] = useState<ItemUpdateRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState<number | null>(null);
+  const [busyIds, setBusyIds] = useState<Set<number>>(() => new Set());
 
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [reviewComment, setReviewComment] = useState("");
+
+  function markBusy(id: number, busy: boolean) {
+    setBusyIds((current) => {
+      const next = new Set(current);
+      if (busy) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
 
   const loadQueue = useCallback(async () => {
     try {
@@ -81,10 +67,11 @@ export function PendingItemUpdateRequestsQueue({ lang }: { lang: Lang }) {
 
   async function handleApprove(id: number) {
     try {
-      setBusyId(id);
+      markBusy(id, true);
       setError("");
       await approveItemUpdateRequest(id);
       setRequests((current) => current.filter((r) => r.id !== id));
+      triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
       setError(
@@ -95,7 +82,7 @@ export function PendingItemUpdateRequestsQueue({ lang }: { lang: Lang }) {
         )
       );
     } finally {
-      setBusyId(null);
+      markBusy(id, false);
     }
   }
 
@@ -103,10 +90,11 @@ export function PendingItemUpdateRequestsQueue({ lang }: { lang: Lang }) {
     if (!reviewComment.trim()) return;
 
     try {
-      setBusyId(id);
+      markBusy(id, true);
       setError("");
       await rejectItemUpdateRequest(id, reviewComment);
       setRequests((current) => current.filter((r) => r.id !== id));
+      triggerBadgeRefresh();
       setRejectingId(null);
       setReviewComment("");
     } catch (err) {
@@ -119,7 +107,7 @@ export function PendingItemUpdateRequestsQueue({ lang }: { lang: Lang }) {
         )
       );
     } finally {
-      setBusyId(null);
+      markBusy(id, false);
     }
   }
 
@@ -158,108 +146,95 @@ export function PendingItemUpdateRequestsQueue({ lang }: { lang: Lang }) {
         </div>
       )}
 
-      {/* REQUESTS GRID */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {requests.map((r) => (
-          <div
-            key={r.id}
-            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
-          >
-            {/* Request Card Header & Body */}
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
-                      {r.item?.item_code}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80">
-                      {t(lang, "Pending Review", "සමාලෝචනය අපේක්ෂිතයි")}
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-900">
-                    {r.item?.name_en}
-                  </h4>
-                </div>
-
-                <span className="text-[11px] font-medium text-slate-400 shrink-0">
-                  {t(lang, "Requested by", "ඉල්ලූයේ")}:{" "}
-                  <strong className="text-slate-700">
-                    {r.requester?.name ??
-                      r.requester?.username ??
-                      `#${r.requested_by}`}
-                  </strong>
-                </span>
-              </div>
-
-              {/* Diffs Table */}
-              <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3">
-                <div className="grid grid-cols-3 gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 pb-1.5 border-b border-slate-200/60 mb-1">
-                  <span>{t(lang, "Field", "ක්ෂේත්‍රය")}</span>
-                  <span>{t(lang, "Current", "වත්මන්")}</span>
-                  <span>{t(lang, "Requested", "ඉල්ලූ")}</span>
-                </div>
-
-                {(
-                  Object.keys(FIELD_LABELS) as (keyof ItemUpdateRequestValues)[]
-                ).map((field) => (
-                  <DiffRow
-                    key={field}
-                    label={t(
-                      lang,
-                      FIELD_LABELS[field].en,
-                      FIELD_LABELS[field].si
-                    )}
-                    oldValue={r.old_values[field]}
-                    newValue={r.new_values[field]}
-                    lang={lang}
-                  />
-                ))}
-              </div>
-
-              {/* Reason Banner */}
-              <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-xs text-blue-900 font-medium leading-relaxed">
-                <strong className="font-bold text-blue-700 uppercase tracking-wide text-[10px] block mb-0.5">
-                  {t(lang, "Reason", "හේතුව")}
-                </strong>
-                {r.reason}
-              </div>
-            </div>
-
-            {/* Footer Action Buttons */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setRejectingId(r.id);
-                  setReviewComment("");
-                }}
-                disabled={busyId === r.id}
-                className="w-full sm:w-auto h-9 px-4 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
-              >
-                {t(lang, "Reject", "ප්‍රතික්ෂේප")}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleApprove(r.id)}
-                disabled={busyId === r.id}
-                className="w-full sm:w-auto h-9 px-5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {busyId === r.id ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>{t(lang, "Processing…", "සකසමින්…")}</span>
-                  </>
-                ) : (
-                  <span>{t(lang, "Approve", "අනුමත")}</span>
-                )}
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <p className="text-sm font-semibold text-slate-700">
+          {requests.length} {t(lang, "request(s) are awaiting your approval", "ඉල්ලීම් ඔබගේ අනුමතිය බලා සිටී")}
+        </p>
       </div>
 
+      <div className="space-y-3 md:hidden">
+        {requests.map((r) => {
+          const requesterName = r.requester?.name ?? r.requester?.username ?? `#${r.requested_by}`;
+          const changedFields = (Object.keys(FIELD_LABELS) as DisplayedUpdateField[])
+            .filter((field) => String(r.old_values[field] ?? "") !== String(r.new_values[field] ?? ""));
+          const busy = busyIds.has(r.id);
+          return (
+            <article key={`mobile-update-${r.id}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                <div className="min-w-0"><p className="font-mono text-[10px] font-bold text-slate-400">{r.item?.item_code ?? "-"}</p><h3 className="text-sm font-bold text-slate-900">{r.item?.name_en ?? "-"}</h3></div>
+                <span className="shrink-0 text-right text-[10px] text-slate-500">{t(lang, "Requested by", "ඉල්ලූයේ")}<strong className="block max-w-32 truncate text-xs text-slate-800">{requesterName}</strong></span>
+              </div>
+              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-600"><Calendar className="h-3.5 w-3.5 text-slate-400" />{new Date(r.created_at).toLocaleDateString()}</p>
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                <div className="mb-2 grid grid-cols-[minmax(64px,0.7fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 border-b border-slate-200 pb-1.5 text-[9px] font-bold uppercase tracking-wide text-slate-500"><span>{t(lang, "Field", "ක්ෂේත්‍රය")}</span><span>{t(lang, "Current", "වත්මන්")}</span><span>{t(lang, "Requested", "ඉල්ලූ")}</span></div>
+                <div className="space-y-1.5">{changedFields.length ? changedFields.map((field) => <div key={field} className="grid grid-cols-[minmax(64px,0.7fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-1.5 text-[10px]"><span className="truncate font-semibold text-slate-500">{t(lang, FIELD_LABELS[field].en, FIELD_LABELS[field].si)}</span><span className="truncate rounded bg-rose-50 px-1.5 py-1 font-mono text-rose-700" title={String(r.old_values[field] ?? "—")}>{String(r.old_values[field] ?? "—")}</span><span className="truncate rounded bg-emerald-50 px-1.5 py-1 font-mono font-semibold text-emerald-700" title={String(r.new_values[field] ?? "—")}>{String(r.new_values[field] ?? "—")}</span></div>) : <span className="text-xs text-slate-400">-</span>}</div>
+              </div>
+              <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-xs leading-relaxed text-blue-900"><strong className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-blue-700">{t(lang, "Reason", "හේතුව")}</strong>{r.reason}</div>
+              <div className="mt-3 flex justify-end gap-2 border-t border-slate-100 pt-3">
+                <button type="button" onClick={() => { setRejectingId(r.id); setReviewComment(""); }} disabled={busy} className="h-9 rounded-lg border border-rose-300 bg-white px-3 text-xs font-bold text-rose-700 disabled:opacity-50">{t(lang, "Reject", "ප්‍රතික්ෂේප")}</button>
+                <button type="button" onClick={() => handleApprove(r.id)} disabled={busy} className="flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-bold text-white disabled:opacity-50">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{t(lang, "Approve", "අනුමත")}</button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {/* SINGLE SHARED REQUEST TABLE */}
+      <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white pl-2 md:block">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1100px] table-fixed border-collapse text-left">
+            <colgroup>
+              <col className="w-[16%]" /><col className="w-[14%]" /><col className="w-[8%]" />
+              <col className="w-[25%]" /><col className="w-[18%]" /><col className="w-[12%]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-slate-200 bg-white text-[11px] font-semibold text-slate-600">
+                <th className="px-2 py-3 text-center">{t(lang, "Item Details", "භාණ්ඩ විස්තර")}</th>
+                <th className="px-2 py-3 text-center">{t(lang, "Requester", "ඉල්ලුම්කරු")}</th>
+                <th className="whitespace-nowrap px-2 py-3 text-center">{t(lang, "Request Date", "ඉල්ලීම් දිනය")}</th>
+                <th className="px-2 py-3 text-center">{t(lang, "Changes", "වෙනස්කම්")}</th>
+                <th className="px-2 py-3 text-center">{t(lang, "Reason", "හේතුව")}</th>
+                <th className="px-2 py-3 text-center">{t(lang, "Actions", "ක්‍රියා")}</th>
+              </tr>
+            </thead>
+            <tbody className="text-xs">
+              {requests.map((r) => {
+                const requesterName = r.requester?.name ?? r.requester?.username ?? `#${r.requested_by}`;
+                const changedFields = (Object.keys(FIELD_LABELS) as DisplayedUpdateField[])
+                  .filter((field) => String(r.old_values[field] ?? "") !== String(r.new_values[field] ?? ""));
+                return (
+                  <tr key={r.id} className="border-b border-slate-200 transition-colors hover:bg-slate-50/70">
+                    <td className="min-w-0 px-2 py-3 align-middle">
+                      <span className="mb-0.5 block font-mono text-[10px] font-bold text-slate-400">{r.item?.item_code ?? "-"}</span>
+                      <span className="block font-semibold text-slate-900">{r.item?.name_en ?? "-"}</span>
+                    </td>
+                    <td className="min-w-0 px-2 py-3 align-middle"><span className="flex items-center gap-1.5 font-medium text-slate-800"><User className="h-3.5 w-3.5 shrink-0 text-blue-600" /><span className="truncate">{requesterName}</span></span></td>
+                    <td className="px-2 py-3 align-middle text-slate-600"><span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar className="h-3.5 w-3.5 shrink-0 text-slate-400" />{new Date(r.created_at).toLocaleDateString()}</span></td>
+                    <td className="px-2 py-3 align-middle">
+                      <div className="space-y-1.5">
+                        {changedFields.length ? changedFields.map((field) => (
+                          <div key={field} className="grid grid-cols-[minmax(64px,0.7fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-1.5 text-[10px]">
+                            <span className="truncate font-semibold text-slate-500">{t(lang, FIELD_LABELS[field].en, FIELD_LABELS[field].si)}</span>
+                            <span className="truncate rounded bg-rose-50 px-1.5 py-1 font-mono font-medium text-rose-700" title={String(r.old_values[field] ?? "—")}>{String(r.old_values[field] ?? "—")}</span>
+                            <span className="truncate rounded bg-emerald-50 px-1.5 py-1 font-mono font-semibold text-emerald-700" title={String(r.new_values[field] ?? "—")}>{String(r.new_values[field] ?? "—")}</span>
+                          </div>
+                        )) : <span className="text-slate-400">-</span>}
+                      </div>
+                    </td>
+                    <td className="px-2 py-3 align-middle text-[11px] leading-relaxed text-slate-600"><span className="line-clamp-3" title={r.reason}>{r.reason}</span></td>
+                    <td className="px-2 py-3 text-center align-middle">
+                      <div className="flex flex-wrap items-center justify-center gap-1.5">
+                        <button type="button" onClick={() => { setRejectingId(r.id); setReviewComment(""); }} disabled={busyIds.has(r.id)} className="h-9 rounded-lg border border-rose-300 bg-white px-2.5 text-[10px] font-bold text-rose-700 transition-colors hover:bg-rose-50 disabled:opacity-50">{t(lang, "Reject", "ප්‍රතික්ෂේප")}</button>
+                        <button type="button" onClick={() => handleApprove(r.id)} disabled={busyIds.has(r.id)} className="flex h-9 items-center justify-center gap-1 rounded-lg bg-blue-600 px-2.5 text-[10px] font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50">{busyIds.has(r.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}<span>{t(lang, "Approve", "අනුමත")}</span></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
       {/* REJECTION REASON DIALOG */}
       {rejectingId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -321,10 +296,10 @@ export function PendingItemUpdateRequestsQueue({ lang }: { lang: Lang }) {
               <button
                 type="button"
                 onClick={() => handleReject(rejectingId)}
-                disabled={!reviewComment.trim() || busyId === rejectingId}
+                disabled={!reviewComment.trim() || busyIds.has(rejectingId)}
                 className="h-9 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
-                {busyId === rejectingId ? (
+                {busyIds.has(rejectingId) ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : null}
                 <span>

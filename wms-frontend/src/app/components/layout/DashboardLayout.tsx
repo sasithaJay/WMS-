@@ -132,7 +132,8 @@ export function DashboardLayout({
 
   return (
     <BadgeRefreshContext.Provider value={{ triggerBadgeRefresh }}>
-      <div className="flex h-screen bg-[#F8FAFC] text-slate-800 overflow-hidden antialiased">
+      <div className="h-dvh overflow-hidden bg-[var(--app-shell)] p-0 text-[var(--text-primary)] antialiased sm:p-3">
+       <div className="flex h-full overflow-hidden bg-[var(--app-shell)] sm:rounded-[28px] sm:border sm:border-white/70 sm:shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
         {/* RESPONSIVE SIDEBAR */}
         <Sidebar
           lang={lang}
@@ -147,7 +148,7 @@ export function DashboardLayout({
         />
 
         {/* MAIN CONTAINER */}
-        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
+        <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-shell)]">
           {/* TOPBAR WITH MOBILE HAMBURGER TOGGLE */}
           <Topbar
             lang={lang}
@@ -156,38 +157,35 @@ export function DashboardLayout({
             onMobileMenuToggle={() => setSidebarCollapsed((c) => !c)}
           />
 
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
+          <main className="custom-scrollbar flex-1 overflow-y-auto rounded-tl-3xl bg-[var(--page-background)] p-4 sm:p-6 lg:p-8">
             {activeNav === "dashboard" && (
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-700 p-5 sm:p-8 mb-6 shadow-xl shadow-blue-500/10 text-white">
-                <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-16 right-24 w-48 h-48 bg-white/5 rounded-full blur-xl pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="mb-6 rounded-2xl border border-blue-700/40 bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-700 p-5 text-white shadow-[0_2px_8px_rgba(15,23,42,0.12)] md:border-slate-700 md:from-slate-600 md:via-slate-700 md:to-slate-600 sm:p-6">
+                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                   <div>
-                    <div className="flex items-center gap-2 text-xs font-medium text-blue-100 mb-1">
-                      <Sparkles className="w-3.5 h-3.5" />
+                    <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-200">
+                      <Sparkles className="h-3.5 w-3.5 text-sky-300" />
                       <span>{greeting()}</span>
                     </div>
 
-                    <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight">
+                    <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
                       {userName || "\u00A0"}
                     </h2>
 
-                    <p className="text-xs text-blue-100 mt-1 font-medium">
+                    <p className="mt-1 text-xs font-medium text-slate-300">
                       {roleLabel}
                     </p>
                   </div>
 
                   {canSeeSummary && dashTab !== undefined && setDashTab && (
-                    <div className="flex bg-white/15 border border-white/20 p-1 rounded-2xl backdrop-blur-md self-start md:self-auto">
+                    <div className="flex self-start rounded-xl border border-white/20 bg-white/10 p-1 md:self-auto">
                       {(["personal", "summary"] as DashTab[]).map((tab) => (
                         <button
                           key={tab}
                           onClick={() => setDashTab(tab)}
-                          className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                          className={`cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all sm:px-4 sm:py-2 ${
                             dashTab === tab
-                              ? "bg-white text-blue-700 shadow-md"
-                              : "text-blue-50 hover:text-white"
+                              ? "bg-white text-slate-800 shadow-sm"
+                              : "text-slate-200 hover:bg-white/10 hover:text-white"
                           }`}
                         >
                           {tab === "personal"
@@ -204,6 +202,7 @@ export function DashboardLayout({
             {children}
           </main>
         </div>
+       </div>
       </div>
     </BadgeRefreshContext.Provider>
   );

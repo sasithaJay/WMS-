@@ -109,6 +109,52 @@ class StockRequestService
         return $updated;
     }
 
+    /** Recommender processes one item while the other items remain pending. */
+    public function recommendItem(StockRequestItem $requestItem, array $data): StockRequest
+    {
+        $completed = false;
+
+        $updated = DB::transaction(function () use ($requestItem, $data, &$completed) {
+            $requestItem = StockRequestItem::whereKey($requestItem->id)->lockForUpdate()->firstOrFail();
+            $request = StockRequest::whereKey($requestItem->stock_request_id)->lockForUpdate()->firstOrFail();
+
+            $this->assertStage($request, 'RECOMMENDATION');
+            $this->assertRecommender($request);
+
+            if ($requestItem->quantity_recommended !== null) {
+                throw ValidationException::withMessages(['item' => 'This item has already been recommended.']);
+            }
+
+            $requestItem->update(['quantity_recommended' => (float) $data['quantity']]);
+            $request->load('items');
+
+            $completed = $request->items->every(fn ($item) => $item->quantity_recommended !== null);
+            if ($completed) {
+                $request->actions()->create([
+                    'stage' => 'RECOMMENDATION',
+                    'actor_id' => auth()->id(),
+                    'action' => 'RECOMMENDED',
+                    'remarks' => $data['remarks'] ?? null,
+                    'acted_at' => now(),
+                ]);
+
+                $request->update([
+                    'current_stage' => 'APPROVAL',
+                    'status' => 'PENDING_APPROVAL',
+                ]);
+            }
+
+            return $request->fresh(['requester.staffProfile', 'requester.organization', 'items.item', 'actions']);
+        });
+
+        if ($completed) {
+            $updated->requester?->notify(new RequestStatusChanged($updated, 'RECOMMENDED', $data['remarks'] ?? null, auth()->user()));
+            $this->workflow->notifyEligibleApprovers($updated);
+        }
+
+        return $updated;
+    }
+
     /**
      * Approver acts on a request pending approval.
      */
@@ -372,7 +418,12 @@ class StockRequestService
             $this->assertIssuanceStage($request);
             $this->assertEligibleIssuer($request);
 
+            $hasExplicitItemSelection = isset($data['items']);
             $overridesByItemId = collect($data['items'] ?? [])->keyBy('item_id');
+            $overridesByRequestItemId = collect($data['items'] ?? [])
+                ->filter(fn (array $item) => isset($item['request_item_id']))
+                ->keyBy('request_item_id');
+            $hasRequestItemSelection = $overridesByRequestItemId->isNotEmpty();
             $allFullyIssued = true;
             $hasPendingApproval = false;
 
@@ -390,12 +441,24 @@ class StockRequestService
                     continue;
                 }
 
+                // When the caller explicitly selects items, omitted items must
+                // remain untouched instead of falling back to their full balance.
+                $isSelected = $hasRequestItemSelection
+                    ? $overridesByRequestItemId->has($requestItem->id)
+                    : $overridesByItemId->has($requestItem->item_id);
+                if ($hasExplicitItemSelection && ! $isSelected) {
+                    $allFullyIssued = false;
+                    continue;
+                }
+
                 $balance = InventoryBalance::lockForUpdate()->firstOrCreate(
                     ['item_id' => $requestItem->item_id, 'division_id' => $request->division_id],
                     ['quantity_on_hand' => 0, 'reserved_quantity' => 0]
                 );
 
-                $override = $overridesByItemId->get($requestItem->item_id);
+                $override = $hasRequestItemSelection
+                    ? $overridesByRequestItemId->get($requestItem->id)
+                    : $overridesByItemId->get($requestItem->item_id);
                 $requestedIssueQty = $override['quantity'] ?? $remainingApproved;
 
                 $issueQty = min($requestedIssueQty, $remainingApproved, (float) $balance->quantity_on_hand);

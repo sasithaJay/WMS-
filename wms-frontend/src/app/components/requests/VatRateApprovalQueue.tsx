@@ -9,6 +9,7 @@ import { t } from "../../constants/translations";
 import { EmptyState } from "../common/EmptyState";
 import type { Lang } from "../../types";
 import type { VatRate } from "../../types/vatRate";
+import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
 
 function formatPercent(value: number): string {
   return `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
@@ -22,6 +23,7 @@ function formatRequestDate(value: string, lang: Lang): string {
 }
 
 export function VatRateApprovalQueue({ lang }: { lang: Lang }) {
+  const { triggerBadgeRefresh } = useBadgeRefresh();
   const [requests, setRequests] = useState<VatRate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -62,6 +64,7 @@ export function VatRateApprovalQueue({ lang }: { lang: Lang }) {
       setError("");
       await approveVatRate(id);
       setRequests((current) => current.filter((r) => r.id !== id));
+      triggerBadgeRefresh();
     } catch (err) {
       console.error(err);
       setError(
@@ -84,6 +87,7 @@ export function VatRateApprovalQueue({ lang }: { lang: Lang }) {
       setError("");
       await rejectVatRate(id, comment);
       setRequests((current) => current.filter((r) => r.id !== id));
+      triggerBadgeRefresh();
       setRejectingId(null);
       setComment("");
     } catch (err) {
@@ -135,7 +139,7 @@ export function VatRateApprovalQueue({ lang }: { lang: Lang }) {
         </div>
       )}
 
-      <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-white border border-blue-100 text-blue-600 flex items-center justify-center shadow-xs">
             <Percent className="w-5 h-5" />
