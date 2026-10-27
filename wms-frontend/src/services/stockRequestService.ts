@@ -2,6 +2,7 @@
 import api from "../api/axios";
 import type {
   CreateStockRequestPayload,
+  ApprovalItemSummary,
   StockRequest,
   StockRequestListResponse,
 } from "../app/types/stockRequests";
@@ -29,6 +30,13 @@ export async function getPendingApproval(params?: {
 }): Promise<StockRequestListResponse> {
   const response = await api.get("/stock-requests/pending-approval", { params });
   return response.data;
+}
+
+export async function getPendingApprovalItemSummary(storeId?: number): Promise<ApprovalItemSummary> {
+  const response = await api.get("/stock-requests/pending-approval/item-summary", {
+    params: storeId ? { store_id: storeId } : undefined,
+  });
+  return response.data.data;
 }
 
 export async function createStockRequest(

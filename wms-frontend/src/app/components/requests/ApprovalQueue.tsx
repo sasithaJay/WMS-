@@ -7,6 +7,7 @@ import { useBadgeRefresh } from "../../context/BadgeRefreshContext";
 import type { Lang } from "../../types";
 import type { StockRequest, StockRequestItemView } from "../../types/stockRequests";
 import { EmptyState } from "../common/EmptyState";
+import { ApprovalItemSummary } from "./ApprovalItemSummary";
 
 function baselineQuantity(item: StockRequestItemView): number {
   return Number(item.quantity_recommended ?? item.quantity_requested);
@@ -27,6 +28,7 @@ function apiErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function ApprovalQueue({ lang }: { lang: Lang }) {
+  const [activeTab, setActiveTab] = useState<"individual" | "summary">("individual");
   const [requests, setRequests] = useState<StockRequest[]>([]);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [comments, setComments] = useState<Record<number, string>>({});
@@ -152,16 +154,6 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
     );
   }
 
-  if (requests.length === 0 && !error) {
-    return (
-      <EmptyState
-        icon={<CheckCircle2 className="w-10 h-10 text-emerald-500" />}
-        title={t(lang, "No pending approvals", "අනුමත ඉල්ලීම් නැත")}
-        subtitle={t(lang, "All items have been processed.", "සියලු භාණ්ඩ සකස් කර ඇත.")}
-      />
-    );
-  }
-
   return (
     <div className="space-y-4 sm:space-y-6">
       {error && (
@@ -171,6 +163,30 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
         </div>
       )}
 
+      <div className="flex w-fit items-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-100/80 p-1 no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setActiveTab("individual")}
+          className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${activeTab === "individual" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"}`}
+        >
+          {t(lang, "Individual Requests", "තනි ඉල්ලීම්")}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("summary")}
+          className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${activeTab === "summary" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"}`}
+        >
+          {t(lang, "Item-wise Summary", "භාණ්ඩ අනුව සාරාංශය")}
+        </button>
+      </div>
+
+      {activeTab === "summary" ? <ApprovalItemSummary lang={lang} /> : requests.length === 0 ? (
+        <EmptyState
+          icon={<CheckCircle2 className="w-10 h-10 text-emerald-500" />}
+          title={t(lang, "No pending approvals", "අනුමත ඉල්ලීම් නැත")}
+          subtitle={t(lang, "All items have been processed.", "සියලු භාණ්ඩ සකස් කර ඇත.")}
+        />
+      ) : <>
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
         <p className="text-sm font-semibold text-slate-700">
           {requests.length} {t(lang, "request(s) awaiting your approval", "ඉල්ලීම් ඔබගේ අනුමතිය බලා සිටී")}
@@ -394,6 +410,7 @@ export function ApprovalQueue({ lang }: { lang: Lang }) {
           </table>
         </div>
       </div>
+      </>}
 
       {/* REJECT MODAL DIALOG */}
       {rejectingItem && (

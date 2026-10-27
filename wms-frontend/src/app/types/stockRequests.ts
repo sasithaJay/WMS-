@@ -106,3 +106,23 @@ export interface StockRequestListResponse {
   last_page: number;
   total: number;
 }
+
+export interface ApprovalSummaryStore {
+  id: number;
+  name_en: string;
+  name_si: string;
+  division_code: string | null;
+}
+
+export interface ApprovalItemSummary {
+  store: ApprovalSummaryStore | null;
+  stores: ApprovalSummaryStore[];
+  items: Array<{ id: number; item_code: string; name_en: string; available_quantity: number }>;
+  officers: Array<{
+    id: number;
+    name: string;
+    role_label: string | null;
+    quantities: Record<number, number>;
+  }>;
+  totals: Record<number, number>;
+}

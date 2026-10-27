@@ -10,11 +10,14 @@ use App\Http\Requests\StockRequestItemApproveRequest;
 use App\Http\Requests\EquipmentReturnRequest;
 use App\Http\Requests\EquipmentConfirmReturnRequest;
 use App\Models\EquipmentAssignment;
+use App\Models\Store;
 use App\Models\StockRequestItem;
 use App\Models\StockRequest;
+use App\Services\RequestWorkflowService;
 use App\Services\Workflow\StockRequestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StockRequestController extends Controller
 {
@@ -112,6 +115,130 @@ class StockRequestController extends Controller
         );
 
         return response()->json($paginator);
+    }
+
+    public function pendingApprovalItemSummary(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $profile = $user->staffProfile;
+        abort_unless($profile && $profile->role, 403, 'An authorized staff profile is required.');
+
+        $isCommissioner = $profile->role->code === 'COMMISSIONER';
+        $storesQuery = Store::query()->with('division')->where('is_active', true);
+        if ($isCommissioner) {
+            $storesQuery->whereHas('division', fn ($query) => $query->whereIn('code', ['SOCIAL_SERVICES', 'CHILD_SERVICES']));
+        } else {
+            $storesQuery->where('division_id', $profile->division_id);
+        }
+
+        $stores = $storesQuery->get()->sortBy(fn (Store $store) => match ($store->division?->code) {
+            'SOCIAL_SERVICES' => 0,
+            'CHILD_SERVICES' => 1,
+            default => 2,
+        })->values();
+
+        $requestedStoreId = $request->integer('store_id') ?: null;
+        $selectedStore = $requestedStoreId
+            ? $stores->firstWhere('id', $requestedStoreId)
+            : $stores->first();
+        if ($requestedStoreId && ! $selectedStore) {
+            abort(403, 'You are not authorized to view this store.');
+        }
+
+        $storePayload = fn (Store $store) => [
+            'id' => $store->id,
+            'name_en' => $store->name_en,
+            'name_si' => $store->name_si,
+            'division_code' => $store->division?->code,
+        ];
+
+        $items = [];
+        $officers = [];
+        $totals = [];
+
+        if ($selectedStore) {
+            $workflow = app(RequestWorkflowService::class);
+            $eligibleRequestIds = StockRequest::query()
+                ->with('requester.staffProfile')
+                ->where('store_id', $selectedStore->id)
+                ->whereIn('current_stage', ['APPROVAL', 'ISSUANCE'])
+                ->whereHas('items', fn ($query) => $query->where('approval_status', 'pending'))
+                ->get()
+                ->filter(fn (StockRequest $stockRequest) => $stockRequest->requester_id === $user->id
+                    || $workflow->resolveApprovalRoleIds($stockRequest)->contains($profile->role_id))
+                ->pluck('id');
+
+            if ($eligibleRequestIds->isNotEmpty()) {
+                $rows = DB::table('stock_request_items as sri')
+                    ->join('stock_requests as sr', 'sr.id', '=', 'sri.stock_request_id')
+                    ->join('users as u', 'u.id', '=', 'sr.requester_id')
+                    ->join('items as i', 'i.id', '=', 'sri.item_id')
+                    ->leftJoin('staff_profiles as sp', 'sp.user_id', '=', 'u.id')
+                    ->leftJoin('roles as requester_role', 'requester_role.id', '=', 'sp.role_id')
+                    ->leftJoin('organizations as org', 'org.user_id', '=', 'u.id')
+                    ->whereIn('sri.stock_request_id', $eligibleRequestIds)
+                    ->where('sri.approval_status', 'pending')
+                    ->select([
+                        'sr.requester_id as officer_id',
+                        'sp.full_name as staff_name',
+                        'org.name as organization_name',
+                        'u.username',
+                        'requester_role.name_en as role_label',
+                        'i.id as item_id',
+                        'i.item_code',
+                        'i.name_en as item_name',
+                        DB::raw('SUM(sri.quantity_requested) as requested_quantity'),
+                    ])
+                    ->groupBy('sr.requester_id', 'sp.full_name', 'org.name', 'u.username', 'requester_role.name_en', 'i.id', 'i.item_code', 'i.name_en')
+                    ->orderBy('staff_name')
+                    ->orderBy('organization_name')
+                    ->orderBy('u.username')
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $itemId = (int) $row->item_id;
+                    $quantity = (float) $row->requested_quantity;
+                    $items[$itemId] ??= [
+                        'id' => $itemId,
+                        'item_code' => $row->item_code,
+                        'name_en' => $row->item_name,
+                        'available_quantity' => 0,
+                    ];
+                    $officerId = (int) $row->officer_id;
+                    $officers[$officerId] ??= [
+                        'id' => $officerId,
+                        'name' => $row->staff_name ?: ($row->organization_name ?: $row->username),
+                        'role_label' => $row->role_label,
+                        'quantities' => [],
+                    ];
+                    $officers[$officerId]['quantities'][$itemId] = $quantity;
+                    $totals[$itemId] = ($totals[$itemId] ?? 0) + $quantity;
+                }
+
+                $balances = DB::table('inventory_balances')
+                    ->where('division_id', $selectedStore->division_id)
+                    ->whereIn('item_id', array_keys($items))
+                    ->get(['item_id', 'quantity_on_hand', 'reserved_quantity'])
+                    ->keyBy('item_id');
+                foreach ($items as $itemId => &$itemSummary) {
+                    $balance = $balances->get($itemId);
+                    $itemSummary['available_quantity'] = $balance
+                        ? max(0, (float) $balance->quantity_on_hand - (float) $balance->reserved_quantity)
+                        : 0;
+                }
+                unset($itemSummary);
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'store' => $selectedStore ? $storePayload($selectedStore) : null,
+                'stores' => $stores->map($storePayload)->all(),
+                'items' => array_values($items),
+                'officers' => array_values($officers),
+                'totals' => $totals,
+            ],
+        ]);
     }
 
     public function store(StoreStockRequestRequest $request): JsonResponse

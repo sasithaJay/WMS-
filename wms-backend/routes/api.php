@@ -322,6 +322,10 @@ Route::middleware('auth:sanctum')->group(function () {
             StockRequestController::class, 'pendingApproval']
         );
 
+        Route::get('/pending-approval/item-summary', [
+            StockRequestController::class, 'pendingApprovalItemSummary']
+        );
+
         Route::get('/pending-issuance', [
             StockRequestController::class, 'pendingIssuance']
         );
