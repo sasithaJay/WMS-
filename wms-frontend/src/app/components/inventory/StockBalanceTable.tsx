@@ -220,9 +220,7 @@ export function StockBalanceTable({
                       </td>
 
                       <td className="px-5 py-3.5 text-slate-500 font-medium whitespace-nowrap">
-                        {lang === "si" && item.category.name_si
-                          ? item.category.name_si
-                          : item.category.name_en}
+                        <CategoryNames item={item} lang={lang} />
                       </td>
 
                       <td className="px-5 py-3.5 text-slate-500 font-medium whitespace-nowrap">
@@ -367,11 +365,7 @@ export function StockBalanceTable({
                       <span className="text-slate-400 font-medium block">
                         {t(lang, "Category", "ප්‍රවර්ගය")}
                       </span>
-                      <span className="font-bold text-slate-700">
-                        {lang === "si" && item.category.name_si
-                          ? item.category.name_si
-                          : item.category.name_en}
-                      </span>
+                      <CategoryNames item={item} lang={lang} />
                     </div>
 
                     <div>
@@ -473,6 +467,34 @@ export function StockBalanceTable({
 
 interface TableHeadingProps {
   children: React.ReactNode;
+}
+
+function CategoryNames({
+  item,
+  lang,
+}: {
+  item: InventoryItem;
+  lang: Lang;
+}) {
+  const mainCategoryName =
+    lang === "si" && item.category.parent?.name_si
+      ? item.category.parent.name_si
+      : item.category.parent?.name_en;
+  const secondaryCategoryName =
+    lang === "si" && item.category.name_si
+      ? item.category.name_si
+      : item.category.name_en;
+
+  return (
+    <span className="font-bold text-slate-700">
+      {mainCategoryName && <span className="block">{mainCategoryName}</span>}
+      {item.category.parent ? (
+        <span className="block text-slate-500">{secondaryCategoryName}</span>
+      ) : (
+        secondaryCategoryName
+      )}
+    </span>
+  );
 }
 
 function TableHeading({ children }: TableHeadingProps) {

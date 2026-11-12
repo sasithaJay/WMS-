@@ -17,6 +17,12 @@ export interface CreateItemPayload {
   reorder_level: number;
 }
 
+export interface CreateSecondaryCategoryPayload {
+  main_category_id: number;
+  name: string;
+  description?: string;
+}
+
 export type UpdateItemPayload = CreateItemPayload;
 
 export interface ItemFilters {
@@ -98,6 +104,11 @@ export async function getItemCategories(): Promise<ItemCategory[]> {
     data: ItemCategory[];
   }>("/item-categories");
 
+  return response.data.data;
+}
+
+export async function createSecondaryCategory(payload: CreateSecondaryCategoryPayload): Promise<ItemCategory> {
+  const response = await api.post<{ data: ItemCategory }>("/item-categories", payload);
   return response.data.data;
 }
 

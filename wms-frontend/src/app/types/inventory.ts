@@ -3,6 +3,9 @@ export interface ItemCategory {
   name_en: string;
   name_si: string | null;
   code: string;
+  parent_category_id?: number | null;
+  parent?: Pick<ItemCategory, "id" | "name_en" | "name_si"> | null;
+  description?: string | null;
   is_active?: boolean;
 }
 

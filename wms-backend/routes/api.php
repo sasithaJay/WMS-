@@ -186,6 +186,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:inventory.create')->group(function () {
 
+        Route::post('/item-categories', [ItemCategoryController::class, 'store']);
+
         Route::post('/items', [
             ItemController::class,
             'store',

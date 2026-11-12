@@ -108,9 +108,10 @@ export function DashboardLayout({
   }, []);
 
   const loadBadges = useCallback(async () => {
-    const counts = await getNavBadgeCounts();
+    const roleCode = currentUser?.staff_profile?.role?.code ?? null;
+    const counts = await getNavBadgeCounts(roleCode);
     setBadges(counts);
-  }, []);
+  }, [currentUser?.staff_profile?.role?.code]);
 
   useEffect(() => {
     loadBadges();

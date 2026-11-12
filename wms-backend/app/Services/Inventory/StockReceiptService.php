@@ -193,12 +193,7 @@ class StockReceiptService
                     ($item['unit_cost'] ?? 0)
             );
 
-            /*
-            * Get the current VAT rate.
-            *
-            * Since this is still a draft, the VAT rate can be
-            * refreshed when the receipt is edited.
-            */
+         
             $vatPercentage = VatRate::currentPercentage();
 
             $vatAmount = round(

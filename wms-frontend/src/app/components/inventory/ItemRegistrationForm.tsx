@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, AlertCircle, Info, Loader2 } from "lucide-react";
+import { X, AlertCircle, Info, Loader2, Plus } from "lucide-react";
 
 import { t } from "../../constants/translations";
 
@@ -16,6 +16,7 @@ import {
   requestItemUpdate,
   getItemCategories,
   getUnits,
+  createSecondaryCategory,
 } from "../../../services/ItemService";
 
 interface ItemRegistrationFormProps {
@@ -57,6 +58,12 @@ export function ItemRegistrationForm({
   const [submitting, setSubmitting] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [error, setError] = useState("");
+  const [mainCategoryId, setMainCategoryId] = useState("");
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryDescription, setCategoryDescription] = useState("");
+  const [categoryError, setCategoryError] = useState("");
+  const [savingCategory, setSavingCategory] = useState(false);
 
   const isEditing = item !== null;
 
@@ -79,7 +86,7 @@ export function ItemRegistrationForm({
           t(
             lang,
             "Failed to load categories and units.",
-            "ප්‍රවර්ග සහ ඒකක පූරණය අසාර්ථක විය."
+            "à¶´à·Šâ€à¶»à·€à¶»à·Šà¶œ à·ƒà·„ à¶’à¶šà¶š à¶´à·–à¶»à¶«à¶º à¶…à·ƒà·à¶»à·Šà¶®à¶š à·€à·’à¶º."
           )
         );
       } finally {
@@ -92,6 +99,8 @@ export function ItemRegistrationForm({
 
   useEffect(() => {
     if (item) {
+      const existingCategoryId = item.category_id ?? item.category.id;
+      setMainCategoryId(String(item.category.parent_category_id ?? existingCategoryId));
       setForm({
         name_en: item.name_en,
         category_id: String(item.category_id ?? item.category.id),
@@ -105,8 +114,45 @@ export function ItemRegistrationForm({
       return;
     }
 
+    setMainCategoryId("");
     setForm(initialForm);
   }, [item]);
+
+  const mainCategories = categories.filter((category) => !category.parent_category_id);
+  const secondaryCategories = categories.filter((category) => category.parent_category_id === Number(mainCategoryId));
+
+  async function handleCreateCategory(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCategoryError("");
+    const normalizedName = categoryName.trim().replace(/\s+/g, " ");
+    if (normalizedName.length < 2 || normalizedName.length > 100) {
+      setCategoryError("Enter a category name between 2 and 100 characters.");
+      return;
+    }
+    if (categoryDescription.length > 500) {
+      setCategoryError("Description must be 500 characters or fewer.");
+      return;
+    }
+    try {
+      setSavingCategory(true);
+      const created = await createSecondaryCategory({
+        main_category_id: Number(mainCategoryId),
+        name: normalizedName,
+        description: categoryDescription.trim() || undefined,
+      });
+      setCategories((current) => [...current.filter((category) => category.id !== created.id), created]);
+      setMainCategoryId(String(created.parent_category_id));
+      setForm((current) => ({ ...current, category_id: String(created.id) }));
+      setCategoryName("");
+      setCategoryDescription("");
+      setCategoryModalOpen(false);
+      void getItemCategories().then(setCategories).catch((refreshError) => console.error(refreshError));
+    } catch (categorySubmitError) {
+      setCategoryError(getErrorMessage(categorySubmitError) ?? "Failed to create the category. Please try again.");
+    } finally {
+      setSavingCategory(false);
+    }
+  }
 
   function updateField(field: keyof FormState, value: string) {
     setForm((current) => ({
@@ -134,8 +180,8 @@ export function ItemRegistrationForm({
             ? "Complete all required fields and provide a reason."
             : "Please complete all required fields.",
           isEditing
-            ? "අවශ්‍ය ක්ෂේත්‍ර සම්පූර්ණ කර හේතුව සඳහන් කරන්න."
-            : "අවශ්‍ය සියලු ක්ෂේත්‍ර සම්පූර්ණ කරන්න."
+            ? "à¶…à·€à·à·Šâ€à¶º à¶šà·Šà·‚à·šà¶­à·Šâ€à¶» à·ƒà¶¸à·Šà¶´à·–à¶»à·Šà¶« à¶šà¶» à·„à·šà¶­à·”à·€ à·ƒà¶³à·„à¶±à·Š à¶šà¶»à¶±à·Šà¶±."
+            : "à¶…à·€à·à·Šâ€à¶º à·ƒà·’à¶ºà¶½à·” à¶šà·Šà·‚à·šà¶­à·Šâ€à¶» à·ƒà¶¸à·Šà¶´à·–à¶»à·Šà¶« à¶šà¶»à¶±à·Šà¶±."
         )
       );
 
@@ -149,7 +195,7 @@ export function ItemRegistrationForm({
         t(
           lang,
           "Reorder level must be zero or greater.",
-          "නැවත ඇණවුම් මට්ටම ශුන්‍ය හෝ ඊට වැඩි විය යුතුය."
+          "à¶±à·à·€à¶­ à¶‡à¶«à·€à·”à¶¸à·Š à¶¸à¶§à·Šà¶§à¶¸ à·à·”à¶±à·Šâ€à¶º à·„à· à¶Šà¶§ à·€à·à¶©à·’ à·€à·’à¶º à¶ºà·”à¶­à·”à¶º."
         )
       );
 
@@ -191,8 +237,8 @@ export function ItemRegistrationForm({
               ? "Failed to submit item update request."
               : "Failed to create item.",
             isEditing
-              ? "භාණ්ඩ යාවත්කාලීන ඉල්ලීම යොමු කිරීම අසාර්ථක විය."
-              : "භාණ්ඩය නිර්මාණය කිරීම අසාර්ථක විය."
+              ? "à¶·à·à¶«à·Šà¶© à¶ºà·à·€à¶­à·Šà¶šà·à¶½à·“à¶± à¶‰à¶½à·Šà¶½à·“à¶¸ à¶ºà·œà¶¸à·” à¶šà·’à¶»à·“à¶¸ à¶…à·ƒà·à¶»à·Šà¶®à¶š à·€à·’à¶º."
+              : "à¶·à·à¶«à·Šà¶©à¶º à¶±à·’à¶»à·Šà¶¸à·à¶«à¶º à¶šà·’à¶»à·“à¶¸ à¶…à·ƒà·à¶»à·Šà¶®à¶š à·€à·’à¶º."
           )
       );
     } finally {
@@ -214,8 +260,8 @@ export function ItemRegistrationForm({
         <div className="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-md flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h3 className="font-bold text-slate-900 text-sm tracking-tight">
             {isEditing
-              ? t(lang, "Request Item Update", "භාණ්ඩ යාවත්කාලීන ඉල්ලීම")
-              : t(lang, "Add New Item", "නව භාණ්ඩ එකතු කරන්න")}
+              ? t(lang, "Request Item Update", "à¶·à·à¶«à·Šà¶© à¶ºà·à·€à¶­à·Šà¶šà·à¶½à·“à¶± à¶‰à¶½à·Šà¶½à·“à¶¸")
+              : t(lang, "Add New Item", "à¶±à·€ à¶·à·à¶«à·Šà¶© à¶‘à¶šà¶­à·” à¶šà¶»à¶±à·Šà¶±")}
           </h3>
 
           <button
@@ -245,14 +291,30 @@ export function ItemRegistrationForm({
                   {t(
                     lang,
                     "The item will not change immediately. AO approval is required.",
-                    "භාණ්ඩ විස්තර වහාම වෙනස් නොවේ. පරිපාලන නිලධාරී අනුමැතිය අවශ්‍ය වේ."
+                    "à¶·à·à¶«à·Šà¶© à·€à·’à·ƒà·Šà¶­à¶» à·€à·„à·à¶¸ à·€à·™à¶±à·ƒà·Š à¶±à·œà·€à·š. à¶´à¶»à·’à¶´à·à¶½à¶± à¶±à·’à¶½à¶°à·à¶»à·“ à¶…à¶±à·”à¶¸à·à¶­à·’à¶º à¶…à·€à·à·Šâ€à¶º à·€à·š."
                   )}
                 </span>
               </div>
             )}
 
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-slate-700">{t(lang, "Main Category", "à¶´à·Šâ€à¶»à¶°à·à¶± à¶´à·Šâ€à¶»à·€à¶»à·Šà¶œà¶º")} <span className="text-rose-500">*</span></label>
+              <select value={mainCategoryId} disabled={loadingOptions || submitting} onChange={(event) => { setMainCategoryId(event.target.value); updateField("category_id", ""); }} className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900">
+                <option value="">{t(lang, "Select a main category", "à¶´à·Šâ€à¶»à¶°à·à¶± à¶´à·Šâ€à¶»à·€à¶»à·Šà¶œà¶ºà¶šà·Š à¶­à·à¶»à¶±à·Šà¶±")}</option>
+                {mainCategories.map((category) => <option key={category.id} value={category.id}>{lang === "si" && category.name_si ? category.name_si : category.name_en}</option>)}
+              </select>
+              <div className="mt-3">
+                <div className="mb-1.5 flex items-center justify-between"><label className="block text-xs font-bold text-slate-700">{t(lang, "Secondary Category", "à¶¯à·Šà·€à·’à¶­à·’à¶ºà·’à¶š à¶´à·Šâ€à¶»à·€à¶»à·Šà¶œà¶º")} <span className="text-rose-500">*</span></label><button type="button" disabled={!mainCategoryId || loadingOptions || submitting} onClick={() => { setCategoryError(""); setCategoryModalOpen(true); }} className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 disabled:text-slate-400"><Plus className="h-3.5 w-3.5" /> {t(lang, "Add New", "à¶…à¶½à·”à¶­à·’à¶±à·Š à¶‘à¶šà·Š à¶šà¶»à¶±à·Šà¶±")}</button></div>
+                <select value={form.category_id} disabled={loadingOptions || submitting || !mainCategoryId} onChange={(event) => updateField("category_id", event.target.value)} className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60 cursor-pointer">
+                  <option value="">{t(lang, "Select a secondary category", "à¶¯à·Šà·€à·’à¶­à·’à¶ºà·’à¶š à¶´à·Šâ€à¶»à·€à¶»à·Šà¶œà¶ºà¶šà·Š à¶­à·à¶»à¶±à·Šà¶±")}</option>
+                  {isEditing && mainCategoryId && form.category_id === mainCategoryId && <option value={mainCategoryId}>Existing main category</option>}
+                  {secondaryCategories.map((category) => <option key={category.id} value={category.id}>{lang === "si" && category.name_si ? category.name_si : category.name_en}</option>)}
+                </select>
+              </div>
+            </div>
+
             <FormInput
-              label={t(lang, "Item Name", "භාණ්ඩ නාමය")}
+              label={t(lang, "Item Name", "à¶·à·à¶«à·Šà¶© à¶±à·à¶¸à¶º")}
               value={form.name_en}
               onChange={(value) => updateField("name_en", value)}
               disabled={submitting}
@@ -261,7 +323,7 @@ export function ItemRegistrationForm({
 
             <div>
               <FormInput
-                label={t(lang, "Item Code", "භාණ්ඩ කේතය")}
+                label={t(lang, "Item Code", "à¶·à·à¶«à·Šà¶© à¶šà·šà¶­à¶º")}
                 value={form.item_code}
                 onChange={(value) => updateField("item_code", value)}
                 disabled={submitting}
@@ -271,43 +333,15 @@ export function ItemRegistrationForm({
               <p className="mt-1.5 text-[11px] font-medium text-slate-400">
                 {t(
                   lang,
-                  "The QR code and barcode will be generated automatically from this code — you can print labels after saving.",
-                  "QR කේතය සහ බාර්කේතය මෙම කේතයෙන් ස්වයංක්‍රීයව ජනනය වේ — සුරැකීමෙන් පසු ලේබල් මුද්‍රණය කළ හැක."
+                  "The QR code and barcode will be generated automatically from this code â€” you can print labels after saving.",
+                  "QR à¶šà·šà¶­à¶º à·ƒà·„ à¶¶à·à¶»à·Šà¶šà·šà¶­à¶º à¶¸à·™à¶¸ à¶šà·šà¶­à¶ºà·™à¶±à·Š à·ƒà·Šà·€à¶ºà¶‚à¶šà·Šâ€à¶»à·“à¶ºà·€ à¶¢à¶±à¶±à¶º à·€à·š â€” à·ƒà·”à¶»à·à¶šà·“à¶¸à·™à¶±à·Š à¶´à·ƒà·” à¶½à·šà¶¶à¶½à·Š à¶¸à·”à¶¯à·Šâ€à¶»à¶«à¶º à¶šà·… à·„à·à¶š."
                 )}
               </p>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                {t(lang, "Category", "ප්‍රවර්ගය")}
-                <span className="text-rose-500"> *</span>
-              </label>
-
-              <select
-                value={form.category_id}
-                disabled={loadingOptions || submitting}
-                onChange={(event) => updateField("category_id", event.target.value)}
-                className="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-60 cursor-pointer"
-              >
-                <option value="">
-                  {loadingOptions
-                    ? t(lang, "Loading categories...", "ප්‍රවර්ග පූරණය වෙමින්...")
-                    : t(lang, "Select a category", "ප්‍රවර්ගයක් තෝරන්න")}
-                </option>
-
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {lang === "si" && category.name_si
-                      ? category.name_si
-                      : category.name_en}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                {t(lang, "Unit", "ඒකකය")}
+                {t(lang, "Unit", "à¶’à¶šà¶šà¶º")}
                 <span className="text-rose-500"> *</span>
               </label>
 
@@ -319,8 +353,8 @@ export function ItemRegistrationForm({
               >
                 <option value="">
                   {loadingOptions
-                    ? t(lang, "Loading units...", "ඒකක පූරණය වෙමින්...")
-                    : t(lang, "Select a unit", "ඒකකයක් තෝරන්න")}
+                    ? t(lang, "Loading units...", "à¶’à¶šà¶š à¶´à·–à¶»à¶«à¶º à·€à·™à¶¸à·’à¶±à·Š...")
+                    : t(lang, "Select a unit", "à¶’à¶šà¶šà¶ºà¶šà·Š à¶­à·à¶»à¶±à·Šà¶±")}
                 </option>
 
                 {units.map((unit) => (
@@ -334,7 +368,7 @@ export function ItemRegistrationForm({
             </div>
 
             <FormInput
-              label={t(lang, "Reorder Level", "නැවත ඇණවුම් මට්ටම")}
+              label={t(lang, "Reorder Level", "à¶±à·à·€à¶­ à¶‡à¶«à·€à·”à¶¸à·Š à¶¸à¶§à·Šà¶§à¶¸")}
               type="number"
               min="0"
               value={form.reorder_level}
@@ -345,7 +379,7 @@ export function ItemRegistrationForm({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                {t(lang, "Description", "විස්තරය")}
+                {t(lang, "Description", "à·€à·’à·ƒà·Šà¶­à¶»à¶º")}
               </label>
 
               <textarea
@@ -360,7 +394,7 @@ export function ItemRegistrationForm({
             {isEditing && (
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {t(lang, "Reason for Update", "යාවත්කාලීන කිරීමේ හේතුව")}
+                  {t(lang, "Reason for Update", "à¶ºà·à·€à¶­à·Šà¶šà·à¶½à·“à¶± à¶šà·’à¶»à·“à¶¸à·š à·„à·šà¶­à·”à·€")}
                   <span className="text-rose-500"> *</span>
                 </label>
 
@@ -372,7 +406,7 @@ export function ItemRegistrationForm({
                   placeholder={t(
                     lang,
                     "Explain why these item details need to be changed.",
-                    "මෙම භාණ්ඩ විස්තර වෙනස් කළ යුත්තේ ඇයිද පැහැදිලි කරන්න."
+                    "à¶¸à·™à¶¸ à¶·à·à¶«à·Šà¶© à·€à·’à·ƒà·Šà¶­à¶» à·€à·™à¶±à·ƒà·Š à¶šà·… à¶ºà·”à¶­à·Šà¶­à·š à¶‡à¶ºà·’à¶¯ à¶´à·à·„à·à¶¯à·’à¶½à·’ à¶šà¶»à¶±à·Šà¶±."
                   )}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all resize-none disabled:opacity-60 placeholder:text-slate-400"
                 />
@@ -388,7 +422,7 @@ export function ItemRegistrationForm({
               disabled={submitting}
               className="flex-1 sm:flex-initial h-10 px-5 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
             >
-              {t(lang, "Cancel", "අවලංගු")}
+              {t(lang, "Cancel", "à¶…à·€à¶½à¶‚à¶œà·”")}
             </button>
 
             <button
@@ -401,21 +435,61 @@ export function ItemRegistrationForm({
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>
                     {isEditing
-                      ? t(lang, "Submitting...", "යොමු කරමින්...")
-                      : t(lang, "Adding...", "එකතු කරමින්...")}
+                      ? t(lang, "Submitting...", "à¶ºà·œà¶¸à·” à¶šà¶»à¶¸à·’à¶±à·Š...")
+                      : t(lang, "Adding...", "à¶‘à¶šà¶­à·” à¶šà¶»à¶¸à·’à¶±à·Š...")}
                   </span>
                 </>
               ) : (
                 <span>
                   {isEditing
-                    ? t(lang, "Submit for Approval", "අනුමැතිය සඳහා යොමු කරන්න")
-                    : t(lang, "Add Item", "භාණ්ඩ එකතු කරන්න")}
+                    ? t(lang, "Submit for Approval", "à¶…à¶±à·”à¶¸à·à¶­à·’à¶º à·ƒà¶³à·„à· à¶ºà·œà¶¸à·” à¶šà¶»à¶±à·Šà¶±")
+                    : t(lang, "Add Item", "à¶·à·à¶«à·Šà¶© à¶‘à¶šà¶­à·” à¶šà¶»à¶±à·Šà¶±")}
                 </span>
               )}
             </button>
           </div>
         </form>
       </div>
+      {categoryModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="presentation">
+          <button type="button" aria-label="Close dialog" onClick={() => !savingCategory && setCategoryModalOpen(false)} className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" />
+          <section role="dialog" aria-modal="true" aria-labelledby="secondary-category-title" className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+              <div>
+                <h2 id="secondary-category-title" className="text-base font-bold text-slate-900">Add Secondary Category</h2>
+                <p className="mt-1 text-xs text-slate-500">Create a category for organizing warehouse inventory.</p>
+              </div>
+              <button type="button" disabled={savingCategory} aria-label="Close" onClick={() => setCategoryModalOpen(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"><X className="h-4 w-4" /></button>
+            </header>
+            <form onSubmit={handleCreateCategory}>
+              <div className="space-y-4 px-5 py-4">
+                {categoryError && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">{categoryError}</div>}
+                <div>
+                  <label htmlFor="secondary-main-category" className="mb-1.5 block text-xs font-bold text-slate-700">Main Category <span className="text-rose-500">*</span></label>
+                  <select id="secondary-main-category" value={mainCategoryId} disabled className="w-full h-10 rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-700">
+                    {mainCategories.filter((category) => String(category.id) === mainCategoryId).map((category) => <option key={category.id} value={category.id}>{category.name_en}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="secondary-category-name" className="mb-1.5 block text-xs font-bold text-slate-700">Secondary Category Name <span className="text-rose-500">*</span></label>
+                  <input id="secondary-category-name" autoFocus maxLength={100} required value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="e.g. Pens, Papers, CR Books" disabled={savingCategory} className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" />
+                  <p className="mt-1 text-[11px] text-slate-400">{categoryName.length}/100 characters</p>
+                </div>
+                <div>
+                  <label htmlFor="secondary-category-description" className="mb-1.5 block text-xs font-bold text-slate-700">Description</label>
+                  <textarea id="secondary-category-description" maxLength={500} rows={3} value={categoryDescription} onChange={(event) => setCategoryDescription(event.target.value)} placeholder="Optional description of this category" disabled={savingCategory} className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" />
+                </div>
+              </div>
+              <footer className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-4">
+                <button type="button" disabled={savingCategory} onClick={() => setCategoryModalOpen(false)} className="h-10 rounded-xl border border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-white disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={savingCategory} className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-500 disabled:opacity-50">
+                  {savingCategory && <Loader2 className="h-4 w-4 animate-spin" />}{savingCategory ? "Saving..." : "Save Category"}
+                </button>
+              </footer>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

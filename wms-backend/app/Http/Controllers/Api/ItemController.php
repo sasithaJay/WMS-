@@ -17,7 +17,8 @@ class ItemController extends Controller
         $query = Item::query()
             ->with([
                 'division:id,name_en,name_si',
-                'category:id,name_en,name_si,code',
+                'category:id,parent_category_id,name_en,name_si,code',
+                'category.parent:id,name_en,name_si',
                 'unit:id,name_en,name_si,symbol',
                 'balance:item_id,quantity_on_hand,reserved_quantity',
             ]);
